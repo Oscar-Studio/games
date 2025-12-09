@@ -90,43 +90,17 @@
             background-color: var(--btn-hover);
         }
 
-        /* Modal for Game Over */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            justify-content: center;
+
+        .message-area {
+            height: 30px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-top: 10px;
+            min-height: 40px;
+            display: flex;
             align-items: center;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 30px 50px;
-            border-radius: 10px;
-            text-align: center;
-            animation: popIn 0.3s ease-out;
-        }
-
-        @keyframes popIn {
-            from {
-                transform: scale(0.8);
-                opacity: 0;
-            }
-
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-
-        .modal-title {
-            font-size: 2rem;
-            margin-bottom: 20px;
-            color: var(--text-color);
+            justify-content: center;
         }
     </style>
 </head>
@@ -144,26 +118,22 @@
         </div>
 
         <canvas id="board" width="450" height="450"></canvas>
+        <div id="messageArea" class="message-area"></div>
+
 
         <div class="controls">
             <button onclick="resetGame()">重新开始</button>
         </div>
     </div>
 
-    <div id="gameOverModal" class="modal-overlay">
-        <div class="modal-content">
-            <div id="winnerMessage" class="modal-title">黑棋获胜!</div>
-            <button onclick="closeModalAndReset()">再来一局</button>
-        </div>
-    </div>
+
 
     <script>
         const canvas = document.getElementById('board');
         const ctx = canvas.getContext('2d');
         const turnIndicator = document.getElementById('turnIndicator');
         const turnText = document.getElementById('turnText');
-        const modal = document.getElementById('gameOverModal');
-        const winnerMessage = document.getElementById('winnerMessage');
+        const messageArea = document.getElementById('messageArea');
 
         // Game Config
         const GRID_SIZE = 15;
@@ -182,6 +152,7 @@
             currentPlayer = 1;
             gameOver = false;
             lastMove = null;
+            messageArea.textContent = '';
             updateUI();
             drawBoard();
         }
@@ -297,9 +268,7 @@
             // Check win
             if (checkWin(row, col, currentPlayer)) {
                 gameOver = true;
-                setTimeout(() => {
-                    showWinModal(currentPlayer);
-                }, 100);
+                showWinMessage(currentPlayer);
                 return;
             }
 
@@ -354,19 +323,14 @@
             return false;
         }
 
-        function showWinModal(player) {
-            winnerMessage.textContent = (player === 1 ? '黑棋' : '白棋') + ' 获胜!';
-            modal.style.display = 'flex';
-        }
-
-        function closeModalAndReset() {
-            modal.style.display = 'none';
-            resetGame();
+        function showWinMessage(player) {
+            messageArea.textContent = (player === 1 ? '黑棋' : '白棋') + ' 获胜!';
         }
 
         function resetGame() {
-            initGame();
-            modal.style.display = 'none';
+            if (confirm('确定要重新开始游戏吗？')) {
+                initGame();
+            }
         }
 
         // Start
