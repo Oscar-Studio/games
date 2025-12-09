@@ -17,6 +17,15 @@
             ],
             "icon": "♟️",
             "featured": false
+        },
+        {
+            "name": "舒尔特方格",
+            "description": "舒尔特方格棋盘",
+            "tags": [
+                "数字"
+            ],
+            "icon": "♟️",
+            "featured": false
         }
     ]
 }
