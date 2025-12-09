@@ -263,7 +263,7 @@
     <div id="info-panel">
         <div class="turn-indicator" id="turn-display">红方回合</div>
         <div id="status-text"></div>
-        <button onclick="startGame()">重置游戏</button>
+        <button onclick="resetGame()">重置游戏</button>
     </div>
 
     <script>
@@ -669,6 +669,12 @@
         }
 
         // Start
+        function resetGame() {
+            if (confirm("确定要重新开始游戏吗？")) {
+                startGame();
+            }
+        }
+
         startGame();
 
     </script>
