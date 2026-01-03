@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>技能五子棋 - 益智游戏</title>
+    <script defer src="https://cloud.umami.is/script.js"
+        data-website-id="cbc5311f-d106-4566-853d-1376d4f4774b"></script>
+    <style>
+        :root {
+            --board-color: #DEB887;
+            --bg-color: #1a1a2e;
+            --panel-bg: rgba(255, 255, 255, 0.05);
+            --text-color: #e0e0e0;
+            --player1-color: #00d2ff;
+            --player2-color: #f5f5f5;
+            --accent-color: #ff2e63;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .game-wrapper {
+            display: flex;
+            align-items: flex-start;
+            gap: 40px;
+            padding: 30px;
+            background: radial-gradient(circle at center, #16213e 0%, #0f3460 100%);
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .player-panel {
+            width: 250px;
+            padding: 20px;
+            background: var(--panel-bg);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .player-panel.active {
+            border-color: var(--accent-color);
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 46, 99, 0.2);
+        }
+
+        .player-info {
+            text-align: center;
+        }
+
+        .player-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .player1 .player-name {
+            color: var(--player1-color);
+        }
+
+        .player2 .player-name {
+            color: var(--player2-color);
+        }
+
+        .energy-container {
+            width: 100%;
+            height: 25px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12.5px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .energy-bar {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease, background 0.3s ease;
+        }
+
+        .player1 .energy-bar {
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+        }
+
+        .player2 .energy-bar {
+            background: linear-gradient(90deg, #e0e0e0, #8e9eab);
+        }
+
+        .energy-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .skills-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .skill-btn {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .skill-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: var(--accent-color);
+        }
+
+        .skill-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .skill-name {
+            font-weight: bold;
+            display: block;
+        }
+
+        .skill-cost {
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+
+        .board-container {
+            position: relative;
+        }
+
+        canvas {
+            background-color: var(--board-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            cursor: crosshair;
+        }
+
+        .game-info {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .message-box {
+            height: 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+        }
+
+        .logs {
+            width: 100%;
+            max-width: 600px;
+            height: 100px;
+            background: var(--panel-bg);
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 0.9rem;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 20px;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-reset {
+            padding: 12px 30px;
+            background: var(--accent-color);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 46, 99, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-reset:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 46, 99, 0.5);
+        }
+
+        /* Overlay for area selection */
+        #selection-overlay {
+            position: absolute;
+            pointer-events: none;
+            display: none;
+            border: 2px dashed white;
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="game-wrapper">
+        <!-- Player 1 Panel -->
+        <div id="player1" class="player-panel player1 active">
+            <div class="player-info">
+                <div class="player-name">黑方 (P1)</div>
+                <div class="energy-container">
+                    <div id="p1-energy-bar" class="energy-bar"></div>
+                    <div id="p1-energy-text" class="energy-text">0 / 100</div>
+                </div>
+            </div>
+            <div class="skills-list">
+                <button class="skill-btn" onclick="useSkill('fei-sha', 1)" id="p1-skill-1" title="指定对手的一颗棋子，将其从棋盘上移除">
+                    <span class="skill-name">飞沙走石</span>
+                    <span class="skill-cost">15 能量</span>
+                </button>
+                <button class="skill-btn" onclick="useSkill('li-ba', 1)" id="p1-skill-2"
+                    title="在棋盘上“砸”出一个3x3的坑，该区域所有棋子消失，且回合内对方无法落子">
+                    <span class="skill-name">力拔山兮</span>
+                    <span class="skill-cost">25 能量</span>
+                </button>
+                <button class="skill-btn" onclick="useSkill('jing-ru', 1)" id="p1-skill-3"
+                    title="让一名对手的下回合被冻结，只能跳过（表现为自己连下两颗子）">
+                    <span class="skill-name">静如止水</span>
+                    <span class="skill-cost">35 能量</span>
+                </button>
+                <button class="skill-btn" onclick="useSkill('shi-guang', 1)" id="p1-skill-4"
+                    title="回溯到上回合开始时的状态即上次自己落子后，同时自己可以再下一颗子">
+                    <span class="skill-name">时光倒流</span>
+                    <span class="skill-cost">50 能量</span>
+                </button>
+                <button class="skill-btn" onclick="useSkill('liang-ji', 1)" id="p1-skill-5"
+                    title="瞬间与一名对手交换棋盘状态（包括棋子位置和能量）">
+                    <span class="skill-name">两级反转</span>
+                    <span class="skill-cost">50 能量</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="main-area">
+            <div id="messageBox" class="message-box"></div>
+            <div class="board-container">
+                <canvas id="board" width="640" height="640"></canvas>
+                <div id="selection-overlay"></div>
+            </div>
+            <div class="game-info">
+                <button class="btn-reset" onclick="resetGame()">重新开始</button>
+            </div>
+            <div id="logs" class="logs">
+                <div class="log-entry">游戏开始！黑方先行。</div>
+            </div>
+        </div>
+
+        <!-- Player 2 Panel -->
+        <div id="player2" class="player-panel player2">
+            <div class="player-info">
+                <div class="player-name">白方 (P2)</div>
+                <div class="energy-container">
+                    <div id="p2-energy-bar" class="energy-bar"></div>
+                    <div id="p2-energy-text" class="energy-text">0 / 100</div>
+                </div>
+            </div>
+            <div class="skills-list">
+                <button class="skill-btn" onclick="useSkill('fei-sha', 2)" id="p2-skill-1">
+                    <span class="skill-name">飞沙走石</span>
+                    <span class="skill-cost">15 能量</span>
+                </button>
+                <button class="skill-btn" onclick="useSkill('li-ba', 2)" id="p2-skill-2">
+                    <span class="skill-name">力拔山兮</span>
+                    <span class="skill-cost">25 能量</span>
+                </button>
+                <button class="skill-btn" onclick="useSkill('jing-ru', 2)" id="p2-skill-3">
+                    <span class="skill-name">静如止水</span>
+                    <span class="skill-cost">35 能量</span>
+                </button>
+                <button class="skill-btn" onclick="useSkill('shi-guang', 2)" id="p2-skill-4">
+                    <span class="skill-name">时光倒流</span>
+                    <span class="skill-cost">50 能量</span>
+                </button>
+                <button class="skill-btn" onclick="useSkill('liang-ji', 2)" id="p2-skill-5">
+                    <span class="skill-name">两级反转</span>
+                    <span class="skill-cost">50 能量</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const GRID_SIZE = 15;
+        const CELL_SIZE = 40;
+        const PADDING = 20;
+        const MAX_ENERGY = 100;
+
+        const SKILLS = {
+            'fei-sha': { name: '飞沙走石', cost: 15 },
+            'li-ba': { name: '力拔山兮', cost: 25 },
+            'jing-ru': { name: '静如止水', cost: 35 },
+            'shi-guang': { name: '时光倒流', cost: 50 },
+            'liang-ji': { name: '两级反转', cost: 50 },
+        };
+
+        // DOM elements
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+        const messageBox = document.getElementById('messageBox');
+        const logsContainer = document.getElementById('logs');
+        const overlay = document.getElementById('selection-overlay');
+
+        // Game State
+        let board = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0)); // 0: empty, 1: P1, 2: P2
+        let gridStatus = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0)); // 0: normal, 1: blocked
+        let energy = [0, 0, 0]; // [p0 (unused), p1, p2]
+        let currentPlayer = 1;
+        let gameOver = false;
+        let lastMove = null;
+        let p1SkipNext = false;
+        let p2SkipNext = false;
+        let history = []; // Stack of states
+        let energyInterval = null;
+        let skillUsedThisTurn = false;
+        let restrictedSkillUsed = false;
+        let playerToColor = { 1: 1, 2: 2 }; // Mapping from Player Index to Stone Color (1: Black, 2: White)
+        let playerRoles = { 1: { name: '黑方', class: 'player1' }, 2: { name: '白方', class: 'player2' } };
+
+        function initGame() {
+            board = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
+            gridStatus = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
+            energy = [0, 0, 0];
+            currentPlayer = 1;
+            gameOver = false;
+            lastMove = null;
+            p1SkipNext = false;
+            p2SkipNext = false;
+            history = [];
+            selectionMode = null;
+            skillUsedThisTurn = false;
+            restrictedSkillUsed = false;
+            playerToColor = { 1: 1, 2: 2 };
+            playerRoles = { 1: { name: '黑方', class: 'player1' }, 2: { name: '白方', class: 'player2' } };
+            messageBox.textContent = "";
+
+            saveState(); // Save initial state
+            startEnergyTicker();
+            updateUI();
+            drawBoard();
+            addLog("游戏开始！黑方先行。");
+        }
+
+        function startEnergyTicker() {
+            if (energyInterval) clearInterval(energyInterval);
+            energyInterval = setInterval(() => {
+                if (gameOver) return;
+                // Increase OPPONENT energy
+                const opponent = currentPlayer === 1 ? 2 : 1;
+                addEnergy(opponent, 1);
+                updateUI();
+            }, 1000);
+        }
+
+        function addEnergy(player, amount) {
+            energy[player] = Math.min(MAX_ENERGY, energy[player] + amount);
+        }
+
+        function updateUI() {
+            // Update Energy Bars
+            for (let i = 1; i <= 2; i++) {
+                const bar = document.getElementById(`p${i}-energy-bar`);
+                const text = document.getElementById(`p${i}-energy-text`);
+                const percent = (energy[i] / MAX_ENERGY) * 100;
+                bar.style.width = `${percent}%`;
+                text.textContent = `${Math.floor(energy[i])} / ${MAX_ENERGY}`;
+
+                // Update Panel Active State & Names
+                const panel = document.getElementById(`player${i}`);
+                panel.classList.toggle('active', currentPlayer === i && !gameOver);
+
+                // Set roles and classes
+                const nameEl = panel.querySelector('.player-name');
+                const roleData = playerRoles[i];
+                nameEl.textContent = `${roleData.name} (P${i})`;
+
+                // Clear existing role classes and add current one
+                panel.classList.remove('player1', 'player2');
+                panel.classList.add(roleData.class);
+
+                // Update Skill Buttons
+                for (let k = 1; k <= 5; k++) {
+                    const btn = document.getElementById(`p${i}-skill-${k}`);
+                    const skillId = Object.keys(SKILLS)[k - 1];
+                    const skill = SKILLS[skillId];
+                    const canAfford = energy[i] >= skill.cost;
+                    const isMyTurn = currentPlayer === i;
+                    btn.disabled = gameOver || !isMyTurn || !canAfford || selectionMode !== null;
+                }
+            }
+        }
+
+        function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid lines
+            ctx.strokeStyle = '#5d4037';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < GRID_SIZE; i++) {
+                // Horizontal
+                ctx.beginPath();
+                ctx.moveTo(PADDING + CELL_SIZE / 2, PADDING + i * CELL_SIZE + CELL_SIZE / 2);
+                ctx.lineTo(PADDING + (GRID_SIZE - 1) * CELL_SIZE + CELL_SIZE / 2, PADDING + i * CELL_SIZE + CELL_SIZE / 2);
+                ctx.stroke();
+
+                // Vertical
+                ctx.beginPath();
+                ctx.moveTo(PADDING + i * CELL_SIZE + CELL_SIZE / 2, PADDING + CELL_SIZE / 2);
+                ctx.lineTo(PADDING + i * CELL_SIZE + CELL_SIZE / 2, PADDING + (GRID_SIZE - 1) * CELL_SIZE + CELL_SIZE / 2);
+                ctx.stroke();
+            }
+
+            // Star points
+            const stars = [3, 7, 11];
+            ctx.fillStyle = '#5d4037';
+            for (let r of stars) {
+                for (let c of stars) {
+                    ctx.beginPath();
+                    ctx.arc(PADDING + c * CELL_SIZE + CELL_SIZE / 2, PADDING + r * CELL_SIZE + CELL_SIZE / 2, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Stones & Status
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (gridStatus[r][c] === 1) { // Blocked zone
+                        ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+                        ctx.fillRect(PADDING + c * CELL_SIZE + 2, PADDING + r * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+                    }
+                    if (board[r][c] !== 0) {
+                        drawStone(c, r, board[r][c]);
+                    }
+                }
+            }
+
+            // Last move marker
+            if (lastMove) {
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(PADDING + lastMove.col * CELL_SIZE + CELL_SIZE / 2, PADDING + lastMove.row * CELL_SIZE + CELL_SIZE / 2, 18, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        function drawStone(col, row, player) {
+            const x = PADDING + col * CELL_SIZE + CELL_SIZE / 2;
+            const y = PADDING + row * CELL_SIZE + CELL_SIZE / 2;
+            const radius = 18;
+
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+
+            const gradient = ctx.createRadialGradient(x - 5, y - 5, 2, x, y, radius);
+            if (player === 1) {
+                gradient.addColorStop(0, '#666');
+                gradient.addColorStop(1, '#000');
+            } else {
+                gradient.addColorStop(0, '#fff');
+                gradient.addColorStop(1, '#ccc');
+            }
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            ctx.strokeStyle = player === 1 ? '#333' : '#999';
+            ctx.stroke();
+        }
+
+        canvas.addEventListener('click', (e) => {
+            if (gameOver) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const col = Math.floor((x - PADDING) / CELL_SIZE);
+            const row = Math.floor((y - PADDING) / CELL_SIZE);
+
+            if (col < 0 || col >= GRID_SIZE || row < 0 || row >= GRID_SIZE) return;
+
+            if (selectionMode === 'fei-sha') {
+                const opponentColor = playerToColor[currentPlayer === 1 ? 2 : 1];
+                if (board[row][col] === opponentColor) {
+                    addLog(`${currentPlayer === 1 ? '黑方' : '白方'} 使用 飞沙走石，移除了 (${row}, ${col}) 的棋子`);
+                    board[row][col] = 0;
+                    selectionMode = null;
+                    messageBox.textContent = "";
+                    drawBoard();
+                    updateUI();
+                } else {
+                    messageBox.textContent = "请选择对方的棋子移除！";
+                }
+                return;
+            }
+
+            if (selectionMode === 'li-ba') {
+                addLog(`${currentPlayer === 1 ? '黑方' : '白方'} 使用 力拔山兮，在 (${row}, ${col}) 造成大坑`);
+                for (let r = row - 1; r <= row + 1; r++) {
+                    for (let c = col - 1; c <= col + 1; c++) {
+                        if (r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE) {
+                            board[r][c] = 0;
+                            gridStatus[r][c] = 1; // Blocked
+                        }
+                    }
+                }
+                selectionMode = null;
+                messageBox.textContent = "";
+                drawBoard();
+                updateUI();
+                return;
+            }
+
+            // Normal Move
+            if (board[row][col] !== 0) return;
+            if (gridStatus[row][col] === 1) {
+                messageBox.textContent = "此处已被破坏，本回合无法落子！";
+                return;
+            }
+
+            board[row][col] = playerToColor[currentPlayer];
+            lastMove = { row, col };
+            drawBoard();
+
+            if (checkWin(row, col, playerToColor[currentPlayer])) {
+                const opponentEnergy = energy[currentPlayer === 1 ? 2 : 1];
+                if (opponentEnergy < 15) {
+                    endGame(currentPlayer);
+                    return;
+                } else {
+                    addLog(`五子连珠！但对方仍有能量施放技能。`);
+                    messageBox.textContent = "对方仍有能量反击！";
+                }
+            }
+
+            switchTurn();
+        });
+
+        function switchTurn() {
+            saveState();
+            skillUsedThisTurn = false;
+            restrictedSkillUsed = false;
+            // Clear current player's blocked markers before switching? 
+            // The rule says "回合内对方无法落子". This means the current player's action blocks the NEXT turn of the opponent.
+            // Wait, let's re-read: "回合内对方无法落子". 
+            // I'll clear ALL gridStatus[r][c] = 1 at the END of the turn where it was applied? 
+            // Or better: clear blocked status when it's the blocked person's turn to START.
+
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+
+            // Handle block clear
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (gridStatus[r][c] === 1) gridStatus[r][c] = 2; // Mark as "was blocked"
+                    else if (gridStatus[r][c] === 2) gridStatus[r][c] = 0; // Clear
+                }
+            }
+
+            // Handle skip next (Frozen)
+            if (currentPlayer === 1 && p1SkipNext) {
+                p1SkipNext = false;
+                addLog("黑方被冻结，跳过回合！");
+                currentPlayer = 2;
+            } else if (currentPlayer === 2 && p2SkipNext) {
+                p2SkipNext = false;
+                addLog("白方被冻结，跳过回合！");
+                currentPlayer = 1;
+            }
+
+            updateUI();
+        }
+
+        function checkWin(row, col, player) {
+            const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+            for (let [dr, dc] of dirs) {
+                let count = 1;
+                for (let i = 1; i < 5; i++) {
+                    const r = row + dr * i, c = col + dc * i;
+                    if (r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE && board[r][c] === player) count++; else break;
+                }
+                for (let i = 1; i < 5; i++) {
+                    const r = row - dr * i, c = col - dc * i;
+                    if (r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE && board[r][c] === player) count++; else break;
+                }
+                if (count >= 5) return true;
+            }
+            return false;
+        }
+
+        function useSkill(type, player) {
+            if (currentPlayer !== player || gameOver) return;
+
+            if (type === 'shi-guang' || type === 'liang-ji') {
+                if (skillUsedThisTurn) {
+                    messageBox.textContent = "时光倒流和两级反转不能与其他技能连用！";
+                    return;
+                }
+            } else if (restrictedSkillUsed) {
+                messageBox.textContent = "本回合已使用过限制级技能！";
+                return;
+            }
+
+            const skill = SKILLS[type];
+            if (energy[player] < skill.cost) return;
+
+            if (type === 'fei-sha') {
+                selectionMode = 'fei-sha';
+                messageBox.textContent = "请点击要移除的对方棋子";
+                energy[player] -= skill.cost;
+                skillUsedThisTurn = true;
+            } else if (type === 'li-ba') {
+                selectionMode = 'li-ba';
+                messageBox.textContent = "请选择轰击区域中心 (3x3)";
+                energy[player] -= skill.cost;
+                skillUsedThisTurn = true;
+            } else if (type === 'jing-ru') {
+                addLog(`${player === 1 ? '黑方' : '白方'} 使用 静如止水，冻结对方下一回合`);
+                if (player === 1) p2SkipNext = true; else p1SkipNext = true;
+                energy[player] -= skill.cost;
+                skillUsedThisTurn = true;
+            } else if (type === 'shi-guang') {
+                if (history.length < 2) {
+                    addLog("刚开始，无法回溯！");
+                    return;
+                }
+                addLog(`${player === 1 ? '黑方' : '白方'} 使用 时光倒流！`);
+
+                const prevState = history.pop();
+                const targetState = history.pop();
+                applyState(targetState);
+
+                // Deduct energy from the REVERTED state
+                energy[player] = Math.max(0, energy[player] - skill.cost);
+                skillUsedThisTurn = true;
+                restrictedSkillUsed = true;
+            } else if (type === 'liang-ji') {
+                addLog(`${player === 1 ? '黑方' : '白方'} 使用 两级反转！`);
+
+                // Deduct energy from caster before swap
+                energy[player] -= skill.cost;
+
+                // Swap energy
+                const tempEnergy = energy[1];
+                energy[1] = energy[2];
+                energy[2] = tempEnergy;
+
+                // Swap mapping (Player becomes the other's color)
+                const tempColor = playerToColor[1];
+                playerToColor[1] = playerToColor[2];
+                playerToColor[2] = tempColor;
+
+                // Swap roles (names/styles)
+                const tempRole = playerRoles[1];
+                playerRoles[1] = playerRoles[2];
+                playerRoles[2] = tempRole;
+
+                // Swap skip flags
+                const tempSkip = p1SkipNext;
+                p1SkipNext = p2SkipNext;
+                p2SkipNext = tempSkip;
+
+                skillUsedThisTurn = true;
+                restrictedSkillUsed = true;
+                // Switch turn immediately as requested
+                setTimeout(switchTurn, 500);
+            }
+
+            updateUI();
+            drawBoard();
+        }
+
+        function saveState() {
+            const state = {
+                board: board.map(row => [...row]),
+                gridStatus: gridStatus.map(row => [...row]),
+                energy: [...energy],
+                currentPlayer,
+                p1SkipNext,
+                p2SkipNext,
+                playerToColor: { ...playerToColor },
+                playerRoles: JSON.parse(JSON.stringify(playerRoles)),
+                lastMove: lastMove ? { ...lastMove } : null
+            };
+            history.push(JSON.stringify(state));
+            if (history.length > 20) history.shift();
+        }
+
+        function applyState(stateJson) {
+            const state = JSON.parse(stateJson);
+            board = state.board;
+            gridStatus = state.gridStatus;
+            energy = state.energy;
+            currentPlayer = state.currentPlayer;
+            p1SkipNext = state.p1SkipNext;
+            p2SkipNext = state.p2SkipNext;
+            playerToColor = state.playerToColor;
+            playerRoles = state.playerRoles;
+            lastMove = state.lastMove;
+            drawBoard();
+            updateUI();
+        }
+
+        function addLog(msg) {
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logsContainer.prepend(div);
+        }
+
+        function endGame(winner) {
+            gameOver = true;
+            const color = winner === 1 ? '黑方' : '白方';
+            messageBox.textContent = `${color} 获胜！(对方无能量反制)`;
+            addLog(`游戏结束！${color} 获胜。`);
+            clearInterval(energyInterval);
+            updateUI();
+        }
+
+        function resetGame() {
+            if (confirm("确定要重置游戏吗？")) {
+                initGame();
+            }
+        }
+
+        initGame();
+    </script>
+</body>
+
+</html>

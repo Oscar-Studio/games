@@ -1,0 +1,50 @@
+{
+    "tools": [
+        {
+            "name": "五子棋",
+            "description": "五子棋棋盘",
+            "tags": [
+                "棋类"
+            ],
+            "icon": "♟️",
+            "featured": false
+        },
+        {
+            "name": "中国象棋",
+            "description": "中国象棋棋盘",
+            "tags": [
+                "棋类"
+            ],
+            "icon": "♟️",
+            "featured": false
+        },
+        {
+            "name": "舒尔特方格",
+            "description": "练习专注力和对数字敏感程度的舒尔特方格游戏",
+            "tags": [
+                "数字",
+                "专注"
+            ],
+            "icon": "♟️",
+            "featured": false
+        },
+        {
+            "name": "2048",
+            "description": "简单好玩的2048游戏",
+            "tags": [
+                "数字"
+            ],
+            "icon": "♟️",
+            "featured": false
+        },
+        {
+            "name": "技能五子棋",
+            "description": "全新的技能五子棋游戏",
+            "tags": [
+                "棋类"
+            ],
+            "icon": "♟️",
+            "featured": true
+        }
+    ]
+}

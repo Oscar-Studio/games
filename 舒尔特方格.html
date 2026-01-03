@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>舒尔特方格 - 益智游戏</title>
+    <script defer src="https://cloud.umami.is/script.js"
+        data-website-id="cbc5311f-d106-4566-853d-1376d4f4774b"></script>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --primary-hover: #357abd;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --text-secondary: #666;
+            --border-color: #ddd;
+            --accent-color: #ff6b6b;
+            --success-color: #52c41a;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 2.2rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Home Screen Styles */
+        .level-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            width: 100%;
+        }
+
+        .level-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .level-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .level-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .level-record {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .record-time {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        /* Game Screen Styles */
+        .game-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .info-item {
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .info-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
+        }
+
+        #timer {
+            color: var(--primary-color);
+        }
+
+        .grid-container {
+            background: var(--card-bg);
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            touch-action: manipulation;
+            /* Improves touch response */
+        }
+
+        .grid {
+            display: grid;
+            gap: 8px;
+        }
+
+        .cell {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #0050b3;
+            cursor: pointer;
+            user-select: none;
+            aspect-ratio: 1;
+            transition: all 0.1s ease;
+        }
+
+        .cell:active {
+            transform: scale(0.95);
+        }
+
+        .cell.clicked {
+            background: #f6ffed;
+            border-color: #b7eb8f;
+            color: #389e0d;
+            animation: fadeOut 0.3s forwards;
+            opacity: 0.6;
+        }
+
+        .cell.error-shake {
+            animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
+            background: #fff1f0;
+            border-color: #ffa39e;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            animation: popIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--text-color);
+        }
+
+        .final-time {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .new-record-badge {
+            display: inline-block;
+            background: var(--accent-color);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.5s ease;
+        }
+
+        .new-record-badge.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex: 1;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+        }
+
+        /* Back Button */
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .back-btn:hover {
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container" id="homeScreen">
+        <div class="header">
+            <h1>舒尔特方格</h1>
+            <div class="subtitle">选择难度开始挑战</div>
+        </div>
+        <div class="level-list" id="levelList">
+            <!-- Level cards generated by JS -->
+        </div>
+    </div>
+
+    <div class="container game-screen" id="gameScreen">
+        <button class="back-btn" onclick="goHome()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            返回
+        </button>
+
+        <div class="game-info">
+            <div class="info-item">
+                <div class="info-label">当前目标</div>
+                <div class="info-value" id="currentTarget">1</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">时间</div>
+                <div class="info-value" id="timer">00:00.000</div>
+            </div>
+        </div>
+
+        <div class="grid-container" id="gridContainer">
+            <div class="grid" id="grid">
+                <!-- Grid cells generated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="resultModal">
+        <div class="modal">
+            <div class="modal-title">挑战完成!</div>
+            <div class="new-record-badge" id="newRecordBadge">打破记录! 🏆</div>
+            <div class="final-time" id="finalTimeDisplay">00:00.000</div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="goHome()">回到首页</button>
+                <button class="btn btn-primary" onclick="restartGame()">再来一次</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentSize = 3;
+        let currentNumber = 1;
+        let startTime = 0;
+        let timerInterval = null;
+        let isPlaying = false;
+        let isTimerRunning = false;
+
+        // Elements
+        const homeScreen = document.getElementById('homeScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const levelList = document.getElementById('levelList');
+        const grid = document.getElementById('grid');
+        const gridContainer = document.getElementById('gridContainer');
+        const currentTargetDisplay = document.getElementById('currentTarget');
+        const timerDisplay = document.getElementById('timer');
+        const resultModal = document.getElementById('resultModal');
+        const finalTimeDisplay = document.getElementById('finalTimeDisplay');
+        const newRecordBadge = document.getElementById('newRecordBadge');
+
+        // Helpers
+        function formatTime(ms) {
+            const minutes = Math.floor(ms / 60000);
+            const seconds = Math.floor((ms % 60000) / 1000);
+            const milliseconds = Math.floor(ms % 1000);
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+        }
+
+        function getRecord(size) {
+            return localStorage.getItem(`schulte_record_${size}`);
+        }
+
+        function saveRecord(size, ms) {
+            localStorage.setItem(`schulte_record_${size}`, ms);
+        }
+
+        // Initialization
+        function initHome() {
+            levelList.innerHTML = '';
+            for (let i = 2; i <= 10; i++) {
+                const record = getRecord(i);
+                const recordText = record ? formatTime(record) : '暂无记录';
+
+                const card = document.createElement('div');
+                card.className = 'level-card';
+                card.onclick = () => preloadGame(i);
+                card.innerHTML = `
+                    <div class="level-title">${i} × ${i}</div>
+                    <div class="level-record">最佳: <span class="record-time">${recordText}</span></div>
+                `;
+                levelList.appendChild(card);
+            }
+        }
+
+        function preloadGame(size) {
+            currentSize = size;
+            homeScreen.style.display = 'none';
+            gameScreen.style.display = 'flex';
+            resetGameState();
+            initGrid();
+        }
+
+        function resetGameState() {
+            currentNumber = 1;
+            startTime = 0;
+            isPlaying = true;
+            isTimerRunning = false;
+            clearInterval(timerInterval);
+            timerDisplay.textContent = '00:00.000';
+            currentTargetDisplay.textContent = '1';
+            resultModal.style.display = 'none';
+        }
+
+        function initGrid() {
+            grid.innerHTML = '';
+
+            // Generate numbers
+            const totalCells = currentSize * currentSize;
+            const numbers = Array.from({ length: totalCells }, (_, i) => i + 1);
+
+            // Shuffle (Fisher-Yates)
+            for (let i = numbers.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+            }
+
+            // Set Grid CSS
+            grid.style.gridTemplateColumns = `repeat(${currentSize}, 1fr)`;
+
+            // Calculate optimal cell size based on screen width
+            // Container width is usually max 600px - padding
+            // Let's make it responsive. Base font size adjusts too.
+            const containerWidth = Math.min(window.innerWidth - 40, 560);
+            const gap = 8;
+            const cellSize = (containerWidth - (gap * (currentSize - 1))) / currentSize;
+
+            // Create cells
+            numbers.forEach(num => {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.textContent = num;
+                cell.style.height = `${cellSize}px`;
+                // Dynamic font size: smaller grids get bigger text
+                cell.style.fontSize = `${Math.max(16, cellSize * 0.4)}px`;
+
+                cell.onmousedown = (e) => { e.preventDefault(); }; // prevent selection
+                cell.onclick = () => handleCellClick(cell, num);
+
+                grid.appendChild(cell);
+            });
+        }
+
+        function startTimer() {
+            if (isTimerRunning) return;
+            isTimerRunning = true;
+            startTime = performance.now();
+            timerInterval = setInterval(() => {
+                const current = performance.now();
+                timerDisplay.textContent = formatTime(current - startTime);
+            }, 37); // ~27fps update for display
+        }
+
+        function handleCellClick(cell, number) {
+            if (!isPlaying) return;
+
+            if (number === currentNumber) {
+                // Correct click
+
+                // If it's the first number, start timer
+                if (number === 1) {
+                    startTimer();
+                }
+
+                // Visual feedback
+                cell.classList.add('clicked');
+
+                // Game Over Check
+                if (currentNumber === currentSize * currentSize) {
+                    endGame();
+                } else {
+                    currentNumber++;
+                    currentTargetDisplay.textContent = currentNumber;
+                }
+            } else {
+                // Wrong click
+                cell.classList.remove('error-shake');
+                void cell.offsetWidth; // trigger reflow
+                cell.classList.add('error-shake');
+
+                // Optional: Penalties could be added here if desired
+            }
+        }
+
+        function endGame() {
+            isPlaying = false;
+            clearInterval(timerInterval);
+            const endTime = performance.now();
+            const elapsedTime = endTime - startTime;
+
+            // Check record
+            const currentRecord = getRecord(currentSize);
+            let isNewRecord = false;
+
+            if (!currentRecord || elapsedTime < parseFloat(currentRecord)) {
+                saveRecord(currentSize, elapsedTime);
+                isNewRecord = true;
+            }
+
+            // Show Result
+            finalTimeDisplay.textContent = formatTime(elapsedTime);
+            if (isNewRecord) {
+                newRecordBadge.classList.add('show');
+            } else {
+                newRecordBadge.classList.remove('show');
+            }
+
+            setTimeout(() => {
+                resultModal.style.display = 'flex';
+            }, 300);
+        }
+
+        function goHome() {
+            resultModal.style.display = 'none';
+            gameScreen.style.display = 'none';
+            homeScreen.style.display = 'block';
+            clearInterval(timerInterval);
+            initHome(); // Refresh records
+        }
+
+        function restartGame() {
+            resultModal.style.display = 'none';
+            preloadGame(currentSize);
+        }
+
+        // Initialize on load
+        initHome();
+
+    </script>
+</body>
+
+</html>

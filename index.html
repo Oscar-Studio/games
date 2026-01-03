@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>益智小游戏</title>
+    <script defer src="https://cloud.umami.is/script.js"
+        data-website-id="cbc5311f-d106-4566-853d-1376d4f4774b"></script>
+    <style>
+        :root {
+            --primary-color: #2A5CAA;
+            --secondary-color: #00E5FF;
+            --accent-color: #6A00FF;
+            --light-color: #010409;
+            --dark-color: #ffffff;
+            --success-color: #28a745;
+            --card-bg: #0d1117;
+            --card-border: 1px solid #30363d;
+            --card-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            --transition: all 0.3s ease;
+            --text-secondary: #8b949e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: var(--light-color);
+            color: var(--dark-color);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+
+        .search-container {
+            margin-bottom: 30px;
+            position: relative;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .search-container input {
+            width: 100%;
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: 1px solid #30363d;
+            background: #161b22;
+            color: var(--dark-color);
+            font-size: 1rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .search-container input:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.2);
+        }
+
+        .categories {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 40px;
+        }
+
+        .category-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #30363d;
+            background: #161b22;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .category-btn:hover,
+        .category-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .tool-card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            border: var(--card-border);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6);
+            border-color: var(--secondary-color);
+        }
+
+        .tool-icon {
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+            font-size: 3rem;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .tool-content {
+            padding: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tool-content h3 {
+            margin-bottom: 10px;
+            color: var(--dark-color);
+            font-size: 1.2rem;
+        }
+
+        .tool-content p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            flex-grow: 1;
+            line-height: 1.5;
+        }
+
+        .tool-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .tool-tag {
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            background: #161b22;
+            color: var(--text-secondary);
+            border-radius: 4px;
+            border: 1px solid #30363d;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .tool-tag:hover {
+            background: #21262d;
+            color: var(--secondary-color);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            text-align: center;
+        }
+
+        .btn:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .btn-block {
+            display: block;
+            width: 100%;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px 0;
+            color: var(--text-secondary);
+            border-top: 1px solid #30363d;
+            margin-top: 30px;
+        }
+
+        .featured {
+            border: 2px solid var(--accent-color);
+        }
+
+        .featured-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--accent-color);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #dc3545;
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 768px) {
+            .tools-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+
+            header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>益智游戏集</h1>
+            <p>一些益智小游戏</p>
+
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="搜索工具...">
+            </div>
+
+            <div class="categories" id="categoriesContainer">
+                <!-- 分类按钮将通过JavaScript动态生成 -->
+            </div>
+        </header>
+
+        <main>
+            <div class="tools-grid" id="toolsGrid">
+                <!-- 工具卡片将通过JavaScript动态生成 -->
+            </div>
+        </main>
+
+        <footer>
+            <p>益智游戏集 &copy; 2025 - Designed by Oscar</p>
+        </footer>
+    </div>
+
+    <script>
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function () {
+            const toolsGrid = document.getElementById('toolsGrid');
+            const searchInput = document.getElementById('searchInput');
+            const categoriesContainer = document.getElementById('categoriesContainer');
+
+            // 当前选中的分类
+            let currentCategory = 'all';
+            // 存储工具数据
+            let tools = [];
+
+            // 加载工具配置
+            loadToolsConfig();
+
+            // 从配置文件加载工具数据
+            function loadToolsConfig() {
+                toolsGrid.innerHTML = '<p class="loading">正在加载工具配置...</p>';
+
+                fetch('tools-config.json')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('配置文件加载失败');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        tools = data.tools || [];
+                        // Sort tools: featured first
+                        tools.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+                        initPage();
+                    })
+                    .catch(error => {
+                        console.error('加载工具配置时出错:', error);
+                        toolsGrid.innerHTML = '<p class="error">加载工具配置失败，请检查配置文件是否存在</p>';
+                    });
+
+            }
+
+            // 初始化页面
+            function initPage() {
+                // 生成分类按钮
+                generateCategoryButtons();
+
+                // 渲染工具卡片
+                renderTools(tools);
+
+                // 设置搜索功能
+                setupSearch();
+
+                // 设置分类功能
+                setupCategories();
+            }
+
+            // 生成分类按钮
+            function generateCategoryButtons() {
+                // 获取所有标签
+                const allTags = new Set();
+                tools.forEach(tool => {
+                    if (tool.tags && Array.isArray(tool.tags)) {
+                        tool.tags.forEach(tag => allTags.add(tag));
+                    }
+                });
+
+                // 创建分类按钮
+                let categoryButtonsHTML = '<button class="category-btn active" data-category="all">全部</button>';
+
+                // 按字母顺序排序标签
+                const sortedTags = Array.from(allTags).sort();
+
+                sortedTags.forEach(tag => {
+                    categoryButtonsHTML += `<button class="category-btn" data-category="${tag}">${tag}</button>`;
+                });
+
+                categoriesContainer.innerHTML = categoryButtonsHTML;
+            }
+
+            // 渲染工具卡片
+            function renderTools(toolsToRender) {
+                toolsGrid.innerHTML = '';
+
+                if (toolsToRender.length === 0) {
+                    toolsGrid.innerHTML = '<p class="no-results">没有找到匹配的工具</p>';
+                    return;
+                }
+
+                toolsToRender.forEach(tool => {
+                    const toolCard = document.createElement('div');
+                    toolCard.className = 'tool-card';
+                    if (tool.featured) {
+                        toolCard.classList.add('featured');
+                    }
+
+                    // 使用demoFile属性作为演示文件名，如果不存在则使用name属性
+                    const demoUrl = tool.demoFile || `${tool.name}.html`;
+
+                    toolCard.innerHTML = `
+                        ${tool.featured ? '<span class="featured-badge">推荐</span>' : ''}
+                        <div class="tool-icon">
+                            ${tool.icon || '📄📄'}
+                        </div>
+                        <div class="tool-content">
+                            <h3>${tool.name}</h3>
+                            <p>${tool.description}</p>
+                            <div class="tool-tags">
+                                ${(tool.tags || []).map(tag => `<span class="tool-tag ${currentCategory === tag ? 'active' : ''}" data-tag="${tag}">${tag}</span>`).join('')}
+                            </div>
+                            <a href="${demoUrl}" class="btn btn-block">进入演示</a>
+                        </div>
+                    `;
+
+                    toolsGrid.appendChild(toolCard);
+                });
+
+                // 为标签添加点击事件
+                document.querySelectorAll('.tool-tag').forEach(tag => {
+                    tag.addEventListener('click', function () {
+                        const tagName = this.dataset.tag;
+                        filterByTag(tagName);
+                    });
+                });
+            }
+
+            // 根据标签过滤工具
+            function filterByTag(tag) {
+                // 更新当前选中的标签
+                currentCategory = tag;
+
+                // 更新分类按钮状态
+                document.querySelectorAll('.category-btn').forEach(button => {
+                    if (button.dataset.category === tag) {
+                        button.classList.add('active');
+                    } else {
+                        button.classList.remove('active');
+                    }
+                });
+
+                // 过滤工具
+                if (tag === 'all') {
+                    renderTools(tools);
+                } else {
+                    const filteredTools = tools.filter(tool =>
+                        tool.tags && tool.tags.includes(tag)
+                    );
+                    renderTools(filteredTools);
+                }
+            }
+
+            // 设置搜索功能
+            function setupSearch() {
+                searchInput.addEventListener('input', function () {
+                    const searchTerm = this.value.toLowerCase();
+                    let filteredTools = tools;
+
+                    // 如果当前有选中的标签，先按标签过滤
+                    if (currentCategory !== 'all') {
+                        filteredTools = tools.filter(tool =>
+                            tool.tags && tool.tags.includes(currentCategory)
+                        );
+                    }
+
+                    // 再按搜索词过滤
+                    filteredTools = filteredTools.filter(tool =>
+                        tool.name.toLowerCase().includes(searchTerm) ||
+                        tool.description.toLowerCase().includes(searchTerm) ||
+                        (tool.tags && tool.tags.some(tag => tag.toLowerCase().includes(searchTerm)))
+                    );
+
+                    renderTools(filteredTools);
+                });
+            }
+
+            // 设置分类功能
+            function setupCategories() {
+                // 分类过滤
+                categoriesContainer.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('category-btn')) {
+                        const category = e.target.dataset.category;
+                        filterByTag(category);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
