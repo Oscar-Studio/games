@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词翻翻乐 - 益智游戏</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Noto+Sans+SC:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --bg: #0f172a;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --transition-speed: 0.3s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans SC', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.15) 0%, transparent 40%);
+        }
+
+        /* --- UI Layers --- */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--transition-speed);
+        }
+
+        .screen.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* --- Typography --- */
+        h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+            background: linear-gradient(to bottom right, #fff, #6366f1);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-dim);
+            margin-bottom: 3rem;
+        }
+
+        /* --- Buttons --- */
+        .btn {
+            padding: 1rem 2.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            border-radius: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            background: var(--primary-light);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--card-border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* --- Settings Button --- */
+        #settings-trigger {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            z-index: 100;
+        }
+
+        #settings-trigger:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: rotate(45deg);
+        }
+
+        #settings-trigger svg {
+            width: 1.5rem;
+            height: 1.5rem;
+            fill: var(--text-main);
+        }
+
+        /* --- Settings Modal --- */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--transition-speed);
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            padding: 2.5rem;
+            border-radius: 2rem;
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .close-modal {
+            cursor: pointer;
+            color: var(--text-dim);
+            transition: color var(--transition-speed);
+        }
+
+        .close-modal:hover {
+            color: white;
+        }
+
+        .library-list {
+            display: grid;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .library-item {
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .library-item:hover,
+        .library-item.selected {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary);
+        }
+
+        .library-item.selected::after {
+            content: '✓';
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .file-input-label {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 1rem;
+            border: 2px dashed var(--card-border);
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            margin-top: 1rem;
+            color: var(--text-dim);
+        }
+
+        .file-input-label:hover {
+            border-color: var(--primary);
+            color: var(--text-main);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        /* --- Game Board --- */
+        #game-screen {
+            justify-content: flex-start;
+            padding-top: 5rem;
+        }
+
+        .game-header {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            z-index: 10;
+        }
+
+        .stats-box {
+            background: var(--card-bg);
+            padding: 0.75rem 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .timer {
+            font-family: monospace;
+            font-size: 1.5rem;
+            color: var(--primary-light);
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .word-card {
+            aspect-ratio: 3/4;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .word-card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front,
+        .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            border-radius: 1.25rem;
+            border: 1px solid var(--card-border);
+            font-size: 1.1rem;
+            font-weight: 500;
+            overflow: hidden;
+            text-align: center;
+            word-break: break-all;
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: var(--text-dim);
+        }
+
+        .card-front::before {
+            content: '?';
+            font-size: 3rem;
+            color: rgba(255, 255, 255, 0.03);
+            font-weight: 800;
+        }
+
+        .card-back {
+            background: var(--primary);
+            color: white;
+            transform: rotateY(180deg);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .word-card.matched {
+            pointer-events: none;
+            opacity: 0.3;
+            transform: scale(0.95);
+            transition: all 0.5s;
+        }
+
+        .word-card.mismatch .card-back {
+            background: var(--danger);
+        }
+
+        /* --- Result Overlay --- */
+        .result-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        .result-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .result-content {
+            text-align: center;
+            animation: slideUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .result-time {
+            font-size: 3rem;
+            color: var(--primary-light);
+            margin: 1.5rem 0 3rem;
+            font-family: monospace;
+        }
+
+        .result-btns {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        /* --- Animations --- */
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        .floating {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        /* --- Custom Scrollbar --- */
+        .library-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .library-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .library-list::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        /* --- Mobile Tweaks --- */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .game-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1rem;
+            }
+
+            .modal-content {
+                padding: 1.5rem;
+            }
+
+            .result-btns {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Home Screen -->
+    <div id="home-screen" class="screen active">
+        <h1 class="floating">单词翻翻乐</h1>
+        <p class="subtitle">让单词记忆变得更有趣</p>
+        <button class="btn" onclick="game.start()">开始游戏</button>
+
+        <div id="settings-trigger" onclick="ui.toggleModal(true)">
+            <svg viewBox="0 0 24 24">
+                <path
+                    d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+            </svg>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen">
+        <div class="game-header">
+            <div class="stats-box">
+                词库: <span id="current-lib-name">未选择</span>
+            </div>
+            <div class="stats-box timer" id="game-timer">
+                00:00
+            </div>
+            <div class="stats-box">
+                进度: <span id="game-progress">0/0</span>
+            </div>
+        </div>
+
+        <div id="game-grid" class="game-grid">
+            <!-- Cards will be injected here -->
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">设置词库</span>
+                <span class="close-modal" onclick="ui.toggleModal(false)">✕</span>
+            </div>
+            <div id="library-list" class="library-list">
+                <!-- Preset libraries items -->
+            </div>
+            <div>
+                <label for="file-input" class="file-input-label">导入本地词库 (JSON)</label>
+                <input type="file" id="file-input" accept=".json" onchange="game.importLibrary(event)">
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Overlay -->
+    <div id="result-overlay" class="result-overlay">
+        <div class="result-content">
+            <h1>大获全胜!</h1>
+            <p class="subtitle">完成用时</p>
+            <div class="result-time" id="final-time">00:00</div>
+            <div class="result-btns">
+                <button class="btn" onclick="game.start()">再来一次</button>
+                <button class="btn btn-secondary" onclick="ui.goToHome()">回到主页</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ui = {
+            screens: {
+                home: document.getElementById('home-screen'),
+                game: document.getElementById('game-screen')
+            },
+            modal: document.getElementById('settings-modal'),
+            grid: document.getElementById('game-grid'),
+            timer: document.getElementById('game-timer'),
+            progress: document.getElementById('game-progress'),
+            libName: document.getElementById('current-lib-name'),
+            result: document.getElementById('result-overlay'),
+            finalTime: document.getElementById('final-time'),
+            libList: document.getElementById('library-list'),
+
+            switchScreen(screenId) {
+                Object.values(this.screens).forEach(s => s.classList.remove('active'));
+                this.screens[screenId].classList.add('active');
+            },
+
+            toggleModal(show) {
+                this.modal.classList.toggle('active', show);
+            },
+
+            goToHome() {
+                this.result.classList.remove('active');
+                this.switchScreen('home');
+                game.resetState();
+            },
+
+            renderLibraries(libs, selected) {
+                this.libList.innerHTML = libs.map(lib => `
+                    <div class="library-item ${lib === selected ? 'selected' : ''}" onclick="game.setLibrary('${lib}')">
+                        ${lib.replace('.json', '')}
+                    </div>
+                `).join('');
+            }
+        };
+
+        const game = {
+            libraries: [],
+            selectedLibrary: '水果.json',
+            words: [],
+            cards: [],
+            flippedCards: [],
+            matchedCount: 0,
+            startTime: null,
+            timerInterval: null,
+            isLocked: false,
+
+            async init() {
+                try {
+                    const res = await fetch('单词翻翻乐词库/manifest.json');
+                    this.libraries = await res.json();
+                } catch (e) {
+                    this.libraries = ['水果.json', '动物.json']; // Fallback
+                }
+                ui.renderLibraries(this.libraries, this.selectedLibrary);
+            },
+
+            async setLibrary(libName) {
+                this.selectedLibrary = libName;
+                ui.renderLibraries(this.libraries, this.selectedLibrary);
+            },
+
+            async importLibrary(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const content = JSON.parse(event.target.result);
+                        if (Array.isArray(content) && content[0].en && content[0].zh) {
+                            this.customWords = content;
+                            this.selectedLibrary = '已导入词库';
+                            if (!this.libraries.includes('已导入词库')) {
+                                this.libraries.push('已导入词库');
+                            }
+                            ui.renderLibraries(this.libraries, this.selectedLibrary);
+                            ui.toggleModal(false);
+                            alert('导入成功！');
+                        } else {
+                            throw new Error('格式错误');
+                        }
+                    } catch (err) {
+                        alert('JSON 格式无效，请确保包含 en 和 zh 字段的数组。');
+                    }
+                };
+                reader.readAsText(file);
+            },
+
+            async start() {
+                ui.result.classList.remove('active');
+                ui.switchScreen('game');
+                this.resetState();
+
+                let wordSource;
+                if (this.selectedLibrary === '已导入词库') {
+                    wordSource = this.customWords;
+                } else {
+                    const res = await fetch(`单词翻翻乐词库/${this.selectedLibrary}`);
+                    wordSource = await res.json();
+                }
+
+                // Prepare cards
+                this.words = [...wordSource].sort(() => Math.random() - 0.5).slice(0, 10);
+                const cardData = [];
+                this.words.forEach((w, idx) => {
+                    cardData.push({ text: w.en, pairId: idx, type: 'en' });
+                    cardData.push({ text: w.zh, pairId: idx, type: 'zh' });
+                });
+
+                // Shuffle cards
+                this.cards = cardData.sort(() => Math.random() - 0.5);
+
+                // Render UI
+                ui.libName.textContent = this.selectedLibrary.replace('.json', '');
+                ui.progress.textContent = `0/${this.words.length}`;
+                this.renderGrid();
+
+                // Start Timer
+                this.startTime = Date.now();
+                this.timerInterval = setInterval(() => this.updateTimer(), 1000);
+            },
+
+            resetState() {
+                clearInterval(this.timerInterval);
+                this.matchedCount = 0;
+                this.flippedCards = [];
+                this.isLocked = false;
+                ui.timer.textContent = '00:00';
+                ui.grid.innerHTML = '';
+            },
+
+            updateTimer() {
+                const diff = Math.floor((Date.now() - this.startTime) / 1000);
+                const m = Math.floor(diff / 60).toString().padStart(2, '0');
+                const s = (diff % 60).toString().padStart(2, '0');
+                ui.timer.textContent = `${m}:${s}`;
+            },
+
+            renderGrid() {
+                ui.grid.innerHTML = '';
+                this.cards.forEach((card, index) => {
+                    const el = document.createElement('div');
+                    el.className = 'word-card';
+                    el.innerHTML = `
+                        <div class="card-inner">
+                            <div class="card-front"></div>
+                            <div class="card-back">${card.text}</div>
+                        </div>
+                    `;
+                    el.onclick = () => this.handleCardClick(el, index);
+                    ui.grid.appendChild(el);
+                });
+            },
+
+            handleCardClick(el, index) {
+                if (this.isLocked || el.classList.contains('flipped') || el.classList.contains('matched')) return;
+
+                el.classList.add('flipped');
+                this.flippedCards.push({ el, data: this.cards[index] });
+
+                if (this.flippedCards.length === 2) {
+                    this.checkMatch();
+                }
+            },
+
+            checkMatch() {
+                this.isLocked = true;
+                const [c1, c2] = this.flippedCards;
+
+                if (c1.data.pairId === c2.data.pairId && c1.data.type !== c2.data.type) {
+                    // Match!
+                    setTimeout(() => {
+                        c1.el.classList.add('matched');
+                        c2.el.classList.add('matched');
+                        this.matchedCount++;
+                        ui.progress.textContent = `${this.matchedCount}/${this.words.length}`;
+                        this.flippedCards = [];
+                        this.isLocked = false;
+
+                        if (this.matchedCount === this.words.length) {
+                            this.endGame();
+                        }
+                    }, 500);
+                } else {
+                    // No match
+                    setTimeout(() => {
+                        c1.el.classList.add('mismatch');
+                        c2.el.classList.add('mismatch');
+                        setTimeout(() => {
+                            c1.el.classList.remove('flipped', 'mismatch');
+                            c2.el.classList.remove('flipped', 'mismatch');
+                            this.flippedCards = [];
+                            this.isLocked = false;
+                        }, 500);
+                    }, 500);
+                }
+            },
+
+            endGame() {
+                clearInterval(this.timerInterval);
+                ui.finalTime.textContent = ui.timer.textContent;
+                setTimeout(() => {
+                    ui.result.classList.add('active');
+                }, 800);
+            }
+        };
+
+        game.init();
+    </script>
+</body>
+
+</html>
