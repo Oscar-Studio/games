@@ -1,0 +1,10 @@
+Apple 苹果
+Banana 香蕉
+Cherry 樱桃
+Grape 葡萄
+Lemon 柠檬
+Mango 芒果
+Orange 橙子
+Peach 桃子
+Pear 梨
+Strawberry 草莓

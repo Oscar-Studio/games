@@ -154,6 +154,38 @@
             fill: var(--text-main);
         }
 
+        /* --- Back Button --- */
+        .back-link {
+            position: absolute;
+            top: 1.5rem;
+            left: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all var(--transition-speed);
+            z-index: 100;
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(-5px);
+        }
+
+        .back-link svg {
+            width: 1.25rem;
+            height: 1.25rem;
+            fill: currentColor;
+        }
+
         /* --- Settings Modal --- */
         .modal {
             position: fixed;
@@ -253,6 +285,51 @@
             transition: all var(--transition-speed);
             margin-top: 1rem;
             color: var(--text-dim);
+        }
+
+        .settings-section {
+            margin-bottom: 2rem;
+        }
+
+        .settings-label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .number-input-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.75rem 1.25rem;
+            border-radius: 1rem;
+            border: 1px solid var(--card-border);
+            transition: border-color 0.3s;
+        }
+
+        .number-input-group:focus-within {
+            border-color: var(--primary);
+        }
+
+        .number-input-group input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-family: inherit;
+            font-size: 1.25rem;
+            width: 80px;
+            text-align: center;
+            outline: none;
+        }
+
+        .number-input-group span {
+            color: var(--text-dim);
+            font-size: 0.9rem;
         }
 
         .file-input-label:hover {
@@ -501,6 +578,12 @@
 
     <!-- Game Screen -->
     <div id="game-screen" class="screen">
+        <div class="back-link" onclick="ui.goToHome()">
+            <svg viewBox="0 0 24 24">
+                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+            </svg>
+            返回
+        </div>
         <div class="game-header">
             <div class="stats-box">
                 词库: <span id="current-lib-name">未选择</span>
@@ -525,12 +608,25 @@
                 <span class="modal-title">设置词库</span>
                 <span class="close-modal" onclick="ui.toggleModal(false)">✕</span>
             </div>
-            <div id="library-list" class="library-list">
-                <!-- Preset libraries items -->
+            <div class="settings-section">
+                <span class="settings-label">选择词库</span>
+                <div id="library-list" class="library-list">
+                    <!-- Preset libraries items -->
+                </div>
+                <div>
+                    <label for="file-input" class="file-input-label">导入本地词库 (JSON, YAML, TXT)</label>
+                    <input type="file" id="file-input" accept=".json,.yml,.yaml,.txt"
+                        onchange="game.importLibrary(event)">
+                </div>
             </div>
-            <div>
-                <label for="file-input" class="file-input-label">导入本地词库 (JSON)</label>
-                <input type="file" id="file-input" accept=".json" onchange="game.importLibrary(event)">
+
+            <div class="settings-section">
+                <span class="settings-label">游戏难度</span>
+                <div class="number-input-group">
+                    <span>词对数量:</span>
+                    <input type="number" id="word-count-input" value="10" min="2" max="50">
+                    <span>(共 <span id="card-total-hint">20</span> 张卡片)</span>
+                </div>
             </div>
         </div>
     </div>
@@ -562,6 +658,13 @@
             result: document.getElementById('result-overlay'),
             finalTime: document.getElementById('final-time'),
             libList: document.getElementById('library-list'),
+            wordCountInput: document.getElementById('word-count-input'),
+
+            init() {
+                this.wordCountInput.addEventListener('input', () => {
+                    document.getElementById('card-total-hint').textContent = (this.wordCountInput.value || 0) * 2;
+                });
+            },
 
             switchScreen(screenId) {
                 Object.values(this.screens).forEach(s => s.classList.remove('active'));
@@ -581,7 +684,7 @@
             renderLibraries(libs, selected) {
                 this.libList.innerHTML = libs.map(lib => `
                     <div class="library-item ${lib === selected ? 'selected' : ''}" onclick="game.setLibrary('${lib}')">
-                        ${lib.replace('.json', '')}
+                        ${lib.replace(/\.(json|yml|yaml|txt)$/, '')}
                     </div>
                 `).join('');
             }
@@ -619,25 +722,69 @@
 
                 const reader = new FileReader();
                 reader.onload = (event) => {
+                    const text = event.target.result;
+                    const fileName = file.name;
                     try {
-                        const content = JSON.parse(event.target.result);
-                        if (Array.isArray(content) && content[0].en && content[0].zh) {
-                            this.customWords = content;
-                            this.selectedLibrary = '已导入词库';
-                            if (!this.libraries.includes('已导入词库')) {
-                                this.libraries.push('已导入词库');
+                        const words = this.parseContent(text, fileName);
+                        if (words && words.length > 0) {
+                            this.customWords = words;
+                            this.selectedLibrary = '已导入: ' + fileName;
+                            if (!this.libraries.includes(this.selectedLibrary)) {
+                                this.libraries.push(this.selectedLibrary);
                             }
                             ui.renderLibraries(this.libraries, this.selectedLibrary);
                             ui.toggleModal(false);
                             alert('导入成功！');
                         } else {
-                            throw new Error('格式错误');
+                            throw new Error('词库为空或格式不正确');
                         }
                     } catch (err) {
-                        alert('JSON 格式无效，请确保包含 en 和 zh 字段的数组。');
+                        alert('解析工具失败: ' + err.message);
                     }
                 };
                 reader.readAsText(file);
+            },
+
+            parseContent(text, fileName) {
+                const ext = fileName.split('.').pop().toLowerCase();
+                let words = [];
+
+                if (ext === 'json') {
+                    const data = JSON.parse(text);
+                    words = Array.isArray(data) ? data : [];
+                } else if (ext === 'yml' || ext === 'yaml') {
+                    // Simple YAML parser for list of objects or key-value pairs
+                    const lines = text.split('\n');
+                    let currentWord = {};
+                    lines.forEach(line => {
+                        const trimmed = line.trim();
+                        if (trimmed.startsWith('-')) {
+                            if (currentWord.en && currentWord.zh) words.push(currentWord);
+                            currentWord = {};
+                            const content = trimmed.substring(1).trim();
+                            const match = content.match(/^(\w+):\s*(.*)$/);
+                            if (match) currentWord[match[1]] = match[2];
+                        } else {
+                            const match = trimmed.match(/^(\w+):\s*(.*)$/);
+                            if (match) currentWord[match[1]] = match[2];
+                        }
+                    });
+                    if (currentWord.en && currentWord.zh) words.push(currentWord);
+                } else if (ext === 'txt') {
+                    // TXT format: English [space] Chinese
+                    const lines = text.split('\n');
+                    lines.forEach(line => {
+                        const trimmed = line.trim();
+                        if (!trimmed) return;
+                        const parts = trimmed.split(/\s+/);
+                        if (parts.length >= 2) {
+                            words.push({ en: parts[0], zh: parts.slice(1).join(' ') });
+                        }
+                    });
+                }
+
+                // Validate words have en and zh
+                return words.filter(w => w.en && w.zh);
             },
 
             async start() {
@@ -646,15 +793,17 @@
                 this.resetState();
 
                 let wordSource;
-                if (this.selectedLibrary === '已导入词库') {
+                if (this.selectedLibrary.startsWith('已导入:')) {
                     wordSource = this.customWords;
                 } else {
                     const res = await fetch(`单词翻翻乐词库/${this.selectedLibrary}`);
-                    wordSource = await res.json();
+                    const text = await res.text();
+                    wordSource = this.parseContent(text, this.selectedLibrary);
                 }
 
                 // Prepare cards
-                this.words = [...wordSource].sort(() => Math.random() - 0.5).slice(0, 10);
+                const targetCount = parseInt(ui.wordCountInput.value) || 10;
+                this.words = [...wordSource].sort(() => Math.random() - 0.5).slice(0, targetCount);
                 const cardData = [];
                 this.words.forEach((w, idx) => {
                     cardData.push({ text: w.en, pairId: idx, type: 'en' });
@@ -665,7 +814,7 @@
                 this.cards = cardData.sort(() => Math.random() - 0.5);
 
                 // Render UI
-                ui.libName.textContent = this.selectedLibrary.replace('.json', '');
+                ui.libName.textContent = this.selectedLibrary.replace(/\.(json|yml|yaml|txt)$/, '').replace('已导入: ', '');
                 ui.progress.textContent = `0/${this.words.length}`;
                 this.renderGrid();
 
@@ -760,6 +909,7 @@
         };
 
         game.init();
+        ui.init();
     </script>
 </body>
 
