@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二十四点 - 益智游戏</title>
+    <script defer src="https://cloud.umami.is/script.js"
+        data-website-id="cbc5311f-d106-4566-853d-1376d4f4774b"></script>
+    <style>
+        :root {
+            --primary-color: #2A5CAA;
+            --secondary-color: #00E5FF;
+            --accent-color: #6A00FF;
+            --light-color: #010409;
+            --dark-color: #ffffff;
+            --card-bg: #0d1117;
+            --card-border: 1px solid #30363d;
+            --card-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            --text-secondary: #8b949e;
+            --success-color: #28a745;
+            --error-color: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--light-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: var(--dark-color);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--card-bg);
+            border-radius: 15px;
+            box-shadow: var(--card-shadow);
+            padding: 30px;
+            border: var(--card-border);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: var(--secondary-color);
+            font-weight: 600;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+
+        .game-area {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .number-card {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 4px 15px rgba(42, 92, 170, 0.4);
+            transition: transform 0.3s ease;
+        }
+
+        .number-card:hover {
+            transform: scale(1.05);
+        }
+
+        .input-area {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .operator-btn {
+            width: 50px;
+            height: 50px;
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .operator-btn:hover {
+            background-color: var(--secondary-color);
+            transform: scale(1.1);
+        }
+
+        .operator-btn.selected {
+            background-color: var(--accent-color);
+            box-shadow: 0 0 15px rgba(106, 0, 255, 0.5);
+        }
+
+        .expression-input {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid var(--card-border);
+            background: var(--light-color);
+            color: var(--dark-color);
+            font-size: 1.2rem;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .expression-input:focus {
+            border-color: var(--secondary-color);
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+        }
+
+        .btn-success:hover {
+            background-color: #2ea043;
+        }
+
+        .btn-error {
+            background-color: var(--error-color);
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .result {
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            display: none;
+        }
+
+        .result.success {
+            display: block;
+            background-color: rgba(40, 167, 69, 0.2);
+            border: 1px solid var(--success-color);
+            color: var(--success-color);
+        }
+
+        .result.error {
+            display: block;
+            background-color: rgba(231, 76, 60, 0.2);
+            border: 1px solid var(--error-color);
+            color: var(--error-color);
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 229, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .score-item {
+            text-align: center;
+        }
+
+        .score-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .score-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+
+        .history {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .history h3 {
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .history-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: var(--card-bg);
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .history-item.correct {
+            border-left: 3px solid var(--success-color);
+        }
+
+        .history-item.wrong {
+            border-left: 3px solid var(--error-color);
+        }
+
+        .history-expression {
+            color: var(--dark-color);
+        }
+
+        .history-time {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .help-text {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        footer {
+            margin-top: 30px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            .number-card {
+                width: 60px;
+                height: 60px;
+                font-size: 1.8rem;
+            }
+
+            .operator-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 1.2rem;
+            }
+
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js"></script>
+<script>LA.init({id:"3ObNUtNXa4Os8xRM",ck:"3ObNUtNXa4Os8xRM"})</script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎯 二十四点</h1>
+        <p class="subtitle">用四个数字和基本运算得到24</p>
+
+        <div class="score-board">
+            <div class="score-item">
+                <div class="score-label">正确</div>
+                <div class="score-value" id="correctCount">0</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label">错误</div>
+                <div class="score-value" id="wrongCount">0</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label">连续正确</div>
+                <div class="score-value" id="streakCount">0</div>
+            </div>
+        </div>
+
+        <div class="game-area" id="numberCards">
+            <!-- 数字卡片会在这里生成 -->
+        </div>
+
+        <div class="input-area">
+            <button class="operator-btn" data-op="+">+</button>
+            <button class="operator-btn" data-op="-">−</button>
+            <button class="operator-btn" data-op="*">×</button>
+            <button class="operator-btn" data-op="/">÷</button>
+            <button class="operator-btn" data-op="(">(</button>
+            <button class="operator-btn" data-op=")">)</button>
+        </div>
+
+        <input type="text" class="expression-input" id="expressionInput" placeholder="输入你的算式，如：(1+2)*3*4" autocomplete="off">
+
+        <div class="buttons">
+            <button class="btn btn-success" onclick="checkAnswer()">检查答案</button>
+            <button class="btn" onclick="newGame()">新的一局</button>
+            <button class="btn btn-error" onclick="giveUp()">放弃</button>
+        </div>
+
+        <div class="result" id="result"></div>
+
+        <p class="help-text">💡 提示：使用括号可以改变运算顺序</p>
+
+        <div class="history" id="history">
+            <h3>历史记录</h3>
+            <div id="historyList"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>二十四点 &copy; 2026 - Designed by Oscar</p>
+    </footer>
+
+    <script>
+        // 游戏状态
+        let currentNumbers = [];
+        let correctCount = 0;
+        let wrongCount = 0;
+        let streakCount = 0;
+        let gameHistory = [];
+
+        // 生成随机数字 (1-10)
+        function generateNumbers() {
+            const numbers = [];
+            for (let i = 0; i < 4; i++) {
+                numbers.push(Math.floor(Math.random() * 10) + 1);
+            }
+            return numbers;
+        }
+
+        // 检查是否有解
+        function hasSolution(numbers) {
+            const ops = ['+', '-', '*', '/'];
+            const used = [false, false, false, false];
+            
+            function calc(a, b, op) {
+                switch(op) {
+                    case '+': return a + b;
+                    case '-': return a - b;
+                    case '*': return a * b;
+                    case '/': return b !== 0 && a % b === 0 ? a / b : null;
+                }
+            }
+
+            function tryAll(index, current) {
+                if (index === 4) {
+                    return Math.abs(current - 24) < 0.0001;
+                }
+                
+                for (let i = 0; i < 4; i++) {
+                    if (!used[i]) {
+                        used[i] = true;
+                        
+                        // 使用两个数运算
+                        for (let j = i + 1; j < 4; j++) {
+                            if (!used[j]) {
+                                used[j] = true;
+                                for (let op of ops) {
+                                    const result = calc(current, numbers[i], op);
+                                    if (result !== null && tryAll(index + 1, result)) {
+                                        return true;
+                                    }
+                                }
+                                used[j] = false;
+                            }
+                        }
+                        used[i] = false;
+                    }
+                }
+                return false;
+            }
+
+            // 尝试不同的组合
+            for (let i = 0; i < 4; i++) {
+                for (let j = i + 1; j < 4; j++) {
+                    for (let op of ops) {
+                        const result = calc(numbers[i], numbers[j], op);
+                        if (result !== null) {
+                            const remaining = numbers.filter((_, idx) => idx !== i && idx !== j);
+                            const newNumbers = [...remaining, result];
+                            
+                            // 递归检查
+                            function checkRec(nums, target) {
+                                if (nums.length === 1) {
+                                    return Math.abs(nums[0] - target) < 0.0001;
+                                }
+                                for (let a = 0; a < nums.length; a++) {
+                                    for (let b = a + 1; b < nums.length; b++) {
+                                        const remaining2 = [];
+                                        for (let k = 0; k < nums.length; k++) {
+                                            if (k !== a && k !== b) remaining2.push(nums[k]);
+                                        }
+                                        for (let op2 of ops) {
+                                            const res = calc(nums[a], nums[b], op2);
+                                            if (res !== null) {
+                                                if (checkRec([...remaining2, res], target)) return true;
+                                            }
+                                        }
+                                    }
+                                }
+                                return false;
+                            }
+                            
+                            if (checkRec(newNumbers, 24)) return true;
+                        }
+                    }
+                }
+            }
+            
+            return tryAll(1, numbers[0]);
+        }
+
+        // 初始化游戏
+        function initGame() {
+            currentNumbers = generateNumbers();
+            
+            // 确保有解，如果没有就重新生成
+            let attempts = 0;
+            while (!hasSolution(currentNumbers) && attempts < 100) {
+                currentNumbers = generateNumbers();
+                attempts++;
+            }
+            
+            renderNumberCards();
+            document.getElementById('expressionInput').value = '';
+            document.getElementById('result').className = 'result';
+            document.getElementById('result').textContent = '';
+        }
+
+        // 渲染数字卡片
+        function renderNumberCards() {
+            const container = document.getElementById('numberCards');
+            container.innerHTML = currentNumbers.map((num, idx) => 
+                `<div class="number-card" onclick="insertNumber(${idx})">${num}</div>`
+            ).join('');
+        }
+
+        // 插入数字
+        function insertNumber(idx) {
+            const input = document.getElementById('expressionInput');
+            input.value += currentNumbers[idx];
+            input.focus();
+        }
+
+        // 插入运算符
+        document.querySelectorAll('.operator-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = document.getElementById('expressionInput');
+                const op = btn.dataset.op;
+                input.value += op;
+                input.focus();
+            });
+        });
+
+        // 检查答案
+        function checkAnswer() {
+            const expression = document.getElementById('expressionInput').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            if (!expression) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '请输入算式！';
+                return;
+            }
+
+            try {
+                // 验证只使用给定的数字
+                const numStr = currentNumbers.join('');
+                
+                // 统计每个数字使用的次数
+                const usedCount = {};
+                const givenCount = {};
+                
+                for (let c of expression) {
+                    if (/[0-9]/.test(c)) {
+                        usedCount[c] = (usedCount[c] || 0) + 1;
+                    }
+                }
+                for (let c of numStr) {
+                    givenCount[c] = (givenCount[c] || 0) + 1;
+                }
+                
+                // 检查是否每个使用的数字都不超过给定的数量
+                for (let key in usedCount) {
+                    if ((usedCount[key] || 0) > (givenCount[key] || 0)) {
+                        throw new Error('每个数字只能使用一次！');
+                    }
+                }
+                
+                // 检查是否使用了所有数字
+                let totalGiven = 0, totalUsed = 0;
+                for (let key in givenCount) totalGiven += givenCount[key];
+                for (let key in usedCount) totalUsed += usedCount[key];
+                
+                if (totalUsed !== 4) {
+                    throw new Error('必须使用全部四个数字！');
+                }
+
+                // 计算结果
+                const result = Function('"use strict"; return (' + expression + ')')();
+                
+                if (Math.abs(result - 24) < 0.0001) {
+                    // 正确！
+                    correctCount++;
+                    streakCount++;
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `🎉 恭喜！${expression} = 24，回答正确！`;
+                    addToHistory(expression, true);
+                    updateScore();
+                    
+                    // 延迟开始新游戏
+                    setTimeout(() => {
+                        initGame();
+                    }, 2000);
+                } else {
+                    // 错误
+                    wrongCount++;
+                    streakCount = 0;
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ ${expression} = ${result}，不等于24，继续加油！`;
+                    addToHistory(expression, false);
+                    updateScore();
+                }
+            } catch (e) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '⚠️ 算式格式错误！' + e.message;
+            }
+        }
+
+        // 更新分数
+        function updateScore() {
+            document.getElementById('correctCount').textContent = correctCount;
+            document.getElementById('wrongCount').textContent = wrongCount;
+            document.getElementById('streakCount').textContent = streakCount;
+        }
+
+        // 添加到历史记录
+        function addToHistory(expression, isCorrect) {
+            gameHistory.unshift({
+                expression,
+                correct: isCorrect,
+                time: new Date().toLocaleTimeString()
+            });
+            
+            // 只保留最近20条
+            if (gameHistory.length > 20) {
+                gameHistory.pop();
+            }
+            
+            renderHistory();
+        }
+
+        // 渲染历史记录
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = gameHistory.map(item => `
+                <div class="history-item ${item.correct ? 'correct' : 'wrong'}">
+                    <span class="history-expression">${item.expression}</span>
+                    <span class="history-time">${item.time}</span>
+                </div>
+            `).join('');
+        }
+
+        // 新游戏
+        function newGame() {
+            initGame();
+            document.getElementById('result').className = 'result';
+            document.getElementById('result').textContent = '';
+        }
+
+        // 放弃
+        function giveUp() {
+            wrongCount++;
+            streakCount = 0;
+            updateScore();
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result error';
+            resultDiv.textContent = '很遗憾，这题比较难！来一局新的吧~';
+            
+            setTimeout(() => {
+                initGame();
+            }, 2000);
+        }
+
+        // 回车提交
+        document.getElementById('expressionInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+
+        // 初始化
+        initGame();
+    </script>
+</body>
+
+</html>

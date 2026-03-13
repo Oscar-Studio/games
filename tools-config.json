@@ -55,6 +55,26 @@
             ],
             "icon": "🎴",
             "featured": true
+        },
+        {
+            "name": "二十四点",
+            "description": "用四个数字通过加减乘除得到24的经典数学游戏",
+            "tags": [
+                "数学",
+                "益智"
+            ],
+            "icon": "🎯",
+            "featured": false
+        },
+        {
+            "name": "罚分游戏",
+            "description": "用给出的数字计算目标值，差值越大扣分越多",
+            "tags": [
+                "数学",
+                "益智"
+            ],
+            "icon": "🎯",
+            "featured": false
         }
     ]
 }

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>罚分游戏 - 益智游戏</title>
+    <script defer src="https://cloud.umami.is/script.js"
+        data-website-id="cbc5311f-d106-4566-853d-1376d4f4774b"></script>
+    <style>
+        :root {
+            --primary-color: #2A5CAA;
+            --secondary-color: #00E5FF;
+            --accent-color: #6A00FF;
+            --light-color: #010409;
+            --dark-color: #ffffff;
+            --card-bg: #0d1117;
+            --card-border: 1px solid #30363d;
+            --card-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            --text-secondary: #8b949e;
+            --success-color: #28a745;
+            --danger-color: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--light-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: var(--dark-color);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            border: var(--card-border);
+            box-shadow: var(--card-shadow);
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+
+        .game-area {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .numbers {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+
+        .number-card {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .number-card:hover {
+            transform: scale(1.05);
+        }
+
+        .number-card.selected {
+            background: linear-gradient(135deg, var(--danger-color), #c0392b);
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+        }
+
+        .target {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--secondary-color);
+            margin: 20px 0;
+        }
+
+        .expression {
+            font-size: 1.5rem;
+            color: var(--dark-color);
+            min-height: 40px;
+            padding: 10px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            word-break: break-all;
+        }
+
+        .operators {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .operator-btn {
+            width: 50px;
+            height: 50px;
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .operator-btn:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-check {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-check:hover {
+            background-color: #2ea043;
+        }
+
+        .btn-clear {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-new {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.3rem;
+            display: none;
+        }
+
+        .result.success {
+            display: block;
+            background-color: rgba(40, 167, 69, 0.2);
+            border: 1px solid var(--success-color);
+            color: var(--success-color);
+        }
+
+        .result.fail {
+            display: block;
+            background-color: rgba(231, 76, 60, 0.2);
+            border: 1px solid var(--danger-color);
+            color: var(--danger-color);
+        }
+
+        footer {
+            margin-top: 30px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+    </style>
+<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js"></script>
+<script>LA.init({id:"3ObNUtNXa4Os8xRM",ck:"3ObNUtNXa4Os8xRM"})</script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎯 罚分游戏</h1>
+        <p class="subtitle">目标数字10，每用错一个数字扣1分</p>
+
+        <div class="game-area">
+            <div class="numbers" id="numbers">
+                <!-- 数字会在这里生成 -->
+            </div>
+
+            <div class="target">目标: <span id="target">10</span></div>
+
+            <div class="expression" id="expression"></div>
+
+            <div class="operators">
+                <button class="operator-btn" onclick="addOperator('+')">+</button>
+                <button class="operator-btn" onclick="addOperator('-')">−</button>
+                <button class="operator-btn" onclick="addOperator('*')">×</button>
+                <button class="operator-btn" onclick="addOperator('/')">÷</button>
+                <button class="operator-btn" onclick="addOperator('('">(</button>
+                <button class="operator-btn" onclick="addOperator(')')">)</button>
+            </div>
+
+            <button class="btn btn-check" onclick="checkAnswer()">检查</button>
+            <button class="btn btn-clear" onclick="clearExpression()">清除</button>
+            <button class="btn btn-new" onclick="newGame()">新游戏</button>
+
+            <div class="result" id="result"></div>
+        </div>
+
+        <p style="color: var(--text-secondary); font-size: 0.9rem;">
+            💡 点击数字卡片和运算符按钮构造表达式<br>
+            每使用一个数字，错误目标差值就要扣分
+        </p>
+    </div>
+
+    <footer>
+        <p>罚分游戏 &copy; 2026 - Designed by Oscar</p>
+    </footer>
+
+    <script>
+        let numbers = [];
+        let target = 10;
+        let expression = [];
+
+        function generateNumbers() {
+            numbers = [];
+            for (let i = 0; i < 6; i++) {
+                numbers.push(Math.floor(Math.random() * 9) + 1);
+            }
+            target = Math.floor(Math.random() * 15) + 5;
+            document.getElementById('target').textContent = target;
+        }
+
+        function renderNumbers() {
+            const container = document.getElementById('numbers');
+            container.innerHTML = numbers.map((num, idx) => 
+                `<div class="number-card" onclick="addNumber(${idx})">${num}</div>`
+            ).join('');
+        }
+
+        function addNumber(idx) {
+            expression.push({ type: 'num', value: numbers[idx], idx });
+            updateExpression();
+            updateNumberSelection();
+        }
+
+        function addOperator(op) {
+            expression.push({ type: 'op', value: op });
+            updateExpression();
+        }
+
+        function updateExpression() {
+            const exprDiv = document.getElementById('expression');
+            exprDiv.textContent = expression.map(e => e.value).join(' ');
+        }
+
+        function updateNumberSelection() {
+            const usedIndices = expression.filter(e => e.type === 'num').map(e => e.idx);
+            const cards = document.querySelectorAll('.number-card');
+            cards.forEach((card, idx) => {
+                if (usedIndices.includes(idx)) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+        }
+
+        function clearExpression() {
+            expression = [];
+            updateExpression();
+            updateNumberSelection();
+            document.getElementById('result').className = 'result';
+        }
+
+        function checkAnswer() {
+            if (expression.length === 0) return;
+            
+            const exprStr = expression.map(e => e.value).join('');
+            
+            try {
+                const result = Function('"use strict"; return (' + exprStr + ')')();
+                
+                const diff = Math.abs(result - target);
+                const usedNumbers = expression.filter(e => e.type === 'num');
+                const penalty = Math.max(0, target - diff) | 0;
+                const score = Math.max(0, 100 - penalty);
+                
+                const resultDiv = document.getElementById('result');
+                
+                if (diff < 0.01) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `🎉 完美！${exprStr} = ${result}，你赢了！`;
+                } else {
+                    resultDiv.className = 'result fail';
+                    resultDiv.innerHTML = `❌ ${exprStr} = ${result}，目标 ${target}，差 ${diff.toFixed(2)}`;
+                }
+            } catch (e) {
+                const resultDiv = document.getElementById('result');
+                resultDiv.className = 'result fail';
+                resultDiv.textContent = '⚠️ 表达式错误！';
+            }
+        }
+
+        function newGame() {
+            clearExpression();
+            generateNumbers();
+            renderNumbers();
+            document.getElementById('result').className = 'result';
+        }
+
+        // 初始化
+        newGame();
+    </script>
+</body>
+
+</html>
