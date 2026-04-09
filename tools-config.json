@@ -1,6 +1,15 @@
 {
     "tools": [
         {
+            "name": "国际象棋",
+            "description": "经典国际象棋，支持王车易位、吃过路兵、兵升变等全部规则",
+            "tags": [
+                "棋类"
+            ],
+            "icon": "♔",
+            "featured": false
+        },
+        {
             "name": "五子棋",
             "description": "五子棋棋盘",
             "tags": [

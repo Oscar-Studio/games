@@ -422,7 +422,7 @@
                     }
 
                     // 使用demoFile属性作为演示文件名，如果不存在则使用name属性
-                    const demoUrl = tool.demoFile || `${tool.name}.html`;
+                    const demoUrl = tool.demoFile || `${tool.name}/index.html`;
 
                     toolCard.innerHTML = `
                         ${tool.featured ? '<span class="featured-badge">推荐</span>' : ''}
