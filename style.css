@@ -213,6 +213,10 @@
             transition: none !important;
         }
 
+        body.plasma-quality * {
+            animation-duration: 0.5s !important;
+        }
+
         /* Hero Section */
         .hero {
             padding-top: 100px;

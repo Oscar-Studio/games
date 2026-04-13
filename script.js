@@ -9,6 +9,45 @@
         if (currentQuality === 'low') {
             document.body.classList.add('low-quality');
             document.querySelector('input[value="low"]').checked = true;
+        } else if (currentQuality === 'plasma') {
+            document.body.classList.add('plasma-quality');
+            document.querySelector('input[value="plasma"]').checked = true;
+        } else {
+            document.querySelector('input[value="normal"]').checked = true;
+        }
+
+        // Initialize Particle UI if plasma quality
+        let particleUI = null;
+        if (currentQuality === 'plasma') {
+            initParticleUI();
+        }
+
+        function initParticleUI() {
+            if (particleUI) return;
+            // Load particle engine scripts
+            const coreScript = document.createElement('script');
+            coreScript.src = 'particle-engine/particle-core.js';
+            coreScript.onload = () => {
+                const uiScript = document.createElement('script');
+                uiScript.src = 'particle-engine/particle-ui.js';
+                uiScript.onload = () => {
+                    particleUI = new ParticleUI(document.body, {
+                        particleCount: 200,
+                        quality: 'plasma'
+                    });
+                    setupParticleUIHandlers();
+                };
+                document.head.appendChild(uiScript);
+            };
+            document.head.appendChild(coreScript);
+        }
+
+        function setupParticleUIHandlers() {
+            if (!particleUI) return;
+
+            // Override card click to use particle UI
+            const originalSelectCard = selectCard;
+            // Don't override, let particle UI handle its own cards
         }
 
         settingsBtn.addEventListener('click', (e) => {
@@ -30,8 +69,24 @@
                 localStorage.setItem('quality', quality);
                 if (quality === 'low') {
                     document.body.classList.add('low-quality');
+                    document.body.classList.remove('plasma-quality');
+                    if (particleUI) {
+                        particleUI.destroy();
+                        particleUI = null;
+                    }
+                } else if (quality === 'plasma') {
+                    document.body.classList.remove('low-quality');
+                    document.body.classList.add('plasma-quality');
+                    if (!particleUI) {
+                        initParticleUI();
+                    }
                 } else {
                     document.body.classList.remove('low-quality');
+                    document.body.classList.remove('plasma-quality');
+                    if (particleUI) {
+                        particleUI.destroy();
+                        particleUI = null;
+                    }
                 }
             });
         });
@@ -82,6 +137,12 @@
 
         function selectCard(cardElement, tool) {
             if (morphCard) return;
+
+            // In plasma mode, let particle UI handle card clicks
+            if (document.body.classList.contains('plasma-quality')) {
+                return;
+            }
+
             selectedTool = tool;
             selectedCard = cardElement;
             const isLowQuality = document.body.classList.contains('low-quality');
