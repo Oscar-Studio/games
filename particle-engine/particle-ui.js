@@ -1,30 +1,30 @@
 /**
  * Particle UI - 粒子态界面UI集成
- * 负责卡片聚拢、爆发动画等UI交互
+ * 等离子OS：Hero -> 粒子汇聚成卡片 -> 点击卡片粒子展开
  */
 
 class ParticleUI {
     constructor(container, options = {}) {
         this.container = typeof container === 'string' ? document.querySelector(container) : container;
         this.options = {
-            particleCount: options.particleCount || 150,
-            quality: options.quality || 'normal',
-            cardParticleCount: options.cardParticleCount || 80,
+            particleCount: options.particleCount || 200,
+            quality: options.quality || 'plasma',
+            cardParticleCount: options.cardParticleCount || 60,
             ...options
         };
 
         this.canvas = null;
         this.ctx = null;
         this.ps = null;
-        this.heroText = '探索';
-        this.heroTextParticles = [];
-        this.cardParticles = [];
         this.isInitialized = false;
-        this.currentState = 'hero'; // 'hero', 'cards', 'modal'
-        this.selectedCard = null;
-        this.selectedCardParticles = null;
+        this.currentState = 'hero'; // 'hero', 'transitioning', 'cards', 'modal'
+        this.selectedCardIndex = null;
+        this.cardParticles = [];
         this.allCardElements = [];
+        this.toolsData = [];
         this.modal = null;
+        this.heroTextParticles = [];
+        this.exploreBtn = null;
 
         this.init();
     }
@@ -49,7 +49,7 @@ class ParticleUI {
         this.ctx = this.canvas.getContext('2d');
         this.ps = new ParticleSystem(this.canvas, {
             particleCount: this.options.particleCount,
-            maxTrailLength: this.options.quality === 'low' ? 0 : 8
+            maxTrailLength: 8
         });
 
         this.resize();
@@ -58,10 +58,13 @@ class ParticleUI {
         this.isInitialized = true;
         this.ps.start();
 
-        // Create hero text particles after a delay
-        setTimeout(() => this.createHeroText(), 800);
+        // Load tools data first
+        this.loadToolsData();
 
-        // Add continuous ambient particles
+        // Setup after a short delay
+        setTimeout(() => this.setupHero(), 500);
+
+        // Ambient particles
         this.startAmbientEffect();
     }
 
@@ -72,58 +75,60 @@ class ParticleUI {
         }
     }
 
-    createHeroText() {
-        if (this.currentState !== 'hero') return;
-
-        const hero = document.querySelector('.hero');
-        if (!hero) return;
-
-        const rect = hero.getBoundingClientRect();
-        const centerX = window.innerWidth / 2;
-        const centerY = rect.top + rect.height / 2;
-
-        // Clear existing particles
-        this.heroTextParticles.forEach(p => p.life = 0);
-        this.heroTextParticles = [];
-
-        // Create text particles
-        this.heroTextParticles = this.ps.emitText(this.heroText, centerX, centerY, {
-            gap: 6,
-            font: 'bold 72px Segoe UI'
-        });
-
-        // Add hover effect to hero button
-        const heroBtn = hero.querySelector('.btn-primary');
-        if (heroBtn) {
-            heroBtn.addEventListener('mouseenter', () => this.onHeroHover(true));
-            heroBtn.addEventListener('mouseleave', () => this.onHeroHover(false));
-            heroBtn.addEventListener('click', (e) => this.onHeroClick(e));
+    async loadToolsData() {
+        try {
+            const response = await fetch('tools-config.json');
+            const data = await response.json();
+            this.toolsData = data.tools || [];
+        } catch (e) {
+            this.toolsData = [];
         }
     }
 
-    onHeroHover(isHovering) {
+    setupHero() {
+        const hero = document.getElementById('heroSection');
+        if (!hero) return;
+
+        // Create hero text particles (the title)
+        const heroTitle = hero.querySelector('h1');
+        if (heroTitle && this.currentState === 'hero') {
+            const rect = heroTitle.getBoundingClientRect();
+            this.createHeroTextParticles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        }
+
+        // Find and attach to Explore button
+        this.exploreBtn = document.getElementById('exploreBtn');
+        if (this.exploreBtn) {
+            this.exploreBtn.addEventListener('click', (e) => this.onExploreClick(e));
+        }
+    }
+
+    createHeroTextParticles(centerX, centerY) {
+        // Create particles forming "益智游戏集" text
+        const text = '益智游戏集';
+        this.heroTextParticles = this.ps.emitText(text, centerX, centerY, {
+            gap: 5,
+            font: 'bold 60px Segoe UI'
+        });
+
         this.heroTextParticles.forEach(p => {
-            if (isHovering) {
-                p.temperature = Math.min(1.2, p.temperature + 0.1);
-                p.friction = 0.95;
-            } else {
-                p.friction = 0.98;
-            }
+            p.isForming = true;
+            p.formProgress = 0;
         });
     }
 
-    onHeroClick(e) {
+    onExploreClick(e) {
         if (this.currentState !== 'hero') return;
 
         const rect = e.target.getBoundingClientRect();
         const clickX = rect.left + rect.width / 2;
         const clickY = rect.top + rect.height / 2;
 
-        // Explosion effect from click point
+        // Explosion effect
         this.ps.emitExplosion(clickX, clickY, {
-            count: 200,
-            speed: 15,
-            maxTrailLength: 12
+            count: 300,
+            speed: 20,
+            maxTrailLength: 15
         });
 
         // Scatter hero text particles
@@ -131,154 +136,186 @@ class ParticleUI {
             const dx = p.x - clickX;
             const dy = p.y - clickY;
             const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-            const force = Math.max(0, 1 - dist / 300) * 30;
+            const force = Math.max(0, 1 - dist / 400) * 40;
             p.vx += (dx / dist) * force;
             p.vy += (dy / dist) * force;
-            p.temperature = 1.2;
+            p.temperature = 1.3;
             p.isForming = false;
         });
 
-        // Transition to cards state
-        setTimeout(() => this.transitionToCards(), 800);
+        // Transition
         this.currentState = 'transitioning';
-    }
 
-    transitionToCards() {
-        this.currentState = 'cards';
-
-        // Clear hero particles
-        this.heroTextParticles.forEach(p => {
-            p.life = 0;
-        });
-        this.heroTextParticles = [];
-
-        // Hide hero section
-        const hero = document.querySelector('.hero');
+        // Hide hero
+        const hero = document.getElementById('heroSection');
         if (hero) {
             hero.style.opacity = '0';
             hero.style.transition = 'opacity 0.8s ease';
         }
 
-        // Wait for cards to render, then create card particles
-        setTimeout(() => this.waitForCards(), 300);
+        // After explosion, start card particle convergence
+        setTimeout(() => this.startCardConvergence(), 1000);
     }
 
-    waitForCards() {
-        const checkCards = () => {
-            const cardContainer = document.getElementById('cardContainer');
-            const cards = cardContainer ? cardContainer.querySelectorAll('.card') : [];
-            if (cards.length > 0) {
-                this.createCardParticles(cardContainer);
-            } else {
-                setTimeout(checkCards, 100);
+    startCardConvergence() {
+        this.currentState = 'cards';
+
+        // Hide the normal card container in plasma mode
+        const cardContainer = document.getElementById('cardContainer');
+        if (cardContainer) {
+            cardContainer.style.display = 'none';
+        }
+
+        // Wait for tools data
+        const loadCards = () => {
+            if (this.toolsData.length === 0) {
+                setTimeout(loadCards, 100);
+                return;
             }
+            this.createCardParticles();
         };
-        checkCards();
+        loadCards();
     }
 
-    createCardParticles(cardContainer) {
-        const cards = cardContainer.querySelectorAll('.card');
-        this.allCardElements = Array.from(cards);
+    createCardParticles() {
         this.cardParticles = [];
 
-        cards.forEach((card, index) => {
-            const rect = card.getBoundingClientRect();
-            const particleCount = Math.floor(this.options.cardParticleCount / cards.length);
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
 
-            // Create particles forming card shape
+        // Calculate card positions (3x3 grid)
+        const cols = 3;
+        const rows = Math.ceil(this.toolsData.length / cols);
+        const cardWidth = 220;
+        const cardHeight = 100;
+        const gapX = 30;
+        const gapY = 25;
+        const startX = (viewportWidth - (cols * cardWidth + (cols - 1) * gapX)) / 2;
+        const startY = 100;
+
+        this.toolsData.forEach((tool, index) => {
+            const col = index % cols;
+            const row = Math.floor(index / cols);
+            const centerX = startX + col * (cardWidth + gapX) + cardWidth / 2;
+            const centerY = startY + row * (cardHeight + gapY) + cardHeight / 2;
+
+            const particleCount = Math.floor(this.options.cardParticleCount / this.toolsData.length);
+
+            // Particles start from center (explosion origin) and converge to card positions
             for (let i = 0; i < particleCount; i++) {
-                const x = rect.left + Math.random() * rect.width;
-                const y = rect.top + Math.random() * rect.height;
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 800 + Math.random() * 400;
+                const startX = viewportWidth / 2 + Math.cos(angle) * dist;
+                const startY = viewportHeight / 2 + Math.sin(angle) * dist;
 
-                const particle = this.ps.createParticle(x, y, {
-                    vx: (Math.random() - 0.5) * 10,
-                    vy: (Math.random() - 0.5) * 10,
-                    size: 2 + Math.random() * 4,
-                    temperature: 0.5 + Math.random() * 0.5,
+                const particle = this.ps.createParticle(startX, startY, {
+                    vx: (Math.random() - 0.5) * 5,
+                    vy: (Math.random() - 0.5) * 5,
+                    size: 2 + Math.random() * 3,
+                    temperature: 0.6 + Math.random() * 0.4,
                     life: 1,
                     maxTrailLength: 6
                 });
 
-                particle.targetCard = card;
-                particle.cardRect = {
-                    left: rect.left,
-                    top: rect.top,
-                    width: rect.width,
-                    height: rect.height,
-                    centerX: rect.left + rect.width / 2,
-                    centerY: rect.top + rect.height / 2
-                };
-                particle.offsetX = x - rect.left - rect.width / 2;
-                particle.offsetY = y - rect.top - rect.height / 2;
-                particle.baseX = rect.left + rect.width / 2 + particle.offsetX;
-                particle.baseY = rect.top + rect.height / 2 + particle.offsetY;
-                particle.isForming = true;
-                particle.formProgress = 0;
+                particle.targetX = centerX + (Math.random() - 0.5) * cardWidth * 0.8;
+                particle.targetY = centerY + (Math.random() - 0.5) * cardHeight * 0.6;
+                particle.baseX = particle.targetX;
+                particle.baseY = particle.targetY;
+                particle.isForming = false;
+                particle.isAttracting = true;
+                particle.toolIndex = index;
+                particle.cardCenterX = centerX;
+                particle.cardCenterY = centerY;
+                particle.cardWidth = cardWidth;
+                particle.cardHeight = cardHeight;
 
                 this.cardParticles.push(particle);
                 this.ps.particles.push(particle);
             }
-
-            // Add click handler
-            card.addEventListener('click', () => this.onCardClick(card));
         });
+
+        // Add click detection after particles converge
+        setTimeout(() => this.enableCardClicks(), 2000);
     }
 
-    onCardClick(card) {
-        if (this.currentState !== 'cards' || this.selectedCard) return;
+    enableCardClicks() {
+        // Set up click detection on canvas
+        this.canvas.style.pointerEvents = 'auto';
+        this.canvas.onclick = (e) => this.onCanvasClick(e);
+    }
 
-        this.selectedCard = card;
+    onCanvasClick(e) {
+        if (this.currentState !== 'cards') return;
+
+        const clickX = e.clientX;
+        const clickY = e.clientY;
+
+        // Find which card was clicked
+        for (let i = 0; i < this.cardParticles.length; i++) {
+            const p = this.cardParticles[i];
+            if (p.toolIndex === undefined) continue;
+
+            const dx = clickX - p.cardCenterX;
+            const dy = clickY - p.cardCenterY;
+
+            if (Math.abs(dx) < p.cardWidth / 2 && Math.abs(dy) < p.cardHeight / 2) {
+                this.onCardClick(p.toolIndex);
+                return;
+            }
+        }
+    }
+
+    onCardClick(toolIndex) {
+        if (this.currentState !== 'cards') return;
+
+        this.selectedCardIndex = toolIndex;
         this.currentState = 'modal-opening';
 
-        const rect = card.getBoundingClientRect();
+        const tool = this.toolsData[toolIndex];
+        if (!tool) return;
+
+        // Particles explode outward then converge to center
         const centerX = window.innerWidth / 2;
         const centerY = window.innerHeight / 2;
 
-        // Particles from all cards converge to center
         this.cardParticles.forEach((p, i) => {
-            const delay = i * 3;
-            setTimeout(() => {
-                p.isAttracting = true;
-                p.isForming = false;
-                p.targetX = centerX;
-                p.targetY = centerY;
-                p.orbitAngle = Math.random() * Math.PI * 2;
-                p.orbitRadius = Math.sqrt(Math.pow(p.x - centerX, 2) + Math.pow(p.y - centerY, 2)) * 0.3;
-                p.orbitSpeed = 0.02 + Math.random() * 0.02;
-            }, delay);
+            if (p.toolIndex === toolIndex) {
+                const delay = i * 2;
+                setTimeout(() => {
+                    p.isAttracting = true;
+                    p.targetX = centerX + (Math.random() - 0.5) * 100;
+                    p.targetY = centerY + (Math.random() - 0.5) * 80;
+                }, delay);
+            } else {
+                // Scatter other cards' particles
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 600 + Math.random() * 400;
+                setTimeout(() => {
+                    p.isAttracting = true;
+                    p.targetX = centerX + Math.cos(angle) * dist;
+                    p.targetY = centerY + Math.sin(angle) * dist;
+                    p.temperature = 0.3;
+                }, i * 2);
+            }
         });
 
-        // After convergence, show modal
-        setTimeout(() => this.showModal(card), 1000);
+        // Show modal after convergence
+        setTimeout(() => this.showModal(tool), 1200);
     }
 
-    showModal(card) {
-        // Get tool data from card
-        const cardName = card.querySelector('.card-name')?.textContent;
-        const cardIcon = card.querySelector('.card-icon')?.textContent;
-        const cardTags = Array.from(card.querySelectorAll('.card-tag')).map(t => t.textContent);
-        const toolDescription = this.getToolDescription(cardName);
+    showModal(tool) {
+        const demoUrl = tool.demoFile || `${tool.name}/index.html`;
 
-        // Find tool info from global tools if available
-        let demoUrl = `${cardName}/index.html`;
-        if (window.toolsData) {
-            const tool = window.toolsData.find(t => t.name === cardName);
-            if (tool) {
-                demoUrl = tool.demoFile || `${tool.name}/index.html`;
-            }
-        }
-
-        // Create modal
         this.modal = document.createElement('div');
         this.modal.className = 'particle-modal';
         this.modal.innerHTML = `
             <div class="particle-modal-content">
                 <button class="particle-modal-close">&times;</button>
-                <div class="particle-modal-icon">${cardIcon || '🎮'}</div>
-                <h2>${cardName}</h2>
-                <p>${toolDescription}</p>
+                <div class="particle-modal-icon">${tool.icon || '🎮'}</div>
+                <h2>${tool.name}</h2>
+                <p>${tool.description || '一款有趣的益智游戏。'}</p>
                 <div class="particle-modal-tags">
-                    ${cardTags.map(t => `<span class="tag">${t}</span>`).join('')}
+                    ${tool.tags ? tool.tags.slice(0, 3).map(t => `<span class="tag">${t}</span>`).join('') : ''}
                 </div>
                 <a href="${demoUrl}" class="btn-explore">进入演示</a>
             </div>
@@ -286,41 +323,40 @@ class ParticleUI {
 
         document.body.appendChild(this.modal);
 
-        // Animate modal in
+        // Animate in
         requestAnimationFrame(() => {
             this.modal.classList.add('active');
         });
 
-        // Add orbiting particles
-        this.createModalParticles();
+        // Add orbiting particles around modal
+        this.createModalOrbitParticles();
 
         // Close handler
         this.modal.querySelector('.particle-modal-close').addEventListener('click', () => this.closeModal());
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) this.closeModal();
         });
+
+        this.currentState = 'modal';
     }
 
-    createModalParticles() {
+    createModalOrbitParticles() {
         const centerX = window.innerWidth / 2;
         const centerY = window.innerHeight / 2;
-        this.selectedCardParticles = [];
 
-        // Add orbiting particles around center
-        for (let i = 0; i < 40; i++) {
-            const angle = (Math.PI * 2 / 40) * i;
-            const radius = 180 + Math.random() * 80;
+        for (let i = 0; i < 50; i++) {
+            const angle = (Math.PI * 2 / 50) * i;
+            const radius = 200 + Math.random() * 100;
 
             const particle = this.ps.createParticle(
                 centerX + Math.cos(angle) * radius,
                 centerY + Math.sin(angle) * radius,
                 {
-                    vx: 0,
-                    vy: 0,
+                    vx: 0, vy: 0,
                     size: 2 + Math.random() * 3,
-                    temperature: 0.6 + Math.random() * 0.4,
+                    temperature: 0.7,
                     life: 1,
-                    maxTrailLength: 5
+                    maxTrailLength: 8
                 }
             );
 
@@ -328,32 +364,29 @@ class ParticleUI {
             particle.orbitCenterY = centerY;
             particle.orbitRadius = radius;
             particle.orbitAngle = angle;
-            particle.orbitSpeed = 0.015 + Math.random() * 0.01;
+            particle.orbitSpeed = 0.02 + Math.random() * 0.01;
             particle.isOrbiting = true;
 
             this.ps.particles.push(particle);
-            this.selectedCardParticles.push(particle);
         }
     }
 
     closeModal() {
         if (!this.modal) return;
 
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
-
         // Remove orbiting particles
         this.ps.particles = this.ps.particles.filter(p => !p.isOrbiting);
 
-        // Scatter particles back to cards
+        // Particles scatter back to card positions
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+
         this.cardParticles.forEach((p, i) => {
-            if (p.targetCard && p.targetCard.parentNode) {
-                const cardRect = p.targetCard.getBoundingClientRect();
+            if (p.toolIndex === this.selectedCardIndex) {
                 setTimeout(() => {
-                    p.isForming = true;
-                    p.targetX = cardRect.left + cardRect.width / 2 + p.offsetX;
-                    p.targetY = cardRect.top + cardRect.height / 2 + p.offsetY;
                     p.isAttracting = true;
+                    p.targetX = p.baseX;
+                    p.targetY = p.baseY;
                 }, i * 2);
             }
         });
@@ -366,49 +399,27 @@ class ParticleUI {
                 this.modal.remove();
                 this.modal = null;
             }
-            this.selectedCard = null;
+            this.selectedCardIndex = null;
             this.currentState = 'cards';
         }, 500);
     }
 
-    getToolDescription(name) {
-        const descriptions = {
-            '2048': '经典2048滑动合并游戏，数字爱好者必玩。',
-            '国际象棋': '经典国际象棋，支持王车易位、吃过路兵、兵升变。',
-            '五子棋': '简约风格五子棋，人机对弈。',
-            '单词翻翻乐': '中英文单词记忆匹配游戏，支持自定义词库。',
-            '二十四点': '用4个数字通过加减乘除得到24。',
-            '中国象棋': '中国象棋棋盘，支持双人同屏对弈。',
-            '技能五子棋': '增强版五子棋，加入技能系统。',
-            '罚分游戏': '根据给出数字计算目标值，差值越大扣分越多。',
-            '舒尔特方格': '训练专注力和数字敏感度。'
-        };
-        return descriptions[name] || '一款有趣的益智游戏。';
-    }
-
     startAmbientEffect() {
-        // Continuous ambient particles
+        // Rising ambient particles
         setInterval(() => {
             if (this.currentState === 'hero' || this.currentState === 'cards') {
                 const x = Math.random() * window.innerWidth;
                 const y = window.innerHeight + 20;
                 this.ps.emit(x, y, 2, {
-                    vy: -2 - Math.random() * 3,
-                    vx: (Math.random() - 0.5) * 2,
+                    vy: -1.5 - Math.random() * 2,
+                    vx: (Math.random() - 0.5) * 1,
                     size: 1 + Math.random() * 2,
                     temperature: 0.4 + Math.random() * 0.3,
-                    life: 0.8,
-                    maxTrailLength: 5
+                    life: 0.7,
+                    maxTrailLength: 4
                 });
             }
-        }, 100);
-    }
-
-    setQuality(quality) {
-        this.options.quality = quality;
-        if (this.ps) {
-            this.ps.config.maxTrailLength = quality === 'low' ? 0 : 8;
-        }
+        }, 150);
     }
 
     destroy() {

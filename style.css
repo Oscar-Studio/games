@@ -245,7 +245,7 @@
             background-clip: text;
         }
 
-        .hero p {
+.hero p {
             max-width: 700px;
             margin: 0 auto;
             font-size: 1.15rem;
@@ -254,7 +254,25 @@
             padding: 0 20px;
         }
 
-        /* Card Container */
+        .btn-primary {
+            margin-top: 30px;
+            padding: 15px 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(106, 0, 255, 0.3);
+        }
+
+        .card-container {
         .card-container {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
