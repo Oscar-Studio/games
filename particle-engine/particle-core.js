@@ -53,9 +53,10 @@ class Particle {
         // Apply gravity
         this.vy += this.gravity;
 
-        // Apply friction
-        this.vx *= this.friction;
-        this.vy *= this.friction;
+        // Apply friction (less friction when attracting for faster movement)
+        const frictionMult = this.isAttracting ? 0.96 : 0.98;
+        this.vx *= frictionMult;
+        this.vy *= frictionMult;
 
         // Update position
         this.x += this.vx;
@@ -330,9 +331,10 @@ class ParticleSystem {
                 const dx = p.targetX - p.x;
                 const dy = p.targetY - p.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > 5) {
-                    p.vx += (dx / dist) * 0.15;
-                    p.vy += (dy / dist) * 0.15;
+                if (dist > 2) {
+                    // Stronger attraction for faster convergence
+                    p.vx += (dx / dist) * 0.3;
+                    p.vy += (dy / dist) * 0.3;
                 }
             }
 
