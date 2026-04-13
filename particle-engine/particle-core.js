@@ -62,12 +62,12 @@ class Particle {
         this.x += this.vx;
         this.y += this.vy;
 
-        // Update temperature (cooling)
-        if (this.temperature > 0.3) {
-            this.temperature *= 0.995;
+        // Update temperature (cooling) - only when above threshold
+        if (this.temperature > 0.5) {
+            this.temperature *= 0.99;
         }
 
-        // Update size based on temperature
+        // Update size based on temperature (simplified)
         this.size = this.baseSize * (0.5 + this.temperature * 0.5);
 
         // Orbiting particles
@@ -79,14 +79,6 @@ class Particle {
             this.temperature = 0.7 + Math.sin(this.orbitAngle * 2) * 0.3;
         }
 
-        // Update trail
-        if (this.maxTrailLength > 0) {
-            this.trail.push({ x: this.x, y: this.y, alpha: this.alpha });
-            if (this.trail.length > this.maxTrailLength) {
-                this.trail.shift();
-            }
-        }
-
         // Update life
         if (this.maxLife < 1) {
             this.life -= 0.016;
@@ -94,63 +86,38 @@ class Particle {
     }
 
     draw(ctx) {
-        // Draw trail
-        if (this.trail.length > 1) {
-            for (let i = 1; i < this.trail.length; i++) {
-                const t = this.trail[i];
-                const prev = this.trail[i - 1];
-                const trailAlpha = (i / this.trail.length) * 0.5 * this.alpha;
-                ctx.beginPath();
-                ctx.strokeStyle = this.getTrailColor(trailAlpha);
-                ctx.lineWidth = this.size * 0.5;
-                ctx.moveTo(prev.x, prev.y);
-                ctx.lineTo(t.x, t.y);
-                ctx.stroke();
-            }
+        // Skip trail drawing for performance - too expensive with many particles
+        // Simple solid circle with glow effect instead of gradient
+        const size = this.size;
+        const temp = this.temperature;
+
+        // Determine color based on temperature (cached, not computed per draw)
+        let color;
+        if (temp > 0.8) {
+            color = '#FF6B35';
+        } else if (temp > 0.5) {
+            color = '#FFB347';
+        } else if (temp > 0.3) {
+            color = '#00D4FF';
+        } else {
+            color = '#FFFFFF';
         }
 
-        // Draw glow
-        const gradient = ctx.createRadialGradient(
-            this.x, this.y, 0,
-            this.x, this.y, this.size * 3
-        );
-        gradient.addColorStop(0, this.getColor(0.8));
-        gradient.addColorStop(0.4, this.getColor(0.3 * this.temperature));
-        gradient.addColorStop(1, this.getColor(0));
-
+        // Draw glow (simple circle, no gradient)
+        ctx.globalAlpha = 0.3 * temp;
+        ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
-        ctx.fillStyle = gradient;
+        ctx.arc(this.x, this.y, size * 2, 0, Math.PI * 2);
         ctx.fill();
 
         // Draw core
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = this.getColor(this.alpha);
+        ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
         ctx.fill();
-    }
 
-    getColor(alpha) {
-        // Temperature-based color
-        if (this.temperature > 0.8) {
-            return `rgba(255, 107, 53, ${alpha})`;
-        } else if (this.temperature > 0.5) {
-            return `rgba(255, 179, 71, ${alpha})`;
-        } else if (this.temperature > 0.3) {
-            return `rgba(0, 212, 255, ${alpha})`;
-        } else {
-            return `rgba(255, 255, 255, ${alpha})`;
-        }
-    }
-
-    getTrailColor(alpha) {
-        if (this.temperature > 0.6) {
-            return `rgba(255, 100, 50, ${alpha})`;
-        } else if (this.temperature > 0.3) {
-            return `rgba(100, 200, 255, ${alpha})`;
-        } else {
-            return `rgba(200, 200, 255, ${alpha})`;
-        }
+        ctx.globalAlpha = 1;
     }
 
     isDead() {
@@ -353,9 +320,7 @@ class ParticleSystem {
     render() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Sort by temperature for proper layering
-        this.particles.sort((a, b) => a.temperature - b.temperature);
-
+        // Skip sorting for performance - visual difference is minimal
         this.particles.forEach(p => p.draw(this.ctx));
     }
 

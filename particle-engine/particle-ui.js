@@ -49,7 +49,7 @@ class ParticleUI {
         this.ctx = this.canvas.getContext('2d');
         this.ps = new ParticleSystem(this.canvas, {
             particleCount: this.options.particleCount,
-            maxTrailLength: 8
+            maxTrailLength: 0
         });
 
         this.resize();
@@ -128,7 +128,7 @@ class ParticleUI {
         this.ps.emitExplosion(clickX, clickY, {
             count: 300,
             speed: 20,
-            maxTrailLength: 15
+            maxTrailLength: 0
         });
 
         // Scatter hero text particles
@@ -190,7 +190,7 @@ class ParticleUI {
         const gapX = 30;
         const gapY = 25;
         const startX = (viewportWidth - (cols * cardWidth + (cols - 1) * gapX)) / 2;
-        const startY = 120;
+        const startY = 180;
 
         const particleCountPerCard = Math.floor(this.options.cardParticleCount / this.toolsData.length);
 
@@ -238,7 +238,7 @@ class ParticleUI {
                     size: 2.5 + Math.random() * 2,
                     temperature: 0.7,
                     life: 1,
-                    maxTrailLength: 6
+                    maxTrailLength: 0
                 });
 
                 particle.targetX = x + (Math.random() - 0.5) * 10;
@@ -268,7 +268,7 @@ class ParticleUI {
                     size: 2 + Math.random() * 2,
                     temperature: 0.5,
                     life: 1,
-                    maxTrailLength: 4
+                    maxTrailLength: 0
                 });
 
                 particle.targetX = centerX + (Math.random() - 0.5) * cardWidth * 0.7;
@@ -410,7 +410,7 @@ class ParticleUI {
                     size: 2 + Math.random() * 3,
                     temperature: 0.7,
                     life: 1,
-                    maxTrailLength: 8
+                    maxTrailLength: 0
                 }
             );
 
@@ -431,23 +431,19 @@ class ParticleUI {
         // Remove orbiting particles
         this.ps.particles = this.ps.particles.filter(p => !p.isOrbiting);
 
-        // Particles scatter back to card positions
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
-
+        // ALL card particles return to their card positions
         this.cardParticles.forEach((p, i) => {
-            if (p.toolIndex === this.selectedCardIndex) {
-                setTimeout(() => {
-                    p.isAttracting = true;
-                    p.targetX = p.baseX;
-                    p.targetY = p.baseY;
-                }, i * 2);
-            }
+            setTimeout(() => {
+                p.isAttracting = true;
+                p.targetX = p.baseX;
+                p.targetY = p.baseY;
+            }, i * 2);
         });
 
         // Animate modal out
         this.modal.classList.remove('active');
 
+        // Wait longer for particles to converge back
         setTimeout(() => {
             if (this.modal) {
                 this.modal.remove();
@@ -455,7 +451,7 @@ class ParticleUI {
             }
             this.selectedCardIndex = null;
             this.currentState = 'cards';
-        }, 500);
+        }, 1500);
     }
 
     startAmbientEffect() {
@@ -470,7 +466,7 @@ class ParticleUI {
                     size: 1 + Math.random() * 2,
                     temperature: 0.4 + Math.random() * 0.3,
                     life: 0.7,
-                    maxTrailLength: 4
+                    maxTrailLength: 0
                 });
             }
         }, 150);
