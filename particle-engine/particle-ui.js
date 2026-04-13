@@ -254,7 +254,6 @@ class ParticleUI {
                 particle.cardHeight = cardHeight;
 
                 this.cardParticles.push(particle);
-                this.ps.particles.push(particle);
             }
 
             // Fill particles (inside card area)
@@ -284,7 +283,6 @@ class ParticleUI {
                 particle.cardHeight = cardHeight;
 
                 this.cardParticles.push(particle);
-                this.ps.particles.push(particle);
             }
         });
 
@@ -420,16 +418,21 @@ class ParticleUI {
             particle.orbitAngle = angle;
             particle.orbitSpeed = 0.02 + Math.random() * 0.01;
             particle.isOrbiting = true;
-
-            this.ps.particles.push(particle);
+            particle.isModalOrbit = true; // Mark as modal orbit for cleanup
         }
     }
 
     closeModal() {
         if (!this.modal) return;
 
-        // Remove orbiting particles
-        this.ps.particles = this.ps.particles.filter(p => !p.isOrbiting);
+        // Mark all modal orbit particles as dead (they will be released by pool in update loop)
+        // We need to iterate through all active particles to find the orbit ones
+        const activeParticles = this.ps.pool.getActive();
+        for (let i = 0; i < activeParticles.length; i++) {
+            if (activeParticles[i].isModalOrbit) {
+                activeParticles[i].life = 0; // Mark as dead
+            }
+        }
 
         // ALL card particles return to their card positions
         this.cardParticles.forEach((p, i) => {

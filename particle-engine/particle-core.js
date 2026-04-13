@@ -1,17 +1,52 @@
 /**
  * Particle Core Engine
  * 粒子核心引擎 - 等离子态界面
+ * 支持粒子池复用，减少GC压力
  */
 
 class Particle {
-    constructor(x, y, config = {}) {
+    constructor() {
+        // Properties will be set by reset()
+        this.x = 0;
+        this.y = 0;
+        this.vx = 0;
+        this.vy = 0;
+        this.size = 3;
+        this.baseSize = 3;
+        this.color = '#FF6B35';
+        this.alpha = 1;
+        this.life = 1;
+        this.maxLife = 1;
+        this.temperature = 1;
+        this.friction = 0.98;
+        this.gravity = 0;
+        this.targetX = null;
+        this.targetY = null;
+        this.isAttracting = false;
+        this.isOrbiting = false;
+        this.orbitCenterX = 0;
+        this.orbitCenterY = 0;
+        this.orbitRadius = 0;
+        this.orbitAngle = 0;
+        this.orbitSpeed = 0;
+        this.isForming = false;
+        this.formProgress = 0;
+        this.baseX = 0;
+        this.baseY = 0;
+        this.toolIndex = -1;
+        this.cardCenterX = 0;
+        this.cardCenterY = 0;
+        this.cardWidth = 0;
+        this.cardHeight = 0;
+    }
+
+    reset(x, y, config = {}) {
         this.x = x;
         this.y = y;
-        this.vx = config.vx || (Math.random() - 0.5) * 2;
-        this.vy = config.vy || (Math.random() - 0.5) * 2;
+        this.vx = config.vx !== undefined ? config.vx : (Math.random() - 0.5) * 2;
+        this.vy = config.vy !== undefined ? config.vy : (Math.random() - 0.5) * 2;
         this.size = config.size || 3;
         this.baseSize = this.size;
-        this.color = config.color || '#FF6B35';
         this.alpha = config.alpha || 1;
         this.life = config.life || 1;
         this.maxLife = this.life;
@@ -21,8 +56,22 @@ class Particle {
         this.targetX = null;
         this.targetY = null;
         this.isAttracting = false;
-        this.trail = [];
-        this.maxTrailLength = config.maxTrailLength || 0;
+        this.isOrbiting = false;
+        this.orbitCenterX = 0;
+        this.orbitCenterY = 0;
+        this.orbitRadius = 0;
+        this.orbitAngle = 0;
+        this.orbitSpeed = 0;
+        this.isForming = false;
+        this.formProgress = 0;
+        this.baseX = config.baseX !== undefined ? config.baseX : x;
+        this.baseY = config.baseY !== undefined ? config.baseY : y;
+        this.toolIndex = config.toolIndex !== undefined ? config.toolIndex : -1;
+        this.cardCenterX = config.cardCenterX || 0;
+        this.cardCenterY = config.cardCenterY || 0;
+        this.cardWidth = config.cardWidth || 0;
+        this.cardHeight = config.cardHeight || 0;
+        return this;
     }
 
     update(deltaTime, forces = []) {
@@ -71,7 +120,7 @@ class Particle {
         this.size = this.baseSize * (0.5 + this.temperature * 0.5);
 
         // Orbiting particles
-        if (this.isOrbiting && this.orbitCenterX !== undefined) {
+        if (this.isOrbiting) {
             this.orbitAngle += this.orbitSpeed;
             this.x = this.orbitCenterX + Math.cos(this.orbitAngle) * this.orbitRadius;
             this.y = this.orbitCenterY + Math.sin(this.orbitAngle) * this.orbitRadius;
@@ -86,12 +135,10 @@ class Particle {
     }
 
     draw(ctx) {
-        // Skip trail drawing for performance - too expensive with many particles
-        // Simple solid circle with glow effect instead of gradient
         const size = this.size;
         const temp = this.temperature;
 
-        // Determine color based on temperature (cached, not computed per draw)
+        // Determine color based on temperature (cached)
         let color;
         if (temp > 0.8) {
             color = '#FF6B35';
@@ -125,17 +172,77 @@ class Particle {
     }
 }
 
+class ParticlePool {
+    constructor(initialSize = 500) {
+        this.pool = [];
+        this.activeCount = 0;
+
+        // Pre-allocate particles
+        for (let i = 0; i < initialSize; i++) {
+            this.pool.push(new Particle());
+        }
+    }
+
+    get(x, y, config = {}) {
+        let particle;
+
+        // Find a dead particle from pool
+        if (this.activeCount < this.pool.length) {
+            // Use existing particle from pool
+            particle = this.pool[this.activeCount];
+            particle.reset(x, y, config);
+        } else {
+            // Pool exhausted, create new particle
+            particle = new Particle();
+            particle.reset(x, y, config);
+            this.pool.push(particle);
+        }
+
+        this.activeCount++;
+        return particle;
+    }
+
+    release(particle) {
+        // Move it to the inactive part of the pool
+        // For simplicity, we just swap with the last active particle
+        const idx = this.pool.indexOf(particle);
+        if (idx !== -1 && idx < this.activeCount) {
+            const lastActive = this.pool[this.activeCount - 1];
+            this.pool[idx] = lastActive;
+            this.pool[this.activeCount - 1] = particle;
+            this.activeCount--;
+            // Reset the released particle
+            particle.reset(0, 0, {});
+        }
+    }
+
+    releaseAll() {
+        for (let i = 0; i < this.activeCount; i++) {
+            this.pool[i].reset(0, 0, {});
+        }
+        this.activeCount = 0;
+    }
+
+    getActive() {
+        return this.pool.slice(0, this.activeCount);
+    }
+
+    getActiveCount() {
+        return this.activeCount;
+    }
+}
+
 class ParticleSystem {
     constructor(canvas, config = {}) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.particles = [];
+        this.pool = new ParticlePool(config.poolSize || 3000); // Pre-allocate 3000 particles
         this.forces = [];
         this.config = {
             particleCount: config.particleCount || 200,
             friction: config.friction || 0.98,
             gravity: config.gravity || 0,
-            maxTrailLength: config.maxTrailLength || 8,
+            maxTrailLength: config.maxTrailLength || 0,
             ...config
         };
 
@@ -162,10 +269,9 @@ class ParticleSystem {
     }
 
     createParticle(x, y, config = {}) {
-        return new Particle(x, y, {
+        return this.pool.get(x, y, {
             ...this.config,
-            ...config,
-            maxTrailLength: this.config.maxTrailLength
+            ...config
         });
     }
 
@@ -180,19 +286,17 @@ class ParticleSystem {
                 temperature: 1,
                 ...config
             });
-            this.particles.push(particle);
         }
     }
 
     emitExplosion(x, y, config = {}) {
         const count = config.count || 100;
-        const particles = [];
 
         // Main explosion
         for (let i = 0; i < count; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = config.speed || (5 + Math.random() * 15);
-            const particle = this.createParticle(x, y, {
+            this.createParticle(x, y, {
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
                 size: 2 + Math.random() * 6,
@@ -200,28 +304,21 @@ class ParticleSystem {
                 life: 0.8 + Math.random() * 0.2,
                 ...config
             });
-            particles.push(particle);
-            this.particles.push(particle);
         }
 
         // Sparks
         for (let i = 0; i < count * 0.5; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 10 + Math.random() * 20;
-            const particle = this.createParticle(x, y, {
+            this.createParticle(x, y, {
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
                 size: 1 + Math.random() * 2,
                 temperature: 1.2,
                 life: 0.5 + Math.random() * 0.3,
-                maxTrailLength: 15,
                 ...config
             });
-            particles.push(particle);
-            this.particles.push(particle);
         }
-
-        return particles;
     }
 
     emitText(text, x, y, config = {}) {
@@ -258,7 +355,6 @@ class ParticleSystem {
                     particle.isForming = true;
                     particle.formProgress = 0;
                     particles.push(particle);
-                    this.particles.push(particle);
                 }
             }
         }
@@ -267,7 +363,7 @@ class ParticleSystem {
     }
 
     attractToPoint(x, y, strength = 5) {
-        this.particles.forEach(p => {
+        this.pool.getActive().forEach(p => {
             p.isAttracting = true;
             p.targetX = x;
             p.targetY = y;
@@ -280,9 +376,11 @@ class ParticleSystem {
     }
 
     update(deltaTime) {
+        const activeParticles = this.pool.getActive();
+
         // Update particles
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            const p = this.particles[i];
+        for (let i = 0; i < activeParticles.length; i++) {
+            const p = activeParticles[i];
 
             // Form maintaining particles
             if (p.isForming && p.baseX !== undefined) {
@@ -299,7 +397,6 @@ class ParticleSystem {
                 const dy = p.targetY - p.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist > 2) {
-                    // Stronger attraction for faster convergence
                     p.vx += (dx / dist) * 0.3;
                     p.vy += (dy / dist) * 0.3;
                 }
@@ -307,9 +404,9 @@ class ParticleSystem {
 
             p.update(deltaTime, this.forces);
 
-            // Remove dead particles
+            // Remove dead particles - return to pool
             if (p.isDead()) {
-                this.particles.splice(i, 1);
+                this.pool.release(p);
             }
         }
 
@@ -320,8 +417,10 @@ class ParticleSystem {
     render() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Skip sorting for performance - visual difference is minimal
-        this.particles.forEach(p => p.draw(this.ctx));
+        const activeParticles = this.pool.getActive();
+        for (let i = 0; i < activeParticles.length; i++) {
+            activeParticles[i].draw(this.ctx);
+        }
     }
 
     start() {
@@ -352,14 +451,15 @@ class ParticleSystem {
     }
 
     clear() {
-        this.particles = [];
+        this.pool.releaseAll();
     }
 
     getParticleCount() {
-        return this.particles.length;
+        return this.pool.getActiveCount();
     }
 }
 
 // Export
 window.ParticleSystem = ParticleSystem;
 window.Particle = Particle;
+window.ParticlePool = ParticlePool;
