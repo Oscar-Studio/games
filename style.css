@@ -213,10 +213,6 @@
             transition: none !important;
         }
 
-        body.plasma-quality * {
-            animation-duration: 0.5s !important;
-        }
-
         /* Hero Section */
         .hero {
             padding-top: 100px;
@@ -245,7 +241,7 @@
             background-clip: text;
         }
 
-.hero p {
+        .hero p {
             max-width: 700px;
             margin: 0 auto;
             font-size: 1.15rem;
@@ -254,7 +250,7 @@
             padding: 0 20px;
         }
 
-        .btn-primary {
+        .hero .btn-primary {
             margin-top: 30px;
             padding: 15px 50px;
             font-size: 1.2rem;
@@ -267,12 +263,12 @@
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .btn-primary:hover {
+        .hero .btn-primary:hover {
             transform: translateY(-3px);
             box-shadow: 0 10px 30px rgba(106, 0, 255, 0.3);
         }
 
-        .card-container {
+        /* Card Container */
         .card-container {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
