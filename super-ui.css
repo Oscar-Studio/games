@@ -4,13 +4,37 @@
  */
 
 /* Plasma Quality Only Styles */
+
+/* Hide entire hero HTML content in plasma mode - only particle text shows */
 body.plasma-quality .hero {
-    transition: opacity 0.8s ease;
+    display: none;
 }
 
-body.plasma-quality .hero.hidden {
-    opacity: 0;
-    pointer-events: none;
+/* Plasma Explore button container - visible in plasma mode */
+body.plasma-quality .plasma-explore-container {
+    display: block;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+}
+
+body.plasma-quality .plasma-explore-btn {
+    padding: 15px 50px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(135deg, #2A5CAA, #6A00FF);
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+body.plasma-quality .plasma-explore-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(106, 0, 255, 0.3);
 }
 
 /* Hero Explore Button - only visible in plasma mode */

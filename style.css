@@ -255,6 +255,11 @@
             display: none;
         }
 
+        /* Hide plasma explore button in normal/low mode */
+        .plasma-explore-container {
+            display: none;
+        }
+
         /* Card Container */
         .card-container {
             display: grid;
