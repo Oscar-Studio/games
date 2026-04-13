@@ -86,14 +86,13 @@ class ParticleUI {
     }
 
     setupHero() {
-        const hero = document.getElementById('heroSection');
-        if (!hero) return;
+        // In plasma mode, hero is hidden, so calculate position from viewport
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2 - 50;
 
         // Create hero text particles (the title)
-        const heroTitle = hero.querySelector('h1');
-        if (heroTitle && this.currentState === 'hero') {
-            const rect = heroTitle.getBoundingClientRect();
-            this.createHeroTextParticles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        if (this.currentState === 'hero') {
+            this.createHeroTextParticles(centerX, centerY);
         }
 
         // Find and attach to Explore button
