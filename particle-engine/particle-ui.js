@@ -9,7 +9,7 @@ class ParticleUI {
         this.options = {
             particleCount: options.particleCount || 200,
             quality: options.quality || 'plasma',
-            cardParticleCount: options.cardParticleCount || 1800, // 200 per card for 9 cards
+            cardParticleCount: options.cardParticleCount || 2800, // ~310 per card for 9 cards
             ...options
         };
 
