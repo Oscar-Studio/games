@@ -1,7 +1,42 @@
 /**
  * Super UI - 等离子态界面样式
- * 粒子态UI组件的样式定义
+ * 仅在等离子OS模式下加载，不影响正常/低画质模式
  */
+
+/* Plasma Quality Only Styles */
+body.plasma-quality .hero {
+    transition: opacity 0.8s ease;
+}
+
+body.plasma-quality .hero.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Hero Explore Button - only visible in plasma mode */
+body.plasma-quality .hero .btn-primary {
+    display: inline-block;
+    margin-top: 30px;
+    padding: 15px 50px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(135deg, #2A5CAA, #6A00FF);
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+body.plasma-quality .hero .btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(106, 0, 255, 0.3);
+}
+
+/* Hide normal card container in plasma mode */
+body.plasma-quality .card-container {
+    display: none;
+}
 
 /* Particle Canvas */
 #particle-canvas {
@@ -15,7 +50,7 @@
 }
 
 /* Particle Modal */
-.particle-modal {
+body.plasma-quality .particle-modal {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -31,16 +66,16 @@
     backdrop-filter: blur(10px);
 }
 
-.particle-modal.active {
+body.plasma-quality .particle-modal.active {
     transform: translate(-50%, -50%) scale(1);
     opacity: 1;
 }
 
-.particle-modal-content {
+body.plasma-quality .particle-modal-content {
     position: relative;
 }
 
-.particle-modal-close {
+body.plasma-quality .particle-modal-close {
     position: absolute;
     top: -15px;
     right: -15px;
@@ -58,30 +93,30 @@
     justify-content: center;
 }
 
-.particle-modal-close:hover {
+body.plasma-quality .particle-modal-close:hover {
     background: rgba(255, 255, 255, 0.2);
     color: #ffffff;
 }
 
-.particle-modal-icon {
+body.plasma-quality .particle-modal-icon {
     font-size: 4.5rem;
     margin-bottom: 20px;
 }
 
-.particle-modal h2 {
+body.plasma-quality .particle-modal h2 {
     font-size: 1.8rem;
     margin-bottom: 15px;
     color: #ffffff;
 }
 
-.particle-modal p {
+body.plasma-quality .particle-modal p {
     color: #8b949e;
     font-size: 1rem;
     line-height: 1.7;
     margin-bottom: 25px;
 }
 
-.particle-modal-tags {
+body.plasma-quality .particle-modal-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -89,7 +124,7 @@
     margin-bottom: 25px;
 }
 
-.particle-modal-tags .tag {
+body.plasma-quality .particle-modal-tags .tag {
     font-size: 0.8rem;
     padding: 4px 12px;
     background: rgba(42, 92, 170, 0.2);
@@ -98,7 +133,7 @@
     border-radius: 12px;
 }
 
-.btn-explore {
+body.plasma-quality .particle-modal .btn-explore {
     display: inline-block;
     padding: 12px 40px;
     background: linear-gradient(135deg, #2A5CAA, #6A00FF);
@@ -110,32 +145,13 @@
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.btn-explore:hover {
+body.plasma-quality .particle-modal .btn-explore:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(106, 0, 255, 0.3);
 }
 
-/* Hero section transitions */
-.hero {
-    transition: opacity 0.8s ease;
-}
-
-.hero.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-/* Card container transitions */
-.card-container {
-    transition: opacity 0.5s ease;
-}
-
-.card-container.hidden {
-    opacity: 0;
-}
-
 /* Quality mode indicator */
-.quality-indicator {
+body.plasma-quality .quality-indicator {
     position: fixed;
     bottom: 20px;
     right: 20px;
@@ -146,53 +162,9 @@
     color: #FF6B35;
     font-size: 0.85rem;
     z-index: 1000;
-    display: none;
-}
-
-.quality-indicator.active {
     display: block;
 }
 
-/* Plasma glow effect for cards */
-.card.plasma-glow {
-    position: relative;
-}
-
-.card.plasma-glow::before {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: linear-gradient(45deg, #FF6B35, #00D4FF, #FF6B35);
-    border-radius: 14px;
-    z-index: -1;
-    opacity: 0;
-    animation: plasma-glow 2s ease-in-out infinite;
-}
-
-@keyframes plasma-glow {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 0.6; }
-}
-
-/* Particle text styling hint */
-.particle-text-hint {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    padding: 10px 20px;
-    background: rgba(255, 107, 53, 0.1);
-    border: 1px solid rgba(255, 107, 53, 0.3);
-    border-radius: 10px;
-    color: #FFB347;
-    font-size: 0.85rem;
-    z-index: 100;
-    opacity: 0;
-    transition: opacity 0.5s ease;
-}
-
-.particle-text-hint.visible {
-    opacity: 1;
+body.plasma-quality .quality-indicator.hidden {
+    display: none;
 }
