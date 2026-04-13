@@ -9,7 +9,7 @@ class ParticleUI {
         this.options = {
             particleCount: options.particleCount || 200,
             quality: options.quality || 'plasma',
-            cardParticleCount: options.cardParticleCount || 360, // 40 per card for 9 cards
+            cardParticleCount: options.cardParticleCount || 1800, // 200 per card for 9 cards
             ...options
         };
 
@@ -201,7 +201,7 @@ class ParticleUI {
             const centerY = startY + row * (cardHeight + gapY) + cardHeight / 2;
 
             // Create particles distributed along card border (outline)
-            const borderParticleCount = Math.floor(particleCountPerCard * 0.6);
+            const borderParticleCount = Math.floor(particleCountPerCard * 0.2);
             const fillParticleCount = particleCountPerCard - borderParticleCount;
 
             // Border particles (outline of card)
