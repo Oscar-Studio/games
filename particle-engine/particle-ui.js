@@ -24,6 +24,8 @@ class ParticleUI {
         this.toolsData = [];
         this.modal = null;
         this.heroTextParticles = [];
+        this.exploreParticles = [];
+        this.exploreBounds = null;
         this.exploreBtn = null;
 
         this.init();
@@ -95,11 +97,21 @@ class ParticleUI {
             this.createHeroTextParticles(centerX, centerY);
         }
 
-        // Find and attach to Explore button
-        this.exploreBtn = document.getElementById('exploreBtn');
-        if (this.exploreBtn) {
-            this.exploreBtn.addEventListener('click', (e) => this.onExploreClick(e));
-        }
+        // Enable canvas clicks for "Explore" in hero state
+        this.canvas.style.pointerEvents = 'auto';
+        this.canvas.onmousemove = (e) => {
+            if (this.currentState !== 'hero') return;
+            const b = this.exploreBounds;
+            this.canvas.style.cursor = (b && Math.abs(e.clientX - b.x) < b.hw && Math.abs(e.clientY - b.y) < b.hh)
+                ? 'pointer' : 'default';
+        };
+        this.canvas.onclick = (e) => {
+            if (this.currentState !== 'hero') return;
+            const b = this.exploreBounds;
+            if (b && Math.abs(e.clientX - b.x) < b.hw && Math.abs(e.clientY - b.y) < b.hh) {
+                this.onExploreClick();
+            }
+        };
     }
 
     createHeroTextParticles(centerX, centerY) {
@@ -107,21 +119,42 @@ class ParticleUI {
         const text = '益智游戏集';
         this.heroTextParticles = this.ps.emitText(text, centerX, centerY, {
             gap: 5,
-            font: 'bold 60px Segoe UI'
+            font: 'bold 60px Segoe UI',
+            particleSize: 2.5
         });
 
         this.heroTextParticles.forEach(p => {
             p.isForming = true;
             p.formProgress = 0;
         });
+
+        // Create "Explore" particle button below the title
+        const exploreY = centerY + 130;
+        this.exploreParticles = this.ps.emitText('Explore', centerX, exploreY, {
+            gap: 5,
+            font: 'bold 36px Segoe UI',
+            particleSize: 2.5
+        });
+
+        this.exploreParticles.forEach(p => {
+            p.isForming = true;
+            p.formProgress = 0;
+        });
+
+        // Store clickable bounds (approximate text width for 36px "Explore")
+        this.exploreBounds = { x: centerX, y: exploreY, hw: 95, hh: 30 };
     }
 
-    onExploreClick(e) {
+    onExploreClick() {
         if (this.currentState !== 'hero') return;
 
-        const rect = e.target.getBoundingClientRect();
-        const clickX = rect.left + rect.width / 2;
-        const clickY = rect.top + rect.height / 2;
+        const clickX = this.exploreBounds ? this.exploreBounds.x : window.innerWidth / 2;
+        const clickY = this.exploreBounds ? this.exploreBounds.y : window.innerHeight / 2;
+
+        // Disable canvas hero click
+        this.canvas.onclick = null;
+        this.canvas.onmousemove = null;
+        this.canvas.style.cursor = 'default';
 
         // Explosion effect
         this.ps.emitExplosion(clickX, clickY, {
@@ -131,7 +164,8 @@ class ParticleUI {
         });
 
         // Scatter hero text particles
-        this.heroTextParticles.forEach(p => {
+        const allHeroParticles = [...this.heroTextParticles, ...this.exploreParticles];
+        allHeroParticles.forEach(p => {
             const dx = p.x - clickX;
             const dy = p.y - clickY;
             const dist = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -158,6 +192,8 @@ class ParticleUI {
 
     startCardConvergence() {
         this.currentState = 'cards';
+        this.canvas.style.pointerEvents = 'auto';
+        this.canvas.onclick = null; // Will be set by enableCardClicks()
 
         // Hide the normal card container in plasma mode
         const cardContainer = document.getElementById('cardContainer');
@@ -235,7 +271,7 @@ class ParticleUI {
                     vx: (Math.random() - 0.5) * 3,
                     vy: (Math.random() - 0.5) * 3,
                     size: 2.5 + Math.random() * 2,
-                    temperature: 0.7,
+                    temperature: 0.85,
                     life: 1,
                     maxTrailLength: 0
                 });
@@ -264,7 +300,7 @@ class ParticleUI {
                     vx: (Math.random() - 0.5) * 3,
                     vy: (Math.random() - 0.5) * 3,
                     size: 2 + Math.random() * 2,
-                    temperature: 0.5,
+                    temperature: 0.75,
                     life: 1,
                     maxTrailLength: 0
                 });
@@ -325,32 +361,68 @@ class ParticleUI {
         const tool = this.toolsData[toolIndex];
         if (!tool) return;
 
-        // Particles explode outward then converge to center
         const centerX = window.innerWidth / 2;
         const centerY = window.innerHeight / 2;
+        const selectedParticles = this.cardParticles.filter(p => p.toolIndex === toolIndex);
+        const otherParticles = this.cardParticles.filter(p => p.toolIndex !== toolIndex);
 
-        this.cardParticles.forEach((p, i) => {
-            if (p.toolIndex === toolIndex) {
-                const delay = i * 2;
-                setTimeout(() => {
-                    p.isAttracting = true;
-                    p.targetX = centerX + (Math.random() - 0.5) * 100;
-                    p.targetY = centerY + (Math.random() - 0.5) * 80;
-                }, delay);
-            } else {
-                // Scatter other cards' particles
-                const angle = Math.random() * Math.PI * 2;
-                const dist = 600 + Math.random() * 400;
-                setTimeout(() => {
-                    p.isAttracting = true;
-                    p.targetX = centerX + Math.cos(angle) * dist;
-                    p.targetY = centerY + Math.sin(angle) * dist;
-                    p.temperature = 0.3;
-                }, i * 2);
-            }
+        // Selected card → scatter randomly around center to form diffuse colorful halo
+        selectedParticles.forEach((p) => {
+            const angle = Math.random() * Math.PI * 2;
+            const r = 150 + Math.random() * 130;
+            p.isForming = false;
+            p.isAttracting = true;
+            p.targetX = centerX + Math.cos(angle) * r;
+            p.targetY = centerY + Math.sin(angle) * r;
+            p.temperature = 1.0;
         });
 
-        // Show modal after convergence
+        // Other cards → scatter far outward (diffuse halo, original behavior)
+        otherParticles.forEach((p, i) => {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 600 + Math.random() * 400;
+            p.isForming = false;
+            p.isAttracting = true;
+            p.targetX = centerX + Math.cos(angle) * dist;
+            p.targetY = centerY + Math.sin(angle) * dist;
+            p.temperature = 0.3;
+        });
+
+        // Phase 2: switch selected particles to orbiting — derive from actual position
+        setTimeout(() => {
+            selectedParticles.forEach(p => {
+                const dx = p.x - centerX;
+                const dy = p.y - centerY;
+                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                p.isAttracting = false;
+                p.orbitCenterX = centerX;
+                p.orbitCenterY = centerY;
+                p.orbitRadius = dist;
+                p.orbitAngle = Math.atan2(dy, dx);
+                p.orbitSpeed = 0.015 + Math.random() * 0.015;
+                p.isOrbiting = true;
+                // No orbitKeepCool — temperature pulse keeps them colorful
+            });
+        }, 900);
+
+        // Phase 2b: outer halo starts slowly rotating — derive orbit params from actual position
+        setTimeout(() => {
+            otherParticles.forEach(p => {
+                const dx = p.x - centerX;
+                const dy = p.y - centerY;
+                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                p.isAttracting = false;
+                p.orbitCenterX = centerX;
+                p.orbitCenterY = centerY;
+                p.orbitRadius = dist;
+                p.orbitAngle = Math.atan2(dy, dx);
+                p.orbitSpeed = 0.0015 + Math.random() * 0.001;
+                p.orbitKeepCool = true;
+                p.isOrbiting = true;
+            });
+        }, 1300);
+
+        // Show modal after rings form
         setTimeout(() => this.showModal(tool), 1200);
     }
 
@@ -379,9 +451,6 @@ class ParticleUI {
             this.modal.classList.add('active');
         });
 
-        // Add orbiting particles around modal
-        this.createModalOrbitParticles();
-
         // Close handler
         this.modal.querySelector('.particle-modal-close').addEventListener('click', () => this.closeModal());
         this.modal.addEventListener('click', (e) => {
@@ -391,54 +460,17 @@ class ParticleUI {
         this.currentState = 'modal';
     }
 
-    createModalOrbitParticles() {
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
-
-        for (let i = 0; i < 50; i++) {
-            const angle = (Math.PI * 2 / 50) * i;
-            const radius = 200 + Math.random() * 100;
-
-            const particle = this.ps.createParticle(
-                centerX + Math.cos(angle) * radius,
-                centerY + Math.sin(angle) * radius,
-                {
-                    vx: 0, vy: 0,
-                    size: 2 + Math.random() * 3,
-                    temperature: 0.7,
-                    life: 1,
-                    maxTrailLength: 0
-                }
-            );
-
-            particle.orbitCenterX = centerX;
-            particle.orbitCenterY = centerY;
-            particle.orbitRadius = radius;
-            particle.orbitAngle = angle;
-            particle.orbitSpeed = 0.02 + Math.random() * 0.01;
-            particle.isOrbiting = true;
-            particle.isModalOrbit = true; // Mark as modal orbit for cleanup
-        }
-    }
-
     closeModal() {
         if (!this.modal) return;
 
-        // Mark all modal orbit particles as dead (they will be released by pool in update loop)
-        // We need to iterate through all active particles to find the orbit ones
-        const activeParticles = this.ps.pool.getActive();
-        for (let i = 0; i < activeParticles.length; i++) {
-            if (activeParticles[i].isModalOrbit) {
-                activeParticles[i].life = 0; // Mark as dead
-            }
-        }
-
-        // ALL card particles return to their card positions
+        // Stop orbiting, return all card particles to original card positions
         this.cardParticles.forEach((p, i) => {
+            p.isOrbiting = false;
             setTimeout(() => {
                 p.isAttracting = true;
                 p.targetX = p.baseX;
                 p.targetY = p.baseY;
+                p.temperature = 0.85;
             }, i * 2);
         });
 

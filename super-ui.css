@@ -10,31 +10,9 @@ body.plasma-quality .hero {
     display: none;
 }
 
-/* Plasma Explore button container - visible in plasma mode */
+/* Hide HTML Explore button in plasma mode - particle text replaces it */
 body.plasma-quality .plasma-explore-container {
-    display: block;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 100;
-}
-
-body.plasma-quality .plasma-explore-btn {
-    padding: 15px 50px;
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: white;
-    background: linear-gradient(135deg, #2A5CAA, #6A00FF);
-    border: none;
-    border-radius: 30px;
-    cursor: pointer;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-body.plasma-quality .plasma-explore-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(106, 0, 255, 0.3);
+    display: none;
 }
 
 /* Hero Explore Button - only visible in plasma mode */
@@ -80,7 +58,7 @@ body.plasma-quality .particle-modal {
     left: 50%;
     transform: translate(-50%, -50%) scale(0);
     background: rgba(13, 17, 23, 0.95);
-    border: 1px solid #30363d;
+    border: 1px solid rgba(255, 107, 53, 0.35);
     border-radius: 20px;
     padding: 50px;
     text-align: center;
@@ -88,6 +66,7 @@ body.plasma-quality .particle-modal {
     opacity: 0;
     transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     backdrop-filter: blur(10px);
+    box-shadow: 0 0 40px rgba(255, 107, 53, 0.08);
 }
 
 body.plasma-quality .particle-modal.active {
@@ -118,8 +97,8 @@ body.plasma-quality .particle-modal-close {
 }
 
 body.plasma-quality .particle-modal-close:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #ffffff;
+    background: rgba(255, 107, 53, 0.15);
+    color: #FF6B35;
 }
 
 body.plasma-quality .particle-modal-icon {
@@ -130,7 +109,7 @@ body.plasma-quality .particle-modal-icon {
 body.plasma-quality .particle-modal h2 {
     font-size: 1.8rem;
     margin-bottom: 15px;
-    color: #ffffff;
+    color: #FF6B35;
 }
 
 body.plasma-quality .particle-modal p {
@@ -151,16 +130,16 @@ body.plasma-quality .particle-modal-tags {
 body.plasma-quality .particle-modal-tags .tag {
     font-size: 0.8rem;
     padding: 4px 12px;
-    background: rgba(42, 92, 170, 0.2);
-    border: 1px solid rgba(42, 92, 170, 0.4);
-    color: #00E5FF;
+    background: rgba(255, 107, 53, 0.12);
+    border: 1px solid rgba(255, 107, 53, 0.35);
+    color: #FFB347;
     border-radius: 12px;
 }
 
 body.plasma-quality .particle-modal .btn-explore {
     display: inline-block;
     padding: 12px 40px;
-    background: linear-gradient(135deg, #2A5CAA, #6A00FF);
+    background: linear-gradient(135deg, #FF6B35, #6A00FF);
     color: white;
     text-decoration: none;
     border-radius: 25px;
@@ -171,7 +150,7 @@ body.plasma-quality .particle-modal .btn-explore {
 
 body.plasma-quality .particle-modal .btn-explore:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(106, 0, 255, 0.3);
+    box-shadow: 0 8px 25px rgba(255, 107, 53, 0.35);
 }
 
 /* Quality mode indicator */

@@ -71,6 +71,7 @@ class Particle {
         this.cardCenterY = config.cardCenterY || 0;
         this.cardWidth = config.cardWidth || 0;
         this.cardHeight = config.cardHeight || 0;
+        this.orbitKeepCool = false;
         return this;
     }
 
@@ -113,7 +114,7 @@ class Particle {
 
         // Update temperature (cooling) - only when above threshold
         if (this.temperature > 0.5) {
-            this.temperature *= 0.99;
+            this.temperature *= 0.996;
         }
 
         // Update size based on temperature (simplified)
@@ -124,8 +125,10 @@ class Particle {
             this.orbitAngle += this.orbitSpeed;
             this.x = this.orbitCenterX + Math.cos(this.orbitAngle) * this.orbitRadius;
             this.y = this.orbitCenterY + Math.sin(this.orbitAngle) * this.orbitRadius;
-            // Temperature pulse for orbiting
-            this.temperature = 0.7 + Math.sin(this.orbitAngle * 2) * 0.3;
+            // Temperature pulse for orbiting — only for hot inner-ring particles
+            if (!this.orbitKeepCool) {
+                this.temperature = 0.7 + Math.sin(this.orbitAngle * 2) * 0.3;
+            }
         }
 
         // Update life
@@ -345,8 +348,8 @@ class ParticleSystem {
                     const particle = this.createParticle(px, py, {
                         vx: (Math.random() - 0.5) * 2,
                         vy: (Math.random() - 0.5) * 2,
-                        size: 2 + Math.random() * 3,
-                        temperature: 0.7 + Math.random() * 0.3,
+                        size: config.particleSize !== undefined ? config.particleSize : 2.5,
+                        temperature: 0.85 + Math.random() * 0.15,
                         baseX: px,
                         baseY: py,
                         life: 1,
