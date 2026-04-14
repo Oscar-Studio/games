@@ -387,11 +387,12 @@ class ParticleSystem {
 
             // Form maintaining particles
             if (p.isForming && p.baseX !== undefined) {
-                p.formProgress = Math.min(1, (p.formProgress || 0) + 0.05);
-                const targetX = p.baseX + (Math.random() - 0.5) * 20 * (1 - p.formProgress);
-                const targetY = p.baseY + (Math.random() - 0.5) * 20 * (1 - p.formProgress);
-                p.vx += (targetX - p.x) * 0.1;
-                p.vy += (targetY - p.y) * 0.1;
+                p.formProgress = Math.min(1, (p.formProgress || 0) + 0.02);
+                const wobbleStrength = Math.max(1, 10 * (1 - p.formProgress));
+                const targetX = p.baseX + (Math.random() - 0.5) * wobbleStrength;
+                const targetY = p.baseY + (Math.random() - 0.5) * wobbleStrength;
+                p.vx += (targetX - p.x) * 0.08;
+                p.vy += (targetY - p.y) * 0.08;
             }
 
             // Attracting particles (for card convergence)
@@ -400,8 +401,12 @@ class ParticleSystem {
                 const dy = p.targetY - p.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist > 2) {
-                    p.vx += (dx / dist) * 0.3;
-                    p.vy += (dy / dist) * 0.3;
+                    p.vx += (dx / dist) * 0.15;
+                    p.vy += (dy / dist) * 0.15;
+                } else {
+                    // Arrived at target, pick a new nearby target for continuous wobble
+                    p.targetX = p.baseX + (Math.random() - 0.5) * 8;
+                    p.targetY = p.baseY + (Math.random() - 0.5) * 8;
                 }
             }
 

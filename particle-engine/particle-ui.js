@@ -115,12 +115,12 @@ class ParticleUI {
     }
 
     createHeroTextParticles(centerX, centerY) {
-        // Create particles forming "益智游戏集" text
+        // Create particles forming "益智游戏集" text (larger)
         const text = '益智游戏集';
         this.heroTextParticles = this.ps.emitText(text, centerX, centerY, {
             gap: 5,
-            font: 'bold 60px Segoe UI',
-            particleSize: 2.5
+            font: 'bold 90px Segoe UI',
+            particleSize: 3
         });
 
         this.heroTextParticles.forEach(p => {
@@ -128,12 +128,12 @@ class ParticleUI {
             p.formProgress = 0;
         });
 
-        // Create "Explore" particle button below the title
-        const exploreY = centerY + 130;
+        // Create "Explore" particle button below the title (larger)
+        const exploreY = centerY + 150;
         this.exploreParticles = this.ps.emitText('Explore', centerX, exploreY, {
             gap: 5,
-            font: 'bold 36px Segoe UI',
-            particleSize: 2.5
+            font: 'bold 50px Segoe UI',
+            particleSize: 3
         });
 
         this.exploreParticles.forEach(p => {
@@ -141,8 +141,8 @@ class ParticleUI {
             p.formProgress = 0;
         });
 
-        // Store clickable bounds (approximate text width for 36px "Explore")
-        this.exploreBounds = { x: centerX, y: exploreY, hw: 95, hh: 30 };
+        // Store clickable bounds (approximate text width for 50px "Explore")
+        this.exploreBounds = { x: centerX, y: exploreY, hw: 120, hh: 40 };
     }
 
     onExploreClick() {
@@ -218,16 +218,17 @@ class ParticleUI {
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
 
-        // Calculate card positions (3x3 grid)
+        // Calculate card positions (3x3 grid) - centered vertically
         const cols = 3;
-        const cardWidth = 220;
+        const cardWidth = 360;
         const cardHeight = 100;
-        const gapX = 30;
-        const gapY = 25;
+        const gapX = 50;
+        const gapY = 40;
         const startX = (viewportWidth - (cols * cardWidth + (cols - 1) * gapX)) / 2;
-        const startY = 180;
-
-        const particleCountPerCard = Math.floor(this.options.cardParticleCount / this.toolsData.length);
+        // Center vertically: calculate total height and offset
+        const rows = Math.ceil(this.toolsData.length / cols);
+        const totalHeight = rows * cardHeight + (rows - 1) * gapY;
+        const startY = (viewportHeight - totalHeight) / 2;
 
         this.toolsData.forEach((tool, index) => {
             const col = index % cols;
@@ -235,42 +236,47 @@ class ParticleUI {
             const centerX = startX + col * (cardWidth + gapX) + cardWidth / 2;
             const centerY = startY + row * (cardHeight + gapY) + cardHeight / 2;
 
-            // Create particles distributed along card border (outline)
-            const borderParticleCount = Math.floor(particleCountPerCard * 0.2);
-            const fillParticleCount = particleCountPerCard - borderParticleCount;
+            // Border particles (card outline) - distributed by actual perimeter
+            const borderCount = 120;
+            const perimeter = 2 * (cardWidth + cardHeight);
+            const topLen = cardWidth;
+            const rightLen = cardHeight;
+            const bottomLen = cardWidth;
+            const leftLen = cardHeight;
+            const topEnd = topLen / perimeter;
+            const rightEnd = topEnd + rightLen / perimeter;
+            const bottomEnd = rightEnd + bottomLen / perimeter;
 
-            // Border particles (outline of card)
-            for (let i = 0; i < borderParticleCount; i++) {
-                const t = i / borderParticleCount;
+            for (let i = 0; i < borderCount; i++) {
+                const t = i / borderCount;
                 let x, y;
 
-                // Distribute along rectangle border
-                if (t < 0.25) {
-                    // Top edge
-                    x = centerX - cardWidth/2 + (t * 4) * cardWidth;
+                if (t < topEnd) {
+                    // Top edge (left to right)
+                    const localT = t / topEnd;
+                    x = centerX - cardWidth/2 + localT * cardWidth;
                     y = centerY - cardHeight/2;
-                } else if (t < 0.5) {
-                    // Right edge
+                } else if (t < rightEnd) {
+                    // Right edge (top to bottom)
+                    const localT = (t - topEnd) / (rightEnd - topEnd);
                     x = centerX + cardWidth/2;
-                    y = centerY - cardHeight/2 + ((t - 0.25) * 4) * cardHeight;
-                } else if (t < 0.75) {
-                    // Bottom edge
-                    x = centerX + cardWidth/2 - ((t - 0.5) * 4) * cardWidth;
+                    y = centerY - cardHeight/2 + localT * cardHeight;
+                } else if (t < bottomEnd) {
+                    // Bottom edge (right to left)
+                    const localT = (t - rightEnd) / (bottomEnd - rightEnd);
+                    x = centerX + cardWidth/2 - localT * cardWidth;
                     y = centerY + cardHeight/2;
                 } else {
-                    // Left edge
+                    // Left edge (bottom to top)
+                    const localT = (t - bottomEnd) / (1 - bottomEnd);
                     x = centerX - cardWidth/2;
-                    y = centerY + cardHeight/2 - ((t - 0.75) * 4) * cardHeight;
+                    y = centerY + cardHeight/2 - localT * cardHeight;
                 }
 
-                // Start from center explosion point
-                const startFromX = viewportWidth / 2;
-                const startFromY = viewportHeight / 2;
-
-                const particle = this.ps.createParticle(startFromX, startFromY, {
-                    vx: (Math.random() - 0.5) * 3,
-                    vy: (Math.random() - 0.5) * 3,
-                    size: 2.5 + Math.random() * 2,
+                const particle = this.ps.createParticle(x, y, {
+                    vx: 0,
+                    vy: 0,
+                    size: 3,
                     temperature: 0.85,
                     life: 1,
                     maxTrailLength: 0
@@ -291,34 +297,28 @@ class ParticleUI {
                 this.cardParticles.push(particle);
             }
 
-            // Fill particles (inside card area)
-            for (let i = 0; i < fillParticleCount; i++) {
-                const startFromX = viewportWidth / 2;
-                const startFromY = viewportHeight / 2;
+            // Text particles for card name (fixed, no wobble)
+            const textParticles = this.ps.emitText(tool.name, centerX, centerY, {
+                gap: 3,
+                font: 'bold 36px Segoe UI',
+                particleSize: 2.5
+            });
 
-                const particle = this.ps.createParticle(startFromX, startFromY, {
-                    vx: (Math.random() - 0.5) * 3,
-                    vy: (Math.random() - 0.5) * 3,
-                    size: 2 + Math.random() * 2,
-                    temperature: 0.75,
-                    life: 1,
-                    maxTrailLength: 0
-                });
+            textParticles.forEach(p => {
+                p.baseX = p.x;
+                p.baseY = p.y;
+                p.isForming = false;
+                p.isAttracting = false;
+                p.vx = 0;
+                p.vy = 0;
+                p.toolIndex = index;
+                p.cardCenterX = centerX;
+                p.cardCenterY = centerY;
+                p.cardWidth = cardWidth;
+                p.cardHeight = cardHeight;
+            });
 
-                particle.targetX = centerX + (Math.random() - 0.5) * cardWidth * 0.7;
-                particle.targetY = centerY + (Math.random() - 0.5) * cardHeight * 0.5;
-                particle.baseX = particle.targetX;
-                particle.baseY = particle.targetY;
-                particle.isForming = false;
-                particle.isAttracting = true;
-                particle.toolIndex = index;
-                particle.cardCenterX = centerX;
-                particle.cardCenterY = centerY;
-                particle.cardWidth = cardWidth;
-                particle.cardHeight = cardHeight;
-
-                this.cardParticles.push(particle);
-            }
+            this.cardParticles.push(...textParticles);
         });
 
         // Add click detection after particles converge
@@ -463,15 +463,13 @@ class ParticleUI {
     closeModal() {
         if (!this.modal) return;
 
-        // Stop orbiting, return all card particles to original card positions
-        this.cardParticles.forEach((p, i) => {
+        // Stop orbiting, return all card particles with attraction animation
+        this.cardParticles.forEach((p) => {
             p.isOrbiting = false;
-            setTimeout(() => {
-                p.isAttracting = true;
-                p.targetX = p.baseX;
-                p.targetY = p.baseY;
-                p.temperature = 0.85;
-            }, i * 2);
+            p.isAttracting = true;
+            p.targetX = p.baseX;
+            p.targetY = p.baseY;
+            p.temperature = 0.85;
         });
 
         // Animate modal out
