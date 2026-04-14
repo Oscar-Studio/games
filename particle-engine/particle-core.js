@@ -404,9 +404,19 @@ class ParticleSystem {
                     p.vx += (dx / dist) * 0.15;
                     p.vy += (dy / dist) * 0.15;
                 } else {
-                    // Arrived at target, pick a new nearby target for continuous wobble
-                    p.targetX = p.baseX + (Math.random() - 0.5) * 8;
-                    p.targetY = p.baseY + (Math.random() - 0.5) * 8;
+                    // Arrived at target
+                    if (p.isTextParticle) {
+                        // Text particles: stop attracting and stay fixed
+                        p.isAttracting = false;
+                        p.x = p.targetX;
+                        p.y = p.targetY;
+                        p.vx = 0;
+                        p.vy = 0;
+                    } else {
+                        // Border particles: pick a new nearby target for continuous wobble
+                        p.targetX = p.baseX + (Math.random() - 0.5) * 8;
+                        p.targetY = p.baseY + (Math.random() - 0.5) * 8;
+                    }
                 }
             }
 

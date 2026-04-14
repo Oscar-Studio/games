@@ -115,12 +115,12 @@ class ParticleUI {
     }
 
     createHeroTextParticles(centerX, centerY) {
-        // Create particles forming "益智游戏集" text (larger)
+        // Create particles forming "益智游戏集" text - more particles for cards
         const text = '益智游戏集';
         this.heroTextParticles = this.ps.emitText(text, centerX, centerY, {
-            gap: 5,
+            gap: 3,
             font: 'bold 90px Segoe UI',
-            particleSize: 3
+            particleSize: 2.5
         });
 
         this.heroTextParticles.forEach(p => {
@@ -128,12 +128,12 @@ class ParticleUI {
             p.formProgress = 0;
         });
 
-        // Create "Explore" particle button below the title (larger)
+        // Create "Explore" particle button below the title - more particles
         const exploreY = centerY + 150;
         this.exploreParticles = this.ps.emitText('Explore', centerX, exploreY, {
-            gap: 5,
+            gap: 3,
             font: 'bold 50px Segoe UI',
-            particleSize: 3
+            particleSize: 2.5
         });
 
         this.exploreParticles.forEach(p => {
@@ -156,20 +156,13 @@ class ParticleUI {
         this.canvas.onmousemove = null;
         this.canvas.style.cursor = 'default';
 
-        // Explosion effect
-        this.ps.emitExplosion(clickX, clickY, {
-            count: 300,
-            speed: 20,
-            maxTrailLength: 0
-        });
-
-        // Scatter hero text particles
+        // Scatter hero text particles outward with strong force
         const allHeroParticles = [...this.heroTextParticles, ...this.exploreParticles];
         allHeroParticles.forEach(p => {
             const dx = p.x - clickX;
             const dy = p.y - clickY;
             const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-            const force = Math.max(0, 1 - dist / 400) * 40;
+            const force = Math.max(0, 1 - dist / 400) * 60;
             p.vx += (dx / dist) * force;
             p.vy += (dy / dist) * force;
             p.temperature = 1.3;
@@ -186,14 +179,17 @@ class ParticleUI {
             hero.style.transition = 'opacity 0.8s ease';
         }
 
-        // After explosion, start card particle convergence
-        setTimeout(() => this.startCardConvergence(), 1000);
+        // Immediately start card particle convergence (particles will converge as they fly)
+        setTimeout(() => this.startCardConvergence(), 100);
     }
 
     startCardConvergence() {
         this.currentState = 'cards';
         this.canvas.style.pointerEvents = 'auto';
         this.canvas.onclick = null; // Will be set by enableCardClicks()
+
+        // Keep hero particles - they will converge to form cards
+        // Don't clear them here
 
         // Hide the normal card container in plasma mode
         const cardContainer = document.getElementById('cardContainer');
@@ -218,6 +214,9 @@ class ParticleUI {
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
 
+        // Reuse hero particles that are currently flying outward
+        const existingParticles = [...this.heroTextParticles, ...this.exploreParticles];
+
         // Calculate card positions (3x3 grid) - centered vertically
         const cols = 3;
         const cardWidth = 360;
@@ -225,24 +224,54 @@ class ParticleUI {
         const gapX = 50;
         const gapY = 40;
         const startX = (viewportWidth - (cols * cardWidth + (cols - 1) * gapX)) / 2;
-        // Center vertically: calculate total height and offset
         const rows = Math.ceil(this.toolsData.length / cols);
         const totalHeight = rows * cardHeight + (rows - 1) * gapY;
         const startY = (viewportHeight - totalHeight) / 2;
 
+        // Pre-calculate card info with text particle count
+        const cardInfo = [];
         this.toolsData.forEach((tool, index) => {
             const col = index % cols;
             const row = Math.floor(index / cols);
             const centerX = startX + col * (cardWidth + gapX) + cardWidth / 2;
             const centerY = startY + row * (cardHeight + gapY) + cardHeight / 2;
 
-            // Border particles (card outline) - distributed by actual perimeter
-            const borderCount = 120;
+            // Count text particles
+            const textCanvas = document.createElement('canvas');
+            const textCtx = textCanvas.getContext('2d');
+            textCanvas.width = viewportWidth;
+            textCanvas.height = viewportHeight;
+            textCtx.font = 'bold 36px Segoe UI';
+            textCtx.fillStyle = '#FFFFFF';
+            textCtx.textAlign = 'center';
+            textCtx.textBaseline = 'middle';
+            textCtx.fillText(tool.name, centerX, centerY);
+
+            let textCount = 0;
+            const textGap = 4;
+            const imageData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height);
+            const data = imageData.data;
+            for (let py = 0; py < textCanvas.height; py += textGap) {
+                for (let px = 0; px < textCanvas.width; px += textGap) {
+                    const idx = (py * textCanvas.width + px) * 4;
+                    if (data[idx + 3] > 128) textCount++;
+                }
+            }
+
+            cardInfo.push({ tool, centerX, centerY, borderCount: 120, textCount });
+        });
+
+        // Assign existing particles to card positions
+        let particleIndex = 0;
+
+        cardInfo.forEach(({ tool, centerX, centerY, borderCount, textCount }) => {
+            const index = this.toolsData.indexOf(tool);
+
+            // Border particles
             const perimeter = 2 * (cardWidth + cardHeight);
             const topLen = cardWidth;
             const rightLen = cardHeight;
             const bottomLen = cardWidth;
-            const leftLen = cardHeight;
             const topEnd = topLen / perimeter;
             const rightEnd = topEnd + rightLen / perimeter;
             const bottomEnd = rightEnd + bottomLen / perimeter;
@@ -252,38 +281,27 @@ class ParticleUI {
                 let x, y;
 
                 if (t < topEnd) {
-                    // Top edge (left to right)
                     const localT = t / topEnd;
                     x = centerX - cardWidth/2 + localT * cardWidth;
                     y = centerY - cardHeight/2;
                 } else if (t < rightEnd) {
-                    // Right edge (top to bottom)
                     const localT = (t - topEnd) / (rightEnd - topEnd);
                     x = centerX + cardWidth/2;
                     y = centerY - cardHeight/2 + localT * cardHeight;
                 } else if (t < bottomEnd) {
-                    // Bottom edge (right to left)
                     const localT = (t - rightEnd) / (bottomEnd - rightEnd);
                     x = centerX + cardWidth/2 - localT * cardWidth;
                     y = centerY + cardHeight/2;
                 } else {
-                    // Left edge (bottom to top)
                     const localT = (t - bottomEnd) / (1 - bottomEnd);
                     x = centerX - cardWidth/2;
                     y = centerY + cardHeight/2 - localT * cardHeight;
                 }
 
-                const particle = this.ps.createParticle(x, y, {
-                    vx: 0,
-                    vy: 0,
-                    size: 3,
-                    temperature: 0.85,
-                    life: 1,
-                    maxTrailLength: 0
-                });
-
-                particle.targetX = x + (Math.random() - 0.5) * 10;
-                particle.targetY = y + (Math.random() - 0.5) * 10;
+                // Reuse existing particle
+                const particle = existingParticles[particleIndex++];
+                particle.targetX = x + (Math.random() - 0.5) * 8;
+                particle.targetY = y + (Math.random() - 0.5) * 8;
                 particle.baseX = particle.targetX;
                 particle.baseY = particle.targetY;
                 particle.isForming = false;
@@ -297,28 +315,43 @@ class ParticleUI {
                 this.cardParticles.push(particle);
             }
 
-            // Text particles for card name (fixed, no wobble)
-            const textParticles = this.ps.emitText(tool.name, centerX, centerY, {
-                gap: 3,
-                font: 'bold 36px Segoe UI',
-                particleSize: 2.5
-            });
+            // Text particles - also use existing particles with attraction
+            const textGap = 4;
+            const textCanvas = document.createElement('canvas');
+            const textCtx = textCanvas.getContext('2d');
+            textCanvas.width = viewportWidth;
+            textCanvas.height = viewportHeight;
+            textCtx.font = 'bold 36px Segoe UI';
+            textCtx.fillStyle = '#FFFFFF';
+            textCtx.textAlign = 'center';
+            textCtx.textBaseline = 'middle';
+            textCtx.fillText(tool.name, centerX, centerY);
 
-            textParticles.forEach(p => {
-                p.baseX = p.x;
-                p.baseY = p.y;
-                p.isForming = false;
-                p.isAttracting = false;
-                p.vx = 0;
-                p.vy = 0;
-                p.toolIndex = index;
-                p.cardCenterX = centerX;
-                p.cardCenterY = centerY;
-                p.cardWidth = cardWidth;
-                p.cardHeight = cardHeight;
-            });
+            const imageData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height);
+            const data = imageData.data;
 
-            this.cardParticles.push(...textParticles);
+            for (let py = 0; py < textCanvas.height; py += textGap) {
+                for (let px = 0; px < textCanvas.width; px += textGap) {
+                    const idx = (py * textCanvas.width + px) * 4;
+                    if (data[idx + 3] > 128) {
+                        const particle = existingParticles[particleIndex++];
+                        particle.targetX = px;
+                        particle.targetY = py;
+                        particle.baseX = px;
+                        particle.baseY = py;
+                        particle.isForming = false;
+                        particle.isAttracting = true;
+                        particle.isTextParticle = true;
+                        particle.toolIndex = index;
+                        particle.cardCenterX = centerX;
+                        particle.cardCenterY = centerY;
+                        particle.cardWidth = cardWidth;
+                        particle.cardHeight = cardHeight;
+
+                        this.cardParticles.push(particle);
+                    }
+                }
+            }
         });
 
         // Add click detection after particles converge
@@ -463,7 +496,7 @@ class ParticleUI {
     closeModal() {
         if (!this.modal) return;
 
-        // Stop orbiting, return all card particles with attraction animation
+        // Stop orbiting, return card particles to original positions
         this.cardParticles.forEach((p) => {
             p.isOrbiting = false;
             p.isAttracting = true;
