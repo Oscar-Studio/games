@@ -272,7 +272,7 @@ class ParticleUI {
             const textCtx = textCanvas.getContext('2d');
             textCanvas.width = viewportWidth;
             textCanvas.height = viewportHeight;
-            textCtx.font = 'bold 42px Segoe UI';
+            textCtx.font = 'bold 48px Segoe UI';
             textCtx.fillStyle = '#FFFFFF';
             textCtx.textAlign = 'center';
             textCtx.textBaseline = 'middle';
@@ -385,7 +385,7 @@ class ParticleUI {
             const textCtx = textCanvas.getContext('2d');
             textCanvas.width = viewportWidth;
             textCanvas.height = viewportHeight;
-            textCtx.font = 'bold 42px Segoe UI';
+            textCtx.font = 'bold 48px Segoe UI';
             textCtx.fillStyle = '#FFFFFF';
             textCtx.textAlign = 'center';
             textCtx.textBaseline = 'middle';
