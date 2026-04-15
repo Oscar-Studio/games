@@ -120,7 +120,7 @@ class ParticleUI {
         this.heroTextParticles = this.ps.emitText(text, centerX, centerY, {
             gap: 3,
             font: 'bold 90px Segoe UI',
-            particleSize: 4
+            particleSize: 2.5
         });
 
         this.heroTextParticles.forEach(p => {
@@ -133,7 +133,7 @@ class ParticleUI {
         this.exploreParticles = this.ps.emitText('Explore', centerX, exploreY, {
             gap: 3,
             font: 'bold 50px Segoe UI',
-            particleSize: 4
+            particleSize: 2.5
         });
 
         this.exploreParticles.forEach(p => {
