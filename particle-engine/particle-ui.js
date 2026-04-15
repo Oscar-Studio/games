@@ -358,7 +358,7 @@ class ParticleUI {
                     const jitterX = x + (Math.random() - 0.5) * 8;
                     const jitterY = y + (Math.random() - 0.5) * 8;
                     particle = this.ps.createParticle(jitterX, jitterY, {
-                        size: 2 + Math.random() * 3,
+                        size: 3 + Math.random() * 3,
                         temperature: 0.8 + Math.random() * 0.2,
                         life: 1,
                         vx: 0,
