@@ -120,7 +120,7 @@ class ParticleUI {
         this.heroTextParticles = this.ps.emitText(text, centerX, centerY, {
             gap: 3,
             font: 'bold 90px Segoe UI',
-            particleSize: 2.5
+            particleSize: 4
         });
 
         this.heroTextParticles.forEach(p => {
@@ -133,7 +133,7 @@ class ParticleUI {
         this.exploreParticles = this.ps.emitText('Explore', centerX, exploreY, {
             gap: 3,
             font: 'bold 50px Segoe UI',
-            particleSize: 2.5
+            particleSize: 4
         });
 
         this.exploreParticles.forEach(p => {
@@ -161,7 +161,7 @@ class ParticleUI {
             const particle = this.ps.createParticle(x, y, {
                 vx: (Math.random() - 0.5) * 0.5,
                 vy: (Math.random() - 0.5) * 0.5,
-                size: 2 + Math.random() * 2,
+                size: 3 + Math.random() * 2,
                 temperature: 0.8 + Math.random() * 0.2,
                 life: 1,
                 baseX: x,
@@ -419,7 +419,7 @@ class ParticleUI {
                         } else {
                             // New particle: goes to card text (not halo)
                             particle = this.ps.createParticle(px, py, {
-                                size: 2 + Math.random() * 2,
+                                size: 3 + Math.random() * 2,
                                 temperature: 0.7 + Math.random() * 0.3,
                                 life: 1,
                                 vx: 0,
