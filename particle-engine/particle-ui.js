@@ -279,7 +279,7 @@ class ParticleUI {
             textCtx.fillText(tool.name, cX, cY);
 
             let textCount = 0;
-            const textGap = 3;
+            const textGap = 6;
             const imageData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height);
             const data = imageData.data;
             for (let py = 0; py < textCanvas.height; py += textGap) {
@@ -358,7 +358,7 @@ class ParticleUI {
                     const jitterX = x + (Math.random() - 0.5) * 8;
                     const jitterY = y + (Math.random() - 0.5) * 8;
                     particle = this.ps.createParticle(jitterX, jitterY, {
-                        size: 3 + Math.random() * 3,
+                        size: 2 + Math.random() * 3,
                         temperature: 0.8 + Math.random() * 0.2,
                         life: 1,
                         vx: 0,
@@ -380,7 +380,7 @@ class ParticleUI {
             }
 
             // Text particles - also use existing particles with attraction
-            const textGap = 3;
+            const textGap = 6;
             const textCanvas = document.createElement('canvas');
             const textCtx = textCanvas.getContext('2d');
             textCanvas.width = viewportWidth;
@@ -419,7 +419,7 @@ class ParticleUI {
                         } else {
                             // New particle: goes to card text (not halo)
                             particle = this.ps.createParticle(px, py, {
-                                size: 3 + Math.random() * 2,
+                                size: 2 + Math.random() * 1.5,
                                 temperature: 0.7 + Math.random() * 0.3,
                                 life: 1,
                                 vx: 0,
