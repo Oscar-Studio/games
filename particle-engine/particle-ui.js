@@ -279,7 +279,7 @@ class ParticleUI {
             textCtx.fillText(tool.name, cX, cY);
 
             let textCount = 0;
-            const textGap = 6;
+            const textGap = 4;
             const imageData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height);
             const data = imageData.data;
             for (let py = 0; py < textCanvas.height; py += textGap) {
@@ -380,7 +380,7 @@ class ParticleUI {
             }
 
             // Text particles - also use existing particles with attraction
-            const textGap = 6;
+            const textGap = 4;
             const textCanvas = document.createElement('canvas');
             const textCtx = textCanvas.getContext('2d');
             textCanvas.width = viewportWidth;
