@@ -28,6 +28,9 @@ class ParticleUI {
         this.extraEmittedParticles = []; // Extra particles emitted on Explore click
         this.exploreBounds = null;
         this.exploreBtn = null;
+        this.lastClickX = 0;
+        this.lastClickY = 0;
+        this.particleShortfall = 0; // How many extra particles needed
 
         this.init();
     }
@@ -185,6 +188,10 @@ class ParticleUI {
         this.canvas.onmousemove = null;
         this.canvas.style.cursor = 'default';
 
+        // Store click position for later emission if needed
+        this.lastClickX = clickX;
+        this.lastClickY = clickY;
+
         // Scatter hero text particles outward with strong force
         const allHeroParticles = [...this.heroTextParticles, ...this.exploreParticles];
         allHeroParticles.forEach(p => {
@@ -197,27 +204,6 @@ class ParticleUI {
             p.temperature = 1.3;
             p.isForming = false;
         });
-
-        // Emit extra particles from click point that scatter outward
-        // These will be reused for cards when hero particles are insufficient
-        this.extraEmittedParticles = [];
-        const extraCount = 500; // Emit 500 extra particles
-        for (let i = 0; i < extraCount; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 3 + Math.random() * 8;
-            const p = this.ps.createParticle(clickX, clickY, {
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                size: 2 + Math.random() * 2,
-                temperature: 1,
-                life: 1
-            });
-            p.isForming = false;
-            p.isAttracting = false;
-            p.targetX = null;
-            p.targetY = null;
-            this.extraEmittedParticles.push(p);
-        }
 
         // Transition
         this.currentState = 'transitioning';
@@ -266,11 +252,11 @@ class ParticleUI {
         const centerX = viewportWidth / 2;
         const centerY = viewportHeight / 2;
 
-        // Reuse hero particles + extra emitted particles that are currently flying outward
-        const existingParticles = [...this.heroTextParticles, ...this.exploreParticles, ...this.extraEmittedParticles];
-        const totalExisting = existingParticles.length;
+        // Calculate total hero particles
+        const heroParticles = [...this.heroTextParticles, ...this.exploreParticles];
+        const heroCount = heroParticles.length;
 
-        // Calculate card positions (3x3 grid) - centered vertically
+        // Calculate total particles needed for cards
         const cols = 3;
         const cardWidth = 360;
         const cardHeight = 100;
@@ -281,15 +267,17 @@ class ParticleUI {
         const totalHeight = rows * cardHeight + (rows - 1) * gapY;
         const startY = (viewportHeight - totalHeight) / 2;
 
-        // Pre-calculate card info with text particle count
-        const cardInfo = [];
+        let totalNeeded = 0;
+        const cardInfo = []; // Store card info for later use
+        const textGap = 6; // Consistent gap for both counting and rendering
+
         this.toolsData.forEach((tool, index) => {
             const col = index % cols;
             const row = Math.floor(index / cols);
             const cX = startX + col * (cardWidth + gapX) + cardWidth / 2;
             const cY = startY + row * (cardHeight + gapY) + cardHeight / 2;
 
-            // Count text particles
+            // Count text particles for this card
             const textCanvas = document.createElement('canvas');
             const textCtx = textCanvas.getContext('2d');
             textCanvas.width = viewportWidth;
@@ -300,31 +288,64 @@ class ParticleUI {
             textCtx.textBaseline = 'middle';
             textCtx.fillText(tool.name, cX, cY);
 
-            let textCount = 0;
-            const textGap = 4;
             const imageData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height);
             const data = imageData.data;
+            const textPositions = [];
             for (let py = 0; py < textCanvas.height; py += textGap) {
                 for (let px = 0; px < textCanvas.width; px += textGap) {
                     const idx = (py * textCanvas.width + px) * 4;
-                    if (data[idx + 3] > 128) textCount++;
+                    if (data[idx + 3] > 128) {
+                        totalNeeded++;
+                        textPositions.push({ px, py });
+                    }
                 }
             }
 
-            cardInfo.push({ tool, centerX: cX, centerY: cY, borderCount: 120, textCount });
+            // Add border particles (120 per card)
+            totalNeeded += 120;
+
+            cardInfo.push({ tool, centerX: cX, centerY: cY, borderCount: 120, textPositions });
         });
 
-        // Calculate total particles needed for cards
-        const totalCardParticles = cardInfo.reduce((sum, c) => sum + c.borderCount + c.textCount, 0);
+        // Calculate shortfall and emit that many particles from click point
+        const shortfall = Math.max(0, totalNeeded - heroCount);
+        this.extraEmittedParticles = [];
 
-        // Extra particles go to screen edge halo
+        if (shortfall > 0) {
+            for (let i = 0; i < shortfall; i++) {
+                // Emit with same force calculation as hero particles
+                const dx = (Math.random() - 0.5) * 400;
+                const dy = (Math.random() - 0.5) * 400;
+                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                const force = Math.max(0, 1 - dist / 400) * 60;
+                const speed = force / 10;
+
+                const angle = Math.atan2(dy, dx);
+                const p = this.ps.createParticle(this.lastClickX, this.lastClickY, {
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    size: 2 + Math.random() * 2,
+                    temperature: 1.3,
+                    life: 1
+                });
+                p.isForming = false;
+                p.isAttracting = false;
+                this.extraEmittedParticles.push(p);
+            }
+        }
+
+        // Reuse hero particles + extra emitted particles that are currently flying outward
+        const existingParticles = [...heroParticles, ...this.extraEmittedParticles];
+        const totalExisting = existingParticles.length;
+
+        // Extra particles go to screen edge halo (only real extra, not shortfall补足)
         const extraParticles = [];
         const haloRadius = Math.min(viewportWidth, viewportHeight) * 0.45;
 
         // Assign existing particles to card positions
         let particleIndex = 0;
 
-        cardInfo.forEach(({ tool, centerX: cX, centerY: cY, borderCount, textCount }) => {
+        cardInfo.forEach(({ tool, centerX: cX, centerY: cY, borderCount, textPositions }) => {
             const index = this.toolsData.indexOf(tool);
 
             // Border particles
@@ -401,69 +422,50 @@ class ParticleUI {
                 }
             }
 
-            // Text particles - also use existing particles with attraction
-            const textGap = 4;
-            const textCanvas = document.createElement('canvas');
-            const textCtx = textCanvas.getContext('2d');
-            textCanvas.width = viewportWidth;
-            textCanvas.height = viewportHeight;
-            textCtx.font = 'bold 48px Segoe UI';
-            textCtx.fillStyle = '#FFFFFF';
-            textCtx.textAlign = 'center';
-            textCtx.textBaseline = 'middle';
-            textCtx.fillText(tool.name, cX, cY);
-
-            const imageData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height);
-            const data = imageData.data;
-
-            for (let py = 0; py < textCanvas.height; py += textGap) {
-                for (let px = 0; px < textCanvas.width; px += textGap) {
-                    const idx = (py * textCanvas.width + px) * 4;
-                    if (data[idx + 3] > 128) {
-                        // Reuse existing particle, or create new one if exhausted
-                        let particle;
-                        if (particleIndex < existingParticles.length) {
-                            particle = existingParticles[particleIndex++];
-                            // Hero particle: fly to card text
-                            particle.targetX = px;
-                            particle.targetY = py;
-                            particle.baseX = px;
-                            particle.baseY = py;
-                            particle.isForming = false;
-                            particle.isAttracting = true;
-                            particle.isTextParticle = true;
-                            particle.toolIndex = index;
-                            particle.cardCenterX = cX;
-                            particle.cardCenterY = cY;
-                            particle.cardWidth = cardWidth;
-                            particle.cardHeight = cardHeight;
-                            this.cardParticles.push(particle);
-                        } else {
-                            // New particle: goes to card text (not halo)
-                            particle = this.ps.createParticle(px, py, {
-                                size: 2 + Math.random() * 1.5,
-                                temperature: 0.7 + Math.random() * 0.3,
-                                life: 1,
-                                vx: 0,
-                                vy: 0
-                            });
-                            particle.isForming = false;
-                            particle.isAttracting = true;
-                            particle.targetX = px;
-                            particle.targetY = py;
-                            particle.baseX = px;
-                            particle.baseY = py;
-                            particle.isTextParticle = true;
-                            particle.toolIndex = index;
-                            particle.cardCenterX = cX;
-                            particle.cardCenterY = cY;
-                            particle.cardWidth = cardWidth;
-                            particle.cardHeight = cardHeight;
-                            this.cardParticles.push(particle);
-                        }
-                    }
+            // Text particles - use pre-calculated positions
+            textPositions.forEach(({ px, py }) => {
+                // Reuse existing particle, or create new one if exhausted
+                let particle;
+                if (particleIndex < existingParticles.length) {
+                    particle = existingParticles[particleIndex++];
+                    // Hero particle: fly to card text
+                    particle.targetX = px;
+                    particle.targetY = py;
+                    particle.baseX = px;
+                    particle.baseY = py;
+                    particle.isForming = false;
+                    particle.isAttracting = true;
+                    particle.isTextParticle = true;
+                    particle.toolIndex = index;
+                    particle.cardCenterX = cX;
+                    particle.cardCenterY = cY;
+                    particle.cardWidth = cardWidth;
+                    particle.cardHeight = cardHeight;
+                    this.cardParticles.push(particle);
+                } else {
+                    // New particle: goes to card text (not halo)
+                    particle = this.ps.createParticle(px, py, {
+                        size: 2 + Math.random() * 1.5,
+                        temperature: 0.7 + Math.random() * 0.3,
+                        life: 1,
+                        vx: 0,
+                        vy: 0
+                    });
+                    particle.isForming = false;
+                    particle.isAttracting = true;
+                    particle.targetX = px;
+                    particle.targetY = py;
+                    particle.baseX = px;
+                    particle.baseY = py;
+                    particle.isTextParticle = true;
+                    particle.toolIndex = index;
+                    particle.cardCenterX = cX;
+                    particle.cardCenterY = cY;
+                    particle.cardWidth = cardWidth;
+                    particle.cardHeight = cardHeight;
+                    this.cardParticles.push(particle);
                 }
-            }
+            });
         });
 
         // Handle extra particles (those not needed for cards) - send to halo orbit
