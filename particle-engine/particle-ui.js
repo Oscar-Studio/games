@@ -375,6 +375,7 @@ class ParticleUI {
                     particle.orbitAngle = angle;
                     particle.orbitSpeed = 0.001 + Math.random() * 0.002;
                     particle.orbitKeepCool = true;
+                    particle.temperature = 0.2 + Math.random() * 0.1; // White
                     particle.toolIndex = -1;
                     extraParticles.push(particle);
                     this.cardParticles.push(particle);
@@ -440,6 +441,7 @@ class ParticleUI {
                             particle.orbitAngle = angle;
                             particle.orbitSpeed = 0.001 + Math.random() * 0.002;
                             particle.orbitKeepCool = true;
+                            particle.temperature = 0.2 + Math.random() * 0.1; // White color
                             particle.toolIndex = -1;
                             extraParticles.push(particle);
                             this.cardParticles.push(particle);
@@ -468,7 +470,7 @@ class ParticleUI {
             p.orbitAngle = angle;
             p.orbitSpeed = 0.001 + Math.random() * 0.002;
             p.orbitKeepCool = true;
-            p.temperature = 0.5 + Math.random() * 0.2;
+            p.temperature = 0.2 + Math.random() * 0.1; // White
             extraParticles.push(p);
         }
 
