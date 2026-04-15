@@ -354,30 +354,27 @@ class ParticleUI {
                     particle.cardHeight = cardHeight;
                     this.cardParticles.push(particle);
                 } else {
-                    // New particle: goes directly to halo orbit (no convergence animation)
-                    const angle = Math.random() * Math.PI * 2;
-                    const r = haloRadius + (Math.random() - 0.5) * 100;
-                    const hx = centerX + Math.cos(angle) * r;
-                    const hy = centerY + Math.sin(angle) * r;
-                    particle = this.ps.createParticle(hx, hy, {
+                    // New particle: goes to card border (not halo)
+                    const jitterX = x + (Math.random() - 0.5) * 8;
+                    const jitterY = y + (Math.random() - 0.5) * 8;
+                    particle = this.ps.createParticle(jitterX, jitterY, {
                         size: 2 + Math.random() * 3,
-                        temperature: 0.5 + Math.random() * 0.2,
+                        temperature: 0.8 + Math.random() * 0.2,
                         life: 1,
                         vx: 0,
                         vy: 0
                     });
                     particle.isForming = false;
-                    particle.isAttracting = false;
-                    particle.isOrbiting = true;
-                    particle.orbitCenterX = centerX;
-                    particle.orbitCenterY = centerY;
-                    particle.orbitRadius = r;
-                    particle.orbitAngle = angle;
-                    particle.orbitSpeed = 0.001 + Math.random() * 0.002;
-                    particle.orbitKeepCool = true;
-                    particle.temperature = 0.2 + Math.random() * 0.1; // White
-                    particle.toolIndex = -1;
-                    extraParticles.push(particle);
+                    particle.isAttracting = true;
+                    particle.targetX = jitterX;
+                    particle.targetY = jitterY;
+                    particle.baseX = jitterX;
+                    particle.baseY = jitterY;
+                    particle.toolIndex = index;
+                    particle.cardCenterX = cX;
+                    particle.cardCenterY = cY;
+                    particle.cardWidth = cardWidth;
+                    particle.cardHeight = cardHeight;
                     this.cardParticles.push(particle);
                 }
             }
@@ -420,30 +417,26 @@ class ParticleUI {
                             particle.cardHeight = cardHeight;
                             this.cardParticles.push(particle);
                         } else {
-                            // New particle: goes directly to halo orbit
-                            const angle = Math.random() * Math.PI * 2;
-                            const r = haloRadius + (Math.random() - 0.5) * 100;
-                            const hx = centerX + Math.cos(angle) * r;
-                            const hy = centerY + Math.sin(angle) * r;
-                            particle = this.ps.createParticle(hx, hy, {
+                            // New particle: goes to card text (not halo)
+                            particle = this.ps.createParticle(px, py, {
                                 size: 2 + Math.random() * 2,
-                                temperature: 0.5 + Math.random() * 0.2,
+                                temperature: 0.7 + Math.random() * 0.3,
                                 life: 1,
                                 vx: 0,
                                 vy: 0
                             });
                             particle.isForming = false;
-                            particle.isAttracting = false;
-                            particle.isOrbiting = true;
-                            particle.orbitCenterX = centerX;
-                            particle.orbitCenterY = centerY;
-                            particle.orbitRadius = r;
-                            particle.orbitAngle = angle;
-                            particle.orbitSpeed = 0.001 + Math.random() * 0.002;
-                            particle.orbitKeepCool = true;
-                            particle.temperature = 0.2 + Math.random() * 0.1; // White color
-                            particle.toolIndex = -1;
-                            extraParticles.push(particle);
+                            particle.isAttracting = true;
+                            particle.targetX = px;
+                            particle.targetY = py;
+                            particle.baseX = px;
+                            particle.baseY = py;
+                            particle.isTextParticle = true;
+                            particle.toolIndex = index;
+                            particle.cardCenterX = cX;
+                            particle.cardCenterY = cY;
+                            particle.cardWidth = cardWidth;
+                            particle.cardHeight = cardHeight;
                             this.cardParticles.push(particle);
                         }
                     }
