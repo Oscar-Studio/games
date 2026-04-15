@@ -25,6 +25,7 @@ class ParticleUI {
         this.modal = null;
         this.heroTextParticles = [];
         this.exploreParticles = [];
+        this.extraEmittedParticles = []; // Extra particles emitted on Explore click
         this.exploreBounds = null;
         this.exploreBtn = null;
 
@@ -197,6 +198,27 @@ class ParticleUI {
             p.isForming = false;
         });
 
+        // Emit extra particles from click point that scatter outward
+        // These will be reused for cards when hero particles are insufficient
+        this.extraEmittedParticles = [];
+        const extraCount = 500; // Emit 500 extra particles
+        for (let i = 0; i < extraCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 3 + Math.random() * 8;
+            const p = this.ps.createParticle(clickX, clickY, {
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                size: 2 + Math.random() * 2,
+                temperature: 1,
+                life: 1
+            });
+            p.isForming = false;
+            p.isAttracting = false;
+            p.targetX = null;
+            p.targetY = null;
+            this.extraEmittedParticles.push(p);
+        }
+
         // Transition
         this.currentState = 'transitioning';
 
@@ -244,8 +266,8 @@ class ParticleUI {
         const centerX = viewportWidth / 2;
         const centerY = viewportHeight / 2;
 
-        // Reuse hero particles that are currently flying outward
-        const existingParticles = [...this.heroTextParticles, ...this.exploreParticles];
+        // Reuse hero particles + extra emitted particles that are currently flying outward
+        const existingParticles = [...this.heroTextParticles, ...this.exploreParticles, ...this.extraEmittedParticles];
         const totalExisting = existingParticles.length;
 
         // Calculate card positions (3x3 grid) - centered vertically
