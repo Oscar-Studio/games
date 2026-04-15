@@ -269,7 +269,7 @@ class ParticleUI {
 
         let totalNeeded = 0;
         const cardInfo = []; // Store card info for later use
-        const textGap = 6; // Consistent gap for both counting and rendering
+        const textGap = 5; // Consistent gap for both counting and rendering
 
         this.toolsData.forEach((tool, index) => {
             const col = index % cols;
