@@ -141,8 +141,36 @@ class ParticleUI {
             p.formProgress = 0;
         });
 
+        // Add elliptical border around Explore button
+        this.createExploreEllipseBorder(centerX, exploreY);
+
         // Store clickable bounds (approximate text width for 50px "Explore")
         this.exploreBounds = { x: centerX, y: exploreY, hw: 120, hh: 40 };
+    }
+
+    createExploreEllipseBorder(cx, cy) {
+        const rx = 150; // horizontal radius
+        const ry = 50;  // vertical radius
+        const particleCount = 120; // number of particles on the ellipse
+
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 / particleCount) * i;
+            const x = cx + Math.cos(angle) * rx;
+            const y = cy + Math.sin(angle) * ry;
+
+            const particle = this.ps.createParticle(x, y, {
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5,
+                size: 2 + Math.random() * 2,
+                temperature: 0.8 + Math.random() * 0.2,
+                life: 1,
+                baseX: x,
+                baseY: y
+            });
+            particle.isForming = true;
+            particle.formProgress = 0;
+            this.exploreParticles.push(particle);
+        }
     }
 
     onExploreClick() {
@@ -213,9 +241,12 @@ class ParticleUI {
 
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
+        const centerX = viewportWidth / 2;
+        const centerY = viewportHeight / 2;
 
         // Reuse hero particles that are currently flying outward
         const existingParticles = [...this.heroTextParticles, ...this.exploreParticles];
+        const totalExisting = existingParticles.length;
 
         // Calculate card positions (3x3 grid) - centered vertically
         const cols = 3;
@@ -233,8 +264,8 @@ class ParticleUI {
         this.toolsData.forEach((tool, index) => {
             const col = index % cols;
             const row = Math.floor(index / cols);
-            const centerX = startX + col * (cardWidth + gapX) + cardWidth / 2;
-            const centerY = startY + row * (cardHeight + gapY) + cardHeight / 2;
+            const cX = startX + col * (cardWidth + gapX) + cardWidth / 2;
+            const cY = startY + row * (cardHeight + gapY) + cardHeight / 2;
 
             // Count text particles
             const textCanvas = document.createElement('canvas');
@@ -245,7 +276,7 @@ class ParticleUI {
             textCtx.fillStyle = '#FFFFFF';
             textCtx.textAlign = 'center';
             textCtx.textBaseline = 'middle';
-            textCtx.fillText(tool.name, centerX, centerY);
+            textCtx.fillText(tool.name, cX, cY);
 
             let textCount = 0;
             const textGap = 4;
@@ -258,13 +289,20 @@ class ParticleUI {
                 }
             }
 
-            cardInfo.push({ tool, centerX, centerY, borderCount: 120, textCount });
+            cardInfo.push({ tool, centerX: cX, centerY: cY, borderCount: 120, textCount });
         });
+
+        // Calculate total particles needed for cards
+        const totalCardParticles = cardInfo.reduce((sum, c) => sum + c.borderCount + c.textCount, 0);
+
+        // Extra particles go to screen edge halo
+        const extraParticles = [];
+        const haloRadius = Math.min(viewportWidth, viewportHeight) * 0.45;
 
         // Assign existing particles to card positions
         let particleIndex = 0;
 
-        cardInfo.forEach(({ tool, centerX, centerY, borderCount, textCount }) => {
+        cardInfo.forEach(({ tool, centerX: cX, centerY: cY, borderCount, textCount }) => {
             const index = this.toolsData.indexOf(tool);
 
             // Border particles
@@ -282,37 +320,65 @@ class ParticleUI {
 
                 if (t < topEnd) {
                     const localT = t / topEnd;
-                    x = centerX - cardWidth/2 + localT * cardWidth;
-                    y = centerY - cardHeight/2;
+                    x = cX - cardWidth/2 + localT * cardWidth;
+                    y = cY - cardHeight/2;
                 } else if (t < rightEnd) {
                     const localT = (t - topEnd) / (rightEnd - topEnd);
-                    x = centerX + cardWidth/2;
-                    y = centerY - cardHeight/2 + localT * cardHeight;
+                    x = cX + cardWidth/2;
+                    y = cY - cardHeight/2 + localT * cardHeight;
                 } else if (t < bottomEnd) {
                     const localT = (t - rightEnd) / (bottomEnd - rightEnd);
-                    x = centerX + cardWidth/2 - localT * cardWidth;
-                    y = centerY + cardHeight/2;
+                    x = cX + cardWidth/2 - localT * cardWidth;
+                    y = cY + cardHeight/2;
                 } else {
                     const localT = (t - bottomEnd) / (1 - bottomEnd);
-                    x = centerX - cardWidth/2;
-                    y = centerY + cardHeight/2 - localT * cardHeight;
+                    x = cX - cardWidth/2;
+                    y = cY + cardHeight/2 - localT * cardHeight;
                 }
 
-                // Reuse existing particle
-                const particle = existingParticles[particleIndex++];
-                particle.targetX = x + (Math.random() - 0.5) * 8;
-                particle.targetY = y + (Math.random() - 0.5) * 8;
-                particle.baseX = particle.targetX;
-                particle.baseY = particle.targetY;
-                particle.isForming = false;
-                particle.isAttracting = true;
-                particle.toolIndex = index;
-                particle.cardCenterX = centerX;
-                particle.cardCenterY = centerY;
-                particle.cardWidth = cardWidth;
-                particle.cardHeight = cardHeight;
-
-                this.cardParticles.push(particle);
+                // Reuse existing particle, or create new one if exhausted
+                let particle;
+                if (particleIndex < existingParticles.length) {
+                    particle = existingParticles[particleIndex++];
+                    // Hero particle: fly to card border
+                    particle.targetX = x + (Math.random() - 0.5) * 8;
+                    particle.targetY = y + (Math.random() - 0.5) * 8;
+                    particle.baseX = particle.targetX;
+                    particle.baseY = particle.targetY;
+                    particle.isForming = false;
+                    particle.isAttracting = true;
+                    particle.toolIndex = index;
+                    particle.cardCenterX = cX;
+                    particle.cardCenterY = cY;
+                    particle.cardWidth = cardWidth;
+                    particle.cardHeight = cardHeight;
+                    this.cardParticles.push(particle);
+                } else {
+                    // New particle: goes directly to halo orbit (no convergence animation)
+                    const angle = Math.random() * Math.PI * 2;
+                    const r = haloRadius + (Math.random() - 0.5) * 100;
+                    const hx = centerX + Math.cos(angle) * r;
+                    const hy = centerY + Math.sin(angle) * r;
+                    particle = this.ps.createParticle(hx, hy, {
+                        size: 2 + Math.random() * 3,
+                        temperature: 0.5 + Math.random() * 0.2,
+                        life: 1,
+                        vx: 0,
+                        vy: 0
+                    });
+                    particle.isForming = false;
+                    particle.isAttracting = false;
+                    particle.isOrbiting = true;
+                    particle.orbitCenterX = centerX;
+                    particle.orbitCenterY = centerY;
+                    particle.orbitRadius = r;
+                    particle.orbitAngle = angle;
+                    particle.orbitSpeed = 0.001 + Math.random() * 0.002;
+                    particle.orbitKeepCool = true;
+                    particle.toolIndex = -1;
+                    extraParticles.push(particle);
+                    this.cardParticles.push(particle);
+                }
             }
 
             // Text particles - also use existing particles with attraction
@@ -325,7 +391,7 @@ class ParticleUI {
             textCtx.fillStyle = '#FFFFFF';
             textCtx.textAlign = 'center';
             textCtx.textBaseline = 'middle';
-            textCtx.fillText(tool.name, centerX, centerY);
+            textCtx.fillText(tool.name, cX, cY);
 
             const imageData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height);
             const data = imageData.data;
@@ -334,25 +400,95 @@ class ParticleUI {
                 for (let px = 0; px < textCanvas.width; px += textGap) {
                     const idx = (py * textCanvas.width + px) * 4;
                     if (data[idx + 3] > 128) {
-                        const particle = existingParticles[particleIndex++];
-                        particle.targetX = px;
-                        particle.targetY = py;
-                        particle.baseX = px;
-                        particle.baseY = py;
-                        particle.isForming = false;
-                        particle.isAttracting = true;
-                        particle.isTextParticle = true;
-                        particle.toolIndex = index;
-                        particle.cardCenterX = centerX;
-                        particle.cardCenterY = centerY;
-                        particle.cardWidth = cardWidth;
-                        particle.cardHeight = cardHeight;
-
-                        this.cardParticles.push(particle);
+                        // Reuse existing particle, or create new one if exhausted
+                        let particle;
+                        if (particleIndex < existingParticles.length) {
+                            particle = existingParticles[particleIndex++];
+                            // Hero particle: fly to card text
+                            particle.targetX = px;
+                            particle.targetY = py;
+                            particle.baseX = px;
+                            particle.baseY = py;
+                            particle.isForming = false;
+                            particle.isAttracting = true;
+                            particle.isTextParticle = true;
+                            particle.toolIndex = index;
+                            particle.cardCenterX = cX;
+                            particle.cardCenterY = cY;
+                            particle.cardWidth = cardWidth;
+                            particle.cardHeight = cardHeight;
+                            this.cardParticles.push(particle);
+                        } else {
+                            // New particle: goes directly to halo orbit
+                            const angle = Math.random() * Math.PI * 2;
+                            const r = haloRadius + (Math.random() - 0.5) * 100;
+                            const hx = centerX + Math.cos(angle) * r;
+                            const hy = centerY + Math.sin(angle) * r;
+                            particle = this.ps.createParticle(hx, hy, {
+                                size: 2 + Math.random() * 2,
+                                temperature: 0.5 + Math.random() * 0.2,
+                                life: 1,
+                                vx: 0,
+                                vy: 0
+                            });
+                            particle.isForming = false;
+                            particle.isAttracting = false;
+                            particle.isOrbiting = true;
+                            particle.orbitCenterX = centerX;
+                            particle.orbitCenterY = centerY;
+                            particle.orbitRadius = r;
+                            particle.orbitAngle = angle;
+                            particle.orbitSpeed = 0.001 + Math.random() * 0.002;
+                            particle.orbitKeepCool = true;
+                            particle.toolIndex = -1;
+                            extraParticles.push(particle);
+                            this.cardParticles.push(particle);
+                        }
                     }
                 }
             }
         });
+
+        // Handle extra particles (those not needed for cards) - send to halo orbit
+        while (particleIndex < existingParticles.length) {
+            const p = existingParticles[particleIndex++];
+            const angle = Math.random() * Math.PI * 2;
+            const r = haloRadius + (Math.random() - 0.5) * 100;
+            p.targetX = centerX + Math.cos(angle) * r;
+            p.targetY = centerY + Math.sin(angle) * r;
+            p.baseX = p.targetX;
+            p.baseY = p.targetY;
+            p.isForming = false;
+            p.isAttracting = true;
+            p.isOrbiting = false; // Will orbit after reaching target
+            p.toolIndex = -1; // Mark as halo particle
+            p.orbitCenterX = centerX;
+            p.orbitCenterY = centerY;
+            p.orbitRadius = r;
+            p.orbitAngle = angle;
+            p.orbitSpeed = 0.001 + Math.random() * 0.002;
+            p.orbitKeepCool = true;
+            p.temperature = 0.5 + Math.random() * 0.2;
+            extraParticles.push(p);
+        }
+
+        // After convergence, start halo rotation for extra particles
+        setTimeout(() => {
+            extraParticles.forEach(p => {
+                if (p.toolIndex === -1) {
+                    // Calculate current distance to center and set orbit radius accordingly
+                    const dx = p.x - p.orbitCenterX;
+                    const dy = p.y - p.orbitCenterY;
+                    const currentDist = Math.sqrt(dx * dx + dy * dy);
+                    if (currentDist > 30) {
+                        p.orbitRadius = currentDist;
+                        p.orbitAngle = Math.atan2(dy, dx);
+                    }
+                    p.isAttracting = false;
+                    p.isOrbiting = true;
+                }
+            });
+        }, 2000);
 
         // Add click detection after particles converge
         setTimeout(() => this.enableCardClicks(), 2500);
