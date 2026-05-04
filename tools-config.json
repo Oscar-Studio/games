@@ -84,6 +84,16 @@
             ],
             "icon": "🎯",
             "featured": false
+        },
+        {
+            "name": "元胞自动机",
+            "description": "生命游戏、电子电路Wireworld、一维Wolfram规则，支持7种规则切换与预设图案",
+            "tags": [
+                "模拟",
+                "益智"
+            ],
+            "icon": "🔬",
+            "featured": false
         }
     ]
 }
