@@ -337,6 +337,7 @@
 
         <div class="buttons">
             <button class="btn btn-success" onclick="checkAnswer()">检查答案</button>
+            <button class="btn" onclick="deleteLast()">删除</button>
             <button class="btn" onclick="newGame()">新的一局</button>
             <button class="btn btn-error" onclick="giveUp()">放弃</button>
         </div>
@@ -610,6 +611,13 @@
             initGame();
             document.getElementById('result').className = 'result';
             document.getElementById('result').textContent = '';
+        }
+
+        // 删除最后一个字符
+        function deleteLast() {
+            const input = document.getElementById('expressionInput');
+            input.value = input.value.slice(0, -1);
+            input.focus();
         }
 
         // 放弃
