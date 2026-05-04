@@ -100,9 +100,31 @@
             border-radius: 8px;
             cursor: crosshair;
             image-rendering: pixelated;
+            transition: transform 0.15s;
         }
 
-        #canvas-wrapper { position: relative; }
+        #canvas-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; }
+
+        .zoom-controls {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 6px;
+            align-items: center;
+        }
+        .zoom-controls button {
+            width: 36px;
+            height: 36px;
+            font-size: 1.2rem;
+            padding: 0;
+            margin: 0;
+            flex-shrink: 0;
+        }
+        .zoom-controls span {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            min-width: 40px;
+            text-align: center;
+        }
 
         #generation {
             position: absolute;
@@ -205,6 +227,12 @@
                 <div class="stat-row"><span>世代</span><span id="genCount">0</span></div>
                 <div class="stat-row"><span>存活细胞</span><span id="cellCount">0</span></div>
                 <div class="stat-row"><span>网格</span><span id="gridSize">60×60</span></div>
+                <div class="stat-row" style="align-items:center;"><span>列数</span>
+                    <input type="number" id="gridCols" value="80" min="10" max="300" onchange="applyGridSize()" style="width:65px;font-size:0.8rem;padding:3px 6px;margin:0;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);">
+                </div>
+                <div class="stat-row" style="align-items:center;"><span>行数</span>
+                    <input type="number" id="gridRows" value="60" min="10" max="300" onchange="applyGridSize()" style="width:65px;font-size:0.8rem;padding:3px 6px;margin:0;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);">
+                </div>
             </div>
 
             <div class="panel" id="patternPanel">
@@ -244,6 +272,12 @@
         </div>
 
         <div id="canvas-wrapper">
+            <div class="zoom-controls">
+                <button onclick="zoomOut()" title="缩小">−</button>
+                <span id="zoomLabel">100%</span>
+                <button onclick="zoomIn()" title="放大">+</button>
+                <button onclick="zoomReset()" style="font-size:0.7rem;width:auto;padding:0 8px;" title="重置缩放">重置</button>
+            </div>
             <canvas id="canvas"></canvas>
             <div id="generation">世代: 0</div>
         </div>
@@ -262,7 +296,8 @@
     const ca1dCtx = ca1dCanvas.getContext('2d');
 
     let CELL_SIZE = 10;
-    let COLS, ROWS;
+    let COLS = 80, ROWS = 60;
+    let zoom = 1;
     let grid = [];
     let running = false;
     let animationId = null;
@@ -281,11 +316,11 @@
 
     // ─── 规则定义 ───
     const RULES = {
-        life:      { birth: [3],      survive: [2,3],   name: "Conway's Life",  info: "B3/S23：<b>经典规则。</b>活细胞周围2-3个存活，3个邻居出生。产生滑翔机、振荡器等经典结构。" },
-        highlife:  { birth: [3,6],    survive: [2,3],   name: "HighLife",       info: "B36/S23：比Life多一个B6，<b>有自我复制的&quot;繁殖者&quot;(Breeder)</b>。" },
-        daynight:  { birth: [3,6,7,8],survive: [3,4,6,7,8], name: "Day & Night", info: "活死互换对称。B3678/S34678：<b>对称规则</b>，Alive和Dead行为互换。" },
-        seeds:     { birth: [2],      survive: [],      name: "Seeds",          info: "B2/S：<b>持续爆炸型</b>。活细胞必死（不存活），周围恰好2个则无限生成。" },
-        maze:      { birth: [3],      survive: [1,2,3,4,5], name: "Maze",        info: "B3/S12345：产生迷宫结构，墙壁扩张形成通道。" },
+        life:      { birth: [3],      survive: [2,3],   name: "Conway's Life",  info: "经典生命游戏！<b>B3/S23</b>：活→周围2-3个就活，<3孤独死，>3拥挤死；死→周围恰好3个就出生。滑翔机会自己移动。" },
+        highlife:  { birth: [3,6],    survive: [2,3],   name: "HighLife",       info: "跟Life一样多一个B6：死细胞周围有6个邻居也能出生！会出现<b>繁殖者(Breeder)</b>，边移动边复制自己。" },
+        daynight:  { birth: [3,6,7,8],survive: [3,4,6,7,8], name: "Day & Night", info: "活死互换的对称规则！你画个图案，它的\"反面世界\"（全活或全死）行为完全一样，超神奇。" },
+        seeds:     { birth: [2],      survive: [],      name: "Seeds",          info: "疯狂爆炸型！活细胞每个回合必死（没有存活条件），但死细胞周围恰好2个就会生一片。永动机式不停扩张。" },
+        maze:      { birth: [3],      survive: [1,2,3,4,5], name: "Maze",        info: "迷宫发生器！墙壁向外延伸形成走廊，走廊被墙壁包围。随机填一下就能看到迷宫结构慢慢长出来。" },
     };
 
     // Wireworld: 0=空, 1=导线, 2=电子头, 3=电子尾
@@ -338,13 +373,13 @@
     };
 
     const RULE_INFOS = {
-        life:      'B3/S23：活细胞周围2-3个存活，3个邻居出生。<b>最经典的规则。</b>',
-        highlife:  'B36/S23：比Life多一个B6，有<b>自我复制的繁殖者</b>。',
-        daynight:  '活死互换对称。<b>对称规则，Alive和Dead行为互换。</b>',
-        seeds:     'B2/S：<b>持续爆炸型</b>。活细胞必死（无存活），周围恰好2个则出生。',
-        maze:      'B3/S12345：产生<b>迷宫结构</b>，墙壁扩张形成通道。',
-        wireworld: '四种状态：<b>导线→电子头→电子尾→导线</b>，可模拟数字电路。',
-        '1d':      '一维元胞自动机，256种规则。显示时间轴向下演化，每行代表一个世代。'
+        life:      '经典生命游戏！格子里有"活细胞"，每个回合根据邻居数量决定生死。<b>规则很简单：</b>活细胞周围2-3个邻居就能活下去，少了会孤独死了，多了会拥挤死；死细胞周围恰好3个邻居就会诞生新生命。滑翔机就是最经典的图案，会自己移动。',
+        highlife:  '跟经典生命游戏一样，但多了一条：死细胞周围有6个邻居也能出生！正因为多了这个"B6"，会出现一种叫"繁殖者"的图案，会一边移动一边复制自己。',
+        daynight:  '超有趣的对称规则！把活和死互换，规则完全一样。最神奇的是：你在这个规则里画个图案，它的"镜像世界"（全是死细胞的版本）行为完全一样。',
+        seeds:     '永动机式爆炸型！活细胞没有任何存活条件——每个活细胞下回合必死。但死细胞周围恰好2个邻居就会生一大片。因为活细胞必死，所以整个世界会不断爆炸式扩张。',
+        maze:      '会自己"长出迷宫"的规则！墙壁（活细胞）会向外延伸形成走廊，而走廊会逐渐被墙壁包围。初始随机填一下，就能看到迷宫结构慢慢形成。',
+        wireworld: '不是生命游戏，是电子电路模拟！有四种状态：<b>空</b>（黑）、<b>导线</b>（橙）、<b>电子头</b>（红）、<b>电子尾</b>（黄）。电子头沿导线跑，跑到就变成尾，尾变回导线——可以模拟时钟、计数器等数字电路。',
+        '1d':      '一维元胞自动机，只有一行格子，但会随时间向下演变出复杂图案。256种规则（Rule 0到Rule 255），每个规则都由上一行三个格子的状态决定下一行中心格子的颜色。有的规则产生混沌，有的产生完美几何，有的甚至能通用计算。'
     };
 
     // ─── 初始化 ───
@@ -355,7 +390,7 @@
         canvas.addEventListener('mousedown', (e) => {
             if (rule === '1d') return;
             drawing = true;
-            const val = e.button === 2 ? 0 : (e.ctrlKey || e.metaKey ? 0 : 1);
+            const val = e.button === 2 ? 0 : (e.ctrlKey || e.metaKey ? 0 : -1); // -1 = toggle
             drawValue = val;
             isErasing = val === 0;
             paint(e);
@@ -386,18 +421,49 @@
         const maxW = Math.min(window.innerWidth - 320, 800);
         const maxH = Math.min(window.innerHeight - 180, 800);
         CELL_SIZE = Math.max(4, Math.min(16, Math.floor(Math.min(maxW, maxH) / 40)));
-        COLS = Math.floor(maxW / CELL_SIZE);
-        ROWS = Math.floor(maxH / CELL_SIZE);
         canvas.width = COLS * CELL_SIZE;
         canvas.height = ROWS * CELL_SIZE;
         canvas.style.width = canvas.width + 'px';
         canvas.style.height = canvas.height + 'px';
+        canvas.style.transform = `scale(${zoom})`;
+        canvas.style.transformOrigin = 'top left';
 
         ca1dCanvas.width = COLS * CELL_SIZE;
         ca1dCanvas.height = CA1D_MAX_GEN * 4;
 
         document.getElementById('gridSize').textContent = `${COLS}×${ROWS}`;
+        document.getElementById('gridCols').value = COLS;
+        document.getElementById('gridRows').value = ROWS;
+        document.getElementById('zoomLabel').textContent = Math.round(zoom * 100) + '%';
         if (rule !== '1d') { grid = makeGrid(); draw(); }
+    }
+
+    function applyGridSize() {
+        const c = parseInt(document.getElementById('gridCols').value);
+        const r = parseInt(document.getElementById('gridRows').value);
+        if (c >= 10 && c <= 300 && r >= 10 && r <= 300) {
+            COLS = c; ROWS = r;
+            running = false;
+            if (animationId) { clearTimeout(animationId); animationId = null; }
+            document.getElementById('runBtn').textContent = '▶ 运行';
+            resize();
+        }
+    }
+
+    function zoomIn() {
+        zoom = Math.min(3, zoom + 0.25);
+        canvas.style.transform = `scale(${zoom})`;
+        document.getElementById('zoomLabel').textContent = Math.round(zoom * 100) + '%';
+    }
+    function zoomOut() {
+        zoom = Math.max(0.25, zoom - 0.25);
+        canvas.style.transform = `scale(${zoom})`;
+        document.getElementById('zoomLabel').textContent = Math.round(zoom * 100) + '%';
+    }
+    function zoomReset() {
+        zoom = 1;
+        canvas.style.transform = `scale(1)`;
+        document.getElementById('zoomLabel').textContent = '100%';
     }
 
     function makeGrid(val = 0) {
@@ -568,7 +634,7 @@
         document.getElementById('cellCount').textContent = ca1dCells.filter(c=>c).length;
     }
 
-    function paint(e) {
+        function paint(e) {
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -577,9 +643,17 @@
         if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
 
         if (rule === 'wireworld') {
-            grid[r][c] = isErasing ? WW_EMPTY : WW_WIRE;
+            if (drawValue === -1) {
+                grid[r][c] = grid[r][c] === WW_EMPTY ? WW_WIRE : WW_EMPTY;
+            } else {
+                grid[r][c] = isErasing ? WW_EMPTY : WW_WIRE;
+            }
         } else {
-            grid[r][c] = isErasing ? 0 : 1;
+            if (drawValue === -1) {
+                grid[r][c] = grid[r][c] ? 0 : 1;
+            } else {
+                grid[r][c] = isErasing ? 0 : 1;
+            }
         }
         draw();
     }
@@ -689,14 +763,14 @@
     }
 
     const CA1D_INFOS = {
-        30: 'Rule 30：混沌/伪随机，Mathematica用它生成随机数。',
-        110: 'Rule 110：图灵完备，可通用计算。',
-        90: 'Rule 90：产生完美的谢尔宾斯基三角形。',
-        184: 'Rule 184：交通流模型，车辆走走停停。',
-        54: 'Rule 54：振荡器和复杂波行为。',
-        22: 'Rule 22：三角波和规则图案。',
-        14: 'Rule 14：稳定结构，几乎无变化。',
-        45: 'Rule 45：持续增长扩展。'
+        30: '最著名的混沌规则！Mathematica创始人发明，曾被认为能生成真正的随机数。图案看起来像一团乱码。',
+        110: '图灵完备！意思是它能像任何计算机一样通用计算，只是速度慢。这个规则本身就相当于一台计算机。',
+        90: '产生完美分形！谢尔宾斯基三角形——一种自相似的几何图案，不管放大多少倍看起来都一样。',
+        184: '交通流模型！模拟车辆在单车道上前进、堵塞、超车的行为，右边车辆多时往右走，左边多时往左。',
+        54: '最复杂的规则之一！会产生振荡器、波、混沌等多种行为，研究它的数学家最多。',
+        22: '产生规整的三角波图案，层层叠叠，排列有序。',
+        14: '几乎静止！所有细胞变化极慢，会形成一些简单稳定结构。',
+        45: '规则45：图案会持续向外扩张增长，结构有趣。'
     };
 
     function switch1DRule() {
