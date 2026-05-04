@@ -502,7 +502,7 @@
         const tools = TOOLS[r] || TOOLS.life;
         toolbar.innerHTML = tools.map(t => `
             <button class="tool-btn ${t.value === currentTool ? 'active' : ''}"
-                    onclick="selectTool(${t.value}, '${r}')"
+                    onclick="selectTool(${t.value})"
                     data-value="${t.value}">
                 <span class="swatch" style="background:${t.color}"></span>
                 <span class="label">${t.label}</span>
@@ -510,9 +510,9 @@
         `).join('');
     }
 
-    function selectTool(value, r) {
+    function selectTool(value) {
         currentTool = value;
-        buildToolbar(r);
+        buildToolbar(rule);
     }
 
     function resize() {
@@ -538,12 +538,13 @@
 
     function applyGridSize() {
         const c = parseInt(document.getElementById('gridCols').value);
-        const r = parseInt(document.getElementById('gridRows').value);
-        if (c >= 10 && c <= 300 && r >= 10 && r <= 300) {
-            COLS = c; ROWS = r;
+        const rr = parseInt(document.getElementById('gridRows').value);
+        if (c >= 10 && c <= 300 && rr >= 10 && rr <= 300) {
+            COLS = c; ROWS = rr;
             running = false;
             if (animationId) { clearTimeout(animationId); animationId = null; }
             document.getElementById('runBtn').textContent = '▶ 运行';
+            generation = 0;
             resize();
         }
     }
