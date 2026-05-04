@@ -107,7 +107,51 @@
             transition: transform 0.15s;
         }
 
-        #canvas-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; }
+        #canvas-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 0;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px 6px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px 0 0 10px;
+            border-right: none;
+        }
+
+        .tool-btn {
+            width: 52px;
+            height: 52px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            background: var(--bg);
+            transition: border-color 0.15s, transform 0.1s;
+            padding: 4px;
+        }
+        .tool-btn:hover { border-color: var(--accent); }
+        .tool-btn.active { border-color: var(--accent); background: rgba(88,166,255,0.1); color: var(--text); }
+        .tool-btn .swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .tool-btn .label { line-height: 1; text-align: center; }
 
         .zoom-controls {
             display: flex;
@@ -197,7 +241,11 @@
     <!-- 规则选择 -->
     <div class="container">
         <div id="canvas-wrapper">
-            <div class="zoom-controls">
+            <div class="toolbar" id="drawToolbar">
+                <!-- 动态生成 -->
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;">
+                <div class="zoom-controls">
                 <button onclick="zoomOut()" title="缩小">−</button>
                 <span id="zoomLabel">100%</span>
                 <button onclick="zoomIn()" title="放大">+</button>
@@ -205,6 +253,7 @@
             </div>
             <canvas id="canvas"></canvas>
             <div id="generation">世代: 0</div>
+            </div>
         </div>
 
         <div id="ca1d-wrapper">
@@ -309,14 +358,43 @@
     let generation = 0;
     let rule = 'life';
     let drawing = false;
-    let drawValue = 1;
-    let isErasing = false;
+    let currentTool = 1; // 当前工具绘制值
 
     // 1D CA
     let ca1dRule = 30;
     let ca1dCells = [];
     let ca1dGen = 0;
     const CA1D_MAX_GEN = 300;
+
+    // ─── 工具栏配置 ───
+    const TOOLS = {
+        life: [
+            { value: 1, label: '活细胞', color: '#39d353' },
+            { value: 0, label: '空', color: '#21262d' },
+        ],
+        highlife: [
+            { value: 1, label: '活细胞', color: '#39d353' },
+            { value: 0, label: '空', color: '#21262d' },
+        ],
+        daynight: [
+            { value: 1, label: '活细胞', color: '#39d353' },
+            { value: 0, label: '空', color: '#21262d' },
+        ],
+        seeds: [
+            { value: 1, label: '活细胞', color: '#39d353' },
+            { value: 0, label: '空', color: '#21262d' },
+        ],
+        maze: [
+            { value: 1, label: '墙壁', color: '#39d353' },
+            { value: 0, label: '空白', color: '#21262d' },
+        ],
+        wireworld: [
+            { value: WW_WIRE, label: '导线', color: '#f0883e' },
+            { value: WW_EMPTY, label: '空', color: '#21262d' },
+            { value: WW_HEAD, label: '电子头', color: '#ff6b6b' },
+            { value: WW_TAIL, label: '电子尾', color: '#ffd93d' },
+        ]
+    };
 
     // ─── 规则定义 ───
     const RULES = {
@@ -394,13 +472,6 @@
         canvas.addEventListener('mousedown', (e) => {
             if (rule === '1d') return;
             drawing = true;
-            if (e.button === 2 || e.ctrlKey || e.metaKey) {
-                drawValue = 0; isErasing = true;
-            } else if (e.shiftKey) {
-                drawValue = -2; isErasing = false; // -2 = cycle through WW states
-            } else {
-                drawValue = -1; isErasing = false; // -1 = toggle
-            }
             paint(e);
         });
         canvas.addEventListener('mousemove', (e) => { if (drawing && rule !== '1d') paint(e); });
@@ -422,7 +493,26 @@
         });
 
         document.getElementById('ruleSelect').value = 'life';
+        buildToolbar('life');
         switchRule();
+    }
+
+    function buildToolbar(r) {
+        const toolbar = document.getElementById('drawToolbar');
+        const tools = TOOLS[r] || TOOLS.life;
+        toolbar.innerHTML = tools.map(t => `
+            <button class="tool-btn ${t.value === currentTool ? 'active' : ''}"
+                    onclick="selectTool(${t.value}, '${r}')"
+                    data-value="${t.value}">
+                <span class="swatch" style="background:${t.color}"></span>
+                <span class="label">${t.label}</span>
+            </button>
+        `).join('');
+    }
+
+    function selectTool(value, r) {
+        currentTool = value;
+        buildToolbar(r);
     }
 
     function resize() {
@@ -651,23 +741,7 @@
             const r = Math.floor(y / CELL_SIZE);
             if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
 
-            if (rule === 'wireworld') {
-                if (drawValue === -2) {
-                    // Cycle: 空→导线→电子头→电子尾→空
-                    const cur = grid[r][c];
-                    grid[r][c] = (cur + 1) % 4;
-                } else if (drawValue === -1) {
-                    grid[r][c] = grid[r][c] === WW_EMPTY ? WW_WIRE : WW_EMPTY;
-                } else {
-                    grid[r][c] = isErasing ? WW_EMPTY : WW_WIRE;
-                }
-            } else {
-                if (drawValue === -1) {
-                    grid[r][c] = grid[r][c] ? 0 : 1;
-                } else {
-                    grid[r][c] = isErasing ? 0 : 1;
-                }
-            }
+            grid[r][c] = currentTool;
             draw();
         }
 
@@ -753,6 +827,7 @@
         const is1D = rule === '1d';
         canvas.style.display = is1D ? 'none' : 'block';
         ca1dWrapper.style.display = is1D ? 'block' : 'none';
+        document.getElementById('drawToolbar').style.display = is1D ? 'none' : 'flex';
         document.getElementById('patternPanel').style.display = is1D ? 'none' : 'block';
         document.getElementById('colorLegend').style.display = rule === 'wireworld' ? 'block' : 'none';
         document.getElementById('ca1dPanel').style.display = is1D ? 'block' : 'none';
@@ -774,6 +849,7 @@
         }
 
         buildPatternButtons();
+        buildToolbar(rule);
     }
 
     const CA1D_INFOS = {
