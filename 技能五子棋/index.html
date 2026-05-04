@@ -348,6 +348,7 @@
         let energyInterval = null;
         let skillUsedThisTurn = false;
         let restrictedSkillUsed = false;
+        let awaitingSecondPlacement = false; // 等待第二次落子（飞沙/静如）
         let playerToColor = { 1: 1, 2: 2 }; // Mapping from Player Index to Stone Color (1: Black, 2: White)
         let playerRoles = { 1: { name: '黑方', class: 'player1' }, 2: { name: '白方', class: 'player2' } };
 
@@ -364,6 +365,7 @@
             selectionMode = null;
             skillUsedThisTurn = false;
             restrictedSkillUsed = false;
+            awaitingSecondPlacement = false;
             playerToColor = { 1: 1, 2: 2 };
             playerRoles = { 1: { name: '黑方', class: 'player1' }, 2: { name: '白方', class: 'player2' } };
             messageBox.textContent = "";
@@ -527,10 +529,10 @@
                     addLog(`${currentPlayer === 1 ? '黑方' : '白方'} 使用 飞沙走石，移除了 (${row}, ${col}) 的棋子`);
                     board[row][col] = 0;
                     selectionMode = null;
-                    messageBox.textContent = "";
+                    awaitingSecondPlacement = true; // 等玩家落子
+                    messageBox.textContent = "请再下一颗子！";
                     drawBoard();
                     updateUI();
-                    switchTurn(); // 技能结束，切换回合
                 } else {
                     messageBox.textContent = "请选择对方的棋子移除！";
                 }
@@ -552,6 +554,37 @@
                 drawBoard();
                 updateUI();
                 switchTurn(); // 技能结束，切换回合
+                return;
+            }
+
+            // 飞沙走石后等待落子
+            if (awaitingSecondPlacement) {
+                if (board[row][col] !== 0) {
+                    messageBox.textContent = "此处已有棋子，请选择空白处！";
+                    return;
+                }
+                if (gridStatus[row][col] === 1) {
+                    messageBox.textContent = "此处已被破坏，无法落子！";
+                    return;
+                }
+                board[row][col] = playerToColor[currentPlayer];
+                lastMove = { row, col };
+                awaitingSecondPlacement = false;
+                messageBox.textContent = "";
+                drawBoard();
+
+                if (checkWin(row, col, playerToColor[currentPlayer])) {
+                    const opponentEnergy = energy[currentPlayer === 1 ? 2 : 1];
+                    if (opponentEnergy < 15) {
+                        endGame(currentPlayer);
+                        return;
+                    } else {
+                        addLog(`五子连珠！但对方仍有能量反击。`);
+                        messageBox.textContent = "对方仍有能量反击！";
+                    }
+                }
+
+                switchTurn();
                 return;
             }
 
@@ -656,22 +689,34 @@
             if (energy[player] < skill.cost) return;
 
             if (type === 'fei-sha') {
+                if (restrictedSkillUsed) {
+                    messageBox.textContent = "本回合已使用过限制级技能！";
+                    return;
+                }
                 selectionMode = 'fei-sha';
                 messageBox.textContent = "请点击要移除的对方棋子";
                 energy[player] -= skill.cost;
                 skillUsedThisTurn = true;
+                restrictedSkillUsed = true;
             } else if (type === 'li-ba') {
+                if (restrictedSkillUsed) {
+                    messageBox.textContent = "本回合已使用过限制级技能！";
+                    return;
+                }
                 selectionMode = 'li-ba';
                 messageBox.textContent = "请选择轰击区域中心 (3x3)";
                 energy[player] -= skill.cost;
                 skillUsedThisTurn = true;
+                restrictedSkillUsed = true;
             } else if (type === 'jing-ru') {
                 addLog(`${player === 1 ? '黑方' : '白方'} 使用 静如止水，冻结对方下一回合`);
                 if (player === 1) p2SkipNext = true; else p1SkipNext = true;
                 energy[player] -= skill.cost;
                 skillUsedThisTurn = true;
                 restrictedSkillUsed = true;
-                switchTurn(); // 技能结束，切换回合
+                awaitingSecondPlacement = true; // 等玩家连下两颗
+                messageBox.textContent = "请连下两颗子！";
+                updateUI();
             } else if (type === 'shi-guang') {
                 if (history.length < 2) {
                     addLog("刚开始，无法回溯！");
