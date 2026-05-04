@@ -250,7 +250,7 @@
                     <input type="number" id="gridCols" value="80" min="10" max="300" onchange="applyGridSize()" style="width:65px;font-size:0.8rem;padding:3px 6px;margin:0;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);">
                 </div>
                 <div class="stat-row" style="align-items:center;"><span>行数</span>
-                    <input type="number" id="gridRows" value="60" min="10" max="300" onchange="applyGridSize()" style="width:65px;font-size:0.8rem;padding:3px 6px;margin:0;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);">
+                    <input type="number" id="gridRows" value="50" min="10" max="300" onchange="applyGridSize()" style="width:65px;font-size:0.8rem;padding:3px 6px;margin:0;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);">
                 </div>
             </div>
 
@@ -300,7 +300,7 @@
     const ca1dCtx = ca1dCanvas.getContext('2d');
 
     let CELL_SIZE = 10;
-    let COLS = 80, ROWS = 60;
+    let COLS = 80, ROWS = 50;
     let zoom = 1;
     let grid = [];
     let running = false;
@@ -422,9 +422,9 @@
     }
 
     function resize() {
-        const maxW = Math.min(window.innerWidth - 320, 800);
-        const maxH = Math.min(window.innerHeight - 180, 800);
-        CELL_SIZE = Math.max(4, Math.min(16, Math.floor(Math.min(maxW, maxH) / 40)));
+        const availableW = Math.min(window.innerWidth - 40, 800);
+        const availableH = Math.min(window.innerHeight - 180, 600);
+        CELL_SIZE = Math.max(4, Math.min(16, Math.floor(Math.min(availableW, availableH) / Math.max(COLS, ROWS))));
         canvas.width = COLS * CELL_SIZE;
         canvas.height = ROWS * CELL_SIZE;
         canvas.style.width = canvas.width + 'px';
@@ -432,7 +432,7 @@
         canvas.style.transform = `scale(${zoom})`;
         canvas.style.transformOrigin = 'top left';
 
-        ca1dCanvas.width = COLS * CELL_SIZE;
+        ca1dCanvas.width = availableW;
         ca1dCanvas.height = CA1D_MAX_GEN * 4;
 
         document.getElementById('gridSize').textContent = `${COLS}×${ROWS}`;
