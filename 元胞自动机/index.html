@@ -43,12 +43,16 @@
             width: 100%;
             flex-wrap: wrap;
             justify-content: center;
+            flex-direction: column;
+            align-items: center;
         }
 
         .sidebar {
-            width: 260px;
+            width: 100%;
+            max-width: 800px;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
+            flex-wrap: wrap;
             gap: 12px;
         }
 
@@ -192,6 +196,21 @@
 
     <!-- 规则选择 -->
     <div class="container">
+        <div id="canvas-wrapper">
+            <div class="zoom-controls">
+                <button onclick="zoomOut()" title="缩小">−</button>
+                <span id="zoomLabel">100%</span>
+                <button onclick="zoomIn()" title="放大">+</button>
+                <button onclick="zoomReset()" style="font-size:0.7rem;width:auto;padding:0 8px;" title="重置缩放">重置</button>
+            </div>
+            <canvas id="canvas"></canvas>
+            <div id="generation">世代: 0</div>
+        </div>
+
+        <div id="ca1d-wrapper">
+            <canvas id="ca1dCanvas" style="border-radius:8px;"></canvas>
+        </div>
+
         <div class="sidebar">
             <div class="panel">
                 <div class="panel-title">选择规则</div>
@@ -226,7 +245,7 @@
             <div class="panel">
                 <div class="stat-row"><span>世代</span><span id="genCount">0</span></div>
                 <div class="stat-row"><span>存活细胞</span><span id="cellCount">0</span></div>
-                <div class="stat-row"><span>网格</span><span id="gridSize">60×60</span></div>
+                <div class="stat-row"><span>网格</span><span id="gridSize">80×60</span></div>
                 <div class="stat-row" style="align-items:center;"><span>列数</span>
                     <input type="number" id="gridCols" value="80" min="10" max="300" onchange="applyGridSize()" style="width:65px;font-size:0.8rem;padding:3px 6px;margin:0;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);">
                 </div>
@@ -242,7 +261,7 @@
 
             <div class="panel" id="ruleInfo">
                 <div class="panel-title">规则说明</div>
-                <div class="info-box" id="infoBox">B3/S23：活细胞周围有3个邻居则存活，死细胞周围有3个邻居则出生。</div>
+                <div class="info-box" id="infoBox">经典生命游戏！格子里有"活细胞"，每个回合根据邻居数量决定生死。<b>规则很简单：</b>活细胞周围2-3个邻居就能活下去，少了会孤独死了，多了会拥挤死；死细胞周围恰好3个邻居就会诞生新生命。滑翔机就是最经典的图案，会自己移动。</div>
             </div>
 
             <div class="panel" id="ca1dPanel" style="display:none;">
@@ -257,7 +276,7 @@
                     <option value="14">Rule 14 — 稳定结构</option>
                     <option value="45">Rule 45 — 增长</option>
                 </select>
-                <div class="info-box" id="ca1dInfo" style="margin-top:8px;">Rule 30：由 Mathematica 发明，呈现混沌行为，曾用于生成随机数。</div>
+                <div class="info-box" id="ca1dInfo" style="margin-top:8px;">最著名的混沌规则！Mathematica创始人发明，曾被认为能生成真正的随机数。图案看起来像一团乱码。</div>
             </div>
 
             <div class="panel" id="colorLegend" style="display:none;">
@@ -269,21 +288,6 @@
                     <span><span class="dot" style="background:#ffd93d;">电子尾</span></span>
                 </div>
             </div>
-        </div>
-
-        <div id="canvas-wrapper">
-            <div class="zoom-controls">
-                <button onclick="zoomOut()" title="缩小">−</button>
-                <span id="zoomLabel">100%</span>
-                <button onclick="zoomIn()" title="放大">+</button>
-                <button onclick="zoomReset()" style="font-size:0.7rem;width:auto;padding:0 8px;" title="重置缩放">重置</button>
-            </div>
-            <canvas id="canvas"></canvas>
-            <div id="generation">世代: 0</div>
-        </div>
-
-        <div id="ca1d-wrapper">
-            <canvas id="ca1dCanvas" style="border-radius:8px;margin-top:10px;"></canvas>
         </div>
     </div>
 
@@ -531,6 +535,7 @@
     }
 
     function step1D() {
+        if (ca1dGen >= CA1D_MAX_GEN) return false; // 到底了，停止
         const ruleBits = (ca1dRule >>> 0).toString(2).padStart(8, '0');
         const next = new Array(ca1dCells.length).fill(0);
         for (let i = 0; i < ca1dCells.length; i++) {
@@ -542,15 +547,15 @@
         }
         ca1dCells = next;
         ca1dGen++;
-        if (ca1dGen > CA1D_MAX_GEN) {
-            ca1dCells = make1DCells();
-            ca1dCells[Math.floor(ca1dCells.length / 2)] = 1;
-            ca1dGen = 0;
-            generation = 0;
-        } else {
-            generation++;
-        }
+        generation++;
         draw1D();
+        if (ca1dGen >= CA1D_MAX_GEN) {
+            // 到底了，停止
+            running = false;
+            document.getElementById('runBtn').textContent = '▶ 运行';
+            return false;
+        }
+        return true;
     }
 
     function make1DCells() {
@@ -662,13 +667,14 @@
     function loop() {
         if (!running) return;
         if (rule === '1d') {
-            step1D();
+            const canContinue = step1D();
+            if (!canContinue) return;
         } else if (rule === 'wireworld') {
             stepWireworld();
         } else {
             stepLife();
         }
-        draw();
+        if (rule !== '1d') draw();
         animationId = setTimeout(() => requestAnimationFrame(loop), 1000 / speed);
     }
 
