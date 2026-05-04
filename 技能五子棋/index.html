@@ -511,6 +511,16 @@
 
             if (col < 0 || col >= GRID_SIZE || row < 0 || row >= GRID_SIZE) return;
 
+            // Check freeze first — before any turn state changes
+            if (currentPlayer === 1 && p1SkipNext) {
+                messageBox.textContent = "你被冻结了，回合跳过！";
+                return;
+            }
+            if (currentPlayer === 2 && p2SkipNext) {
+                messageBox.textContent = "你被冻结了，回合跳过！";
+                return;
+            }
+
             if (selectionMode === 'fei-sha') {
                 const opponentColor = playerToColor[currentPlayer === 1 ? 2 : 1];
                 if (board[row][col] === opponentColor) {
@@ -532,7 +542,7 @@
                     for (let c = col - 1; c <= col + 1; c++) {
                         if (r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE) {
                             board[r][c] = 0;
-                            gridStatus[r][c] = 1; // Blocked
+                            gridStatus[r][c] = 1; // Blocked for opponent
                         }
                     }
                 }
@@ -540,6 +550,7 @@
                 messageBox.textContent = "";
                 drawBoard();
                 updateUI();
+                switchTurn(); // ← 必须切换回合，对手才能被冻结/封锁
                 return;
             }
 
@@ -580,14 +591,6 @@
 
             currentPlayer = currentPlayer === 1 ? 2 : 1;
 
-            // Handle block clear
-            for (let r = 0; r < GRID_SIZE; r++) {
-                for (let c = 0; c < GRID_SIZE; c++) {
-                    if (gridStatus[r][c] === 1) gridStatus[r][c] = 2; // Mark as "was blocked"
-                    else if (gridStatus[r][c] === 2) gridStatus[r][c] = 0; // Clear
-                }
-            }
-
             // Handle skip next (Frozen)
             if (currentPlayer === 1 && p1SkipNext) {
                 p1SkipNext = false;
@@ -597,6 +600,14 @@
                 p2SkipNext = false;
                 addLog("白方被冻结，跳过回合！");
                 currentPlayer = 1;
+            }
+
+            // Advance gridStatus: convert 1→0 (blocked cells expire after one full opponent turn)
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (gridStatus[r][c] === 1) gridStatus[r][c] = 0;
+                    else if (gridStatus[r][c] === 2) gridStatus[r][c] = 0;
+                }
             }
 
             updateUI();
