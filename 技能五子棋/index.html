@@ -530,6 +530,7 @@
                     messageBox.textContent = "";
                     drawBoard();
                     updateUI();
+                    switchTurn(); // 技能结束，切换回合
                 } else {
                     messageBox.textContent = "请选择对方的棋子移除！";
                 }
@@ -550,7 +551,15 @@
                 messageBox.textContent = "";
                 drawBoard();
                 updateUI();
-                switchTurn(); // ← 必须切换回合，对手才能被冻结/封锁
+                switchTurn(); // 技能结束，切换回合
+                return;
+            }
+
+            // 取消选择模式：点击非技能区域则取消当前选择
+            if (selectionMode !== null) {
+                selectionMode = null;
+                messageBox.textContent = "";
+                updateUI();
                 return;
             }
 
@@ -661,6 +670,8 @@
                 if (player === 1) p2SkipNext = true; else p1SkipNext = true;
                 energy[player] -= skill.cost;
                 skillUsedThisTurn = true;
+                restrictedSkillUsed = true;
+                switchTurn(); // 技能结束，切换回合
             } else if (type === 'shi-guang') {
                 if (history.length < 2) {
                     addLog("刚开始，无法回溯！");
