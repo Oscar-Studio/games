@@ -382,7 +382,7 @@
                     case '+': return a + b;
                     case '-': return a - b;
                     case '*': return a * b;
-                    case '/': return b !== 0 && a % b === 0 ? a / b : null;
+                    case '/': return b !== 0 ? a / b : null;
                 }
             }
 

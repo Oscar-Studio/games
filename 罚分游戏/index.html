@@ -313,7 +313,7 @@
                 
                 const diff = Math.abs(result - target);
                 const usedNumbers = expression.filter(e => e.type === 'num');
-                const penalty = Math.max(0, target - diff) | 0;
+                const penalty = usedNumbers.length - 1; // 每用错一个数字(超过1个)扣1分
                 const score = Math.max(0, 100 - penalty);
                 
                 const resultDiv = document.getElementById('result');

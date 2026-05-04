@@ -509,8 +509,8 @@
                         const nr = r + dr, nc = c + dc;
                         const eyeR = r + dr / 2, eyeC = c + dc / 2;
                         if (isWithinBoard(nr, nc) && !bState[eyeR][eyeC]) { // Eye empty
-                            if (isRed && nr >= 5) addMove(nr, nc); // Red side
-                            if (!isRed && nr <= 4) addMove(nr, nc); // Black side
+                        if (isRed && nr >= 6) addMove(nr, nc); // Red side: rows 6-9
+                            if (!isRed && nr <= 3) addMove(nr, nc); // Black side: rows 0-3
                         }
                     });
                     break;
