@@ -366,6 +366,9 @@
     let ca1dGen = 0;
     const CA1D_MAX_GEN = 300;
 
+    // Wireworld: 0=空, 1=导线, 2=电子头, 3=电子尾
+    const WW_EMPTY=0, WW_WIRE=1, WW_HEAD=2, WW_TAIL=3;
+
     // ─── 工具栏配置 ───
     const TOOLS = {
         life: [
@@ -404,9 +407,6 @@
         seeds:     { birth: [2],      survive: [],      name: "Seeds",          info: "疯狂爆炸型！活细胞每个回合必死（没有存活条件），但死细胞周围恰好2个就会生一片。永动机式不停扩张。" },
         maze:      { birth: [3],      survive: [1,2,3,4,5], name: "Maze",        info: "迷宫发生器！墙壁向外延伸形成走廊，走廊被墙壁包围。随机填一下就能看到迷宫结构慢慢长出来。" },
     };
-
-    // Wireworld: 0=空, 1=导线, 2=电子头, 3=电子尾
-    const WW_EMPTY=0, WW_WIRE=1, WW_HEAD=2, WW_TAIL=3;
 
     // ─── 预设图案 ───
     const PATTERNS = {
