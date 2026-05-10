@@ -45,6 +45,7 @@
             justify-content: center;
             flex-direction: column;
             align-items: center;
+            overflow: hidden;
         }
 
         .sidebar {
@@ -54,6 +55,7 @@
             flex-direction: row;
             flex-wrap: wrap;
             gap: 12px;
+            overflow: hidden;
         }
 
         .panel {
@@ -61,6 +63,8 @@
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 15px;
+            min-width: 0;
+            overflow: hidden;
         }
 
         .panel-title {
@@ -113,6 +117,8 @@
             flex-direction: row;
             align-items: flex-start;
             gap: 0;
+            overflow: hidden;
+            max-width: 100%;
         }
 
         .toolbar {
@@ -124,6 +130,8 @@
             border: 1px solid var(--border);
             border-radius: 10px 0 0 10px;
             border-right: none;
+            overflow: hidden;
+            flex-shrink: 0;
         }
 
         .tool-btn {
@@ -158,6 +166,8 @@
             gap: 6px;
             margin-bottom: 6px;
             align-items: center;
+            flex-shrink: 0;
+            overflow: hidden;
         }
         .zoom-controls button {
             width: 36px;
@@ -197,6 +207,8 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 6px;
+            min-width: 0;
+            overflow: hidden;
         }
         .pattern-btn {
             padding: 6px 4px;
@@ -430,6 +442,7 @@
             { name: '随机', random: true }
         ],
         seeds: [
+            { name: '飞机', cells: [[0,0],[0,1]] },
             { name: '随机', random: true }
         ],
         maze: [
