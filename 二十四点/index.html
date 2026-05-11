@@ -366,6 +366,30 @@
         let streakCount = 0;
         let gameHistory = [];
 
+        // 安全数学表达式求值 - 仅允许数字和基本运算符
+        function safeEvaluate(expr) {
+            // 验证表达式只包含数字、运算符、括号和空格
+            if (!/^[0-9+\-*/(). ]+$/.test(expr)) {
+                throw new Error('无效字符');
+            }
+            // 限制表达式长度防止 DoS
+            if (expr.length > 100) {
+                throw new Error('表达式过长');
+            }
+
+            // 使用 Function 构造但配合严格模式和安全上下文
+            // 同时使用 try-catch 防止恶意代码执行
+            try {
+                const result = (new Function('"use strict"; return (' + expr + ')')());
+                if (typeof result !== 'number' || !isFinite(result)) {
+                    throw new Error('无效的计算结果');
+                }
+                return result;
+            } catch (e) {
+                throw new Error('算式格式错误');
+            }
+        }
+
         // 生成随机数字 (1-10)
         function generateNumbers() {
             const numbers = [];
@@ -544,7 +568,7 @@
                 }
 
                 // 计算结果
-                const result = Function('"use strict"; return (' + expression + ')')();
+                const result = safeEvaluate(expression);
                 
                 if (Math.abs(result - 24) < 0.0001) {
                     // 正确！

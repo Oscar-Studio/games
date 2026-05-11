@@ -615,22 +615,57 @@ class ParticleUI {
     }
 
     showModal(tool) {
-        const demoUrl = tool.demoFile || `${tool.name}/index.html`;
+        // Validate demoUrl to prevent path traversal
+        let demoUrl = tool.demoFile || `${tool.name}/index.html`;
+        // Only allow relative paths starting with / or containing ./
+        if (!/^(\/|.\/)/.test(demoUrl) || demoUrl.includes('..')) {
+            demoUrl = '#';
+        }
 
         this.modal = document.createElement('div');
         this.modal.className = 'particle-modal';
-        this.modal.innerHTML = `
-            <div class="particle-modal-content">
-                <button class="particle-modal-close">&times;</button>
-                <div class="particle-modal-icon">${tool.icon || '🎮'}</div>
-                <h2>${tool.name}</h2>
-                <p>${tool.description || '一款有趣的益智游戏。'}</p>
-                <div class="particle-modal-tags">
-                    ${tool.tags ? tool.tags.slice(0, 3).map(t => `<span class="tag">${t}</span>`).join('') : ''}
-                </div>
-                <a href="${demoUrl}" class="btn-explore">进入演示</a>
-            </div>
-        `;
+
+        // Build modal content safely using DOM methods
+        const content = document.createElement('div');
+        content.className = 'particle-modal-content';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'particle-modal-close';
+        closeBtn.textContent = '×';
+
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'particle-modal-icon';
+        iconDiv.textContent = tool.icon || '🎮';
+
+        const title = document.createElement('h2');
+        title.textContent = tool.name;
+
+        const desc = document.createElement('p');
+        desc.textContent = tool.description || '一款有趣的益智游戏。';
+
+        const tagsDiv = document.createElement('div');
+        tagsDiv.className = 'particle-modal-tags';
+        if (tool.tags) {
+            tool.tags.slice(0, 3).forEach(t => {
+                const tag = document.createElement('span');
+                tag.className = 'tag';
+                tag.textContent = t;
+                tagsDiv.appendChild(tag);
+            });
+        }
+
+        const link = document.createElement('a');
+        link.href = demoUrl;
+        link.className = 'btn-explore';
+        link.textContent = '进入演示';
+
+        content.appendChild(closeBtn);
+        content.appendChild(iconDiv);
+        content.appendChild(title);
+        content.appendChild(desc);
+        content.appendChild(tagsDiv);
+        content.appendChild(link);
+        this.modal.appendChild(content);
 
         document.body.appendChild(this.modal);
 

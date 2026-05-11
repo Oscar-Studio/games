@@ -1,8 +1,13 @@
-        const cardContainer = document.getElementById('cardContainer');
-        const backdrop = document.getElementById('backdrop');
-        const settingsBtn = document.getElementById('settingsBtn');
-        const settingsDropdown = document.getElementById('settingsDropdown');
-        const qualityRadios = document.querySelectorAll('input[name="quality"]');
+        'use strict';
+
+const cardContainer = document.getElementById('cardContainer');
+const backdrop = document.getElementById('backdrop');
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsDropdown = document.getElementById('settingsDropdown');
+const qualityRadios = document.querySelectorAll('input[name="quality"]');
+
+// Script cache for plasma mode
+const loadedScripts = new Set();
 
         // Settings - Quality
         const currentQuality = localStorage.getItem('quality') || 'normal';
@@ -24,22 +29,53 @@
 
         function initParticleUI() {
             if (particleUI) return;
-            // Load particle engine scripts
-            const coreScript = document.createElement('script');
-            coreScript.src = 'particle-engine/particle-core.js';
-            coreScript.onload = () => {
-                const uiScript = document.createElement('script');
-                uiScript.src = 'particle-engine/particle-ui.js';
-                uiScript.onload = () => {
-                    particleUI = new ParticleUI(document.body, {
-                        particleCount: 200,
-                        quality: 'plasma'
-                    });
-                    setupParticleUIHandlers();
-                };
-                document.head.appendChild(uiScript);
+            // Load particle engine scripts with caching
+            const coreSrc = 'particle-engine/particle-core.js';
+            const uiSrc = 'particle-engine/particle-ui.js';
+
+            const loadCore = () => {
+                return new Promise((resolve, reject) => {
+                    if (loadedScripts.has(coreSrc)) {
+                        resolve();
+                        return;
+                    }
+                    const coreScript = document.createElement('script');
+                    coreScript.src = coreSrc;
+                    coreScript.onload = () => {
+                        loadedScripts.add(coreSrc);
+                        resolve();
+                    };
+                    coreScript.onerror = reject;
+                    document.head.appendChild(coreScript);
+                });
             };
-            document.head.appendChild(coreScript);
+
+            const loadUI = () => {
+                return new Promise((resolve, reject) => {
+                    if (loadedScripts.has(uiSrc)) {
+                        resolve();
+                        return;
+                    }
+                    const uiScript = document.createElement('script');
+                    uiScript.src = uiSrc;
+                    uiScript.onload = () => {
+                        loadedScripts.add(uiSrc);
+                        resolve();
+                    };
+                    uiScript.onerror = reject;
+                    document.head.appendChild(uiScript);
+                });
+            };
+
+            loadCore().then(loadUI).then(() => {
+                particleUI = new ParticleUI(document.body, {
+                    particleCount: 200,
+                    quality: 'plasma'
+                });
+                setupParticleUIHandlers();
+            }).catch(err => {
+                console.error('Failed to load particle UI:', err);
+            });
         }
 
         function setupParticleUIHandlers() {
@@ -96,9 +132,14 @@
         let selectedTool = null;
         let selectedCard = null;
 
-        // Load tools
-        fetch('tools-config.json')
-            .then(response => response.json())
+        // Load tools with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        fetch('tools-config.json', { signal: controller.signal })
+            .then(response => {
+                clearTimeout(timeoutId);
+                return response.json();
+            })
             .then(data => {
                 tools = data.tools || [];
                 tools.sort((a, b) => {
@@ -108,8 +149,17 @@
                 renderCards(tools);
             })
             .catch(error => {
+                clearTimeout(timeoutId);
+                console.error('加载工具配置失败:', error);
                 cardContainer.innerHTML = '<p class="no-results">加载工具失败</p>';
             });
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
 
         function renderCards(toolsToRender) {
             cardContainer.innerHTML = '';
@@ -121,15 +171,31 @@
             toolsToRender.forEach(tool => {
                 const card = document.createElement('div');
                 card.className = 'card';
-                card.innerHTML = `
-                    <div class="card-header">
-                        <span class="card-icon">${tool.icon || '🎮'}</span>
-                        <span class="card-name">${tool.name}</span>
-                    </div>
-                    <div class="card-tags">
-                        ${tool.tags ? tool.tags.slice(0, 3).map(t => `<span class="card-tag">${t}</span>`).join('') : ''}
-                    </div>
-                `;
+                // Use textContent for safe rendering
+                const iconSpan = document.createElement('span');
+                iconSpan.className = 'card-icon';
+                iconSpan.textContent = tool.icon || '🎮';
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'card-name';
+                nameSpan.textContent = tool.name;
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'card-header';
+                headerDiv.appendChild(iconSpan);
+                headerDiv.appendChild(nameSpan);
+
+                const tagsDiv = document.createElement('div');
+                tagsDiv.className = 'card-tags';
+                if (tool.tags) {
+                    tool.tags.slice(0, 3).forEach(t => {
+                        const tagSpan = document.createElement('span');
+                        tagSpan.className = 'card-tag';
+                        tagSpan.textContent = t;
+                        tagsDiv.appendChild(tagSpan);
+                    });
+                }
+
+                card.appendChild(headerDiv);
+                card.appendChild(tagsDiv);
                 card.addEventListener('click', () => selectCard(card, tool));
                 cardContainer.appendChild(card);
             });
@@ -149,26 +215,59 @@
 
             const rect = cardElement.getBoundingClientRect();
 
-            // Create morph card at card's position
+            // Create morph card at card's position using safe DOM methods
             morphCard = document.createElement('div');
             morphCard.className = 'morph-card compact';
-            const demoUrl = tool.demoFile || `${tool.name}/index.html`;
-            morphCard.innerHTML = `
-                <div class="morph-header">
-                    <span class="morph-icon">${tool.icon || '🎮'}</span>
-                    <span class="morph-name">${tool.name}</span>
-                </div>
-                <div class="morph-tags">
-                    ${tool.tags ? tool.tags.slice(0, 3).map(t => `<span class="morph-tag">${t}</span>`).join('') : ''}
-                </div>
-                <div class="morph-content">
-                    <div class="morph-big-icon">${tool.icon || '🎮'}</div>
-                    <h2>${tool.name}</h2>
-                    <p>${tool.description}</p>
-                    <a href="${demoUrl}" class="btn-explore">进入演示</a>
-                </div>
-                <button class="close-btn">&times;</button>
-            `;
+
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'morph-header';
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'morph-icon';
+            iconSpan.textContent = tool.icon || '🎮';
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'morph-name';
+            nameSpan.textContent = tool.name;
+            headerDiv.appendChild(iconSpan);
+            headerDiv.appendChild(nameSpan);
+
+            const tagsDiv = document.createElement('div');
+            tagsDiv.className = 'morph-tags';
+            if (tool.tags) {
+                tool.tags.slice(0, 3).forEach(t => {
+                    const tagSpan = document.createElement('span');
+                    tagSpan.className = 'morph-tag';
+                    tagSpan.textContent = t;
+                    tagsDiv.appendChild(tagSpan);
+                });
+            }
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'morph-content';
+            const bigIcon = document.createElement('div');
+            bigIcon.className = 'morph-big-icon';
+            bigIcon.textContent = tool.icon || '🎮';
+            const title = document.createElement('h2');
+            title.textContent = tool.name;
+            const desc = document.createElement('p');
+            desc.textContent = tool.description || '';
+            const link = document.createElement('a');
+            link.href = tool.demoFile || `${tool.name}/index.html`;
+            link.className = 'btn-explore';
+            link.textContent = '进入演示';
+
+            contentDiv.appendChild(bigIcon);
+            contentDiv.appendChild(title);
+            contentDiv.appendChild(desc);
+            contentDiv.appendChild(link);
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-btn';
+            closeBtn.textContent = '×';
+
+            morphCard.appendChild(headerDiv);
+            morphCard.appendChild(tagsDiv);
+            morphCard.appendChild(contentDiv);
+            morphCard.appendChild(closeBtn);
 
             morphCard.style.left = rect.left + 'px';
             morphCard.style.top = rect.top + 'px';

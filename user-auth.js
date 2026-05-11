@@ -1,7 +1,9 @@
 // ================= 用户登录管理 =================
+(function() {
+    'use strict';
 
-// API基础URL - Node.js API 服务
-const API_BASE_URL = 'https://api.oscarstudio.cn/api';
+    // API基础URL - Node.js API 服务
+    const API_BASE_URL = 'https://api.oscarstudio.cn/api';
 
 // 跨域Cookie域名配置
 const COOKIE_DOMAIN = '.oscarstudio.cn';
@@ -23,7 +25,8 @@ function getCookie(name) {
 // 写入 Cookie（跨域）
 function setCookie(name, value, days = 7) {
     const expires = new Date(Date.now() + days * 864e5).toUTCString();
-    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; domain=${COOKIE_DOMAIN}; samesite=Lax`;
+    const secure = window.location.protocol === 'https:' ? '; secure' : '';
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; domain=${COOKIE_DOMAIN}; samesite=Lax${secure}; httpOnly`;
 }
 
 // 清除 Cookie
@@ -32,30 +35,30 @@ function deleteCookie(name) {
 }
 
 // DOM元素（确保这些ID在你的HTML中都存在）
-const userSection = document.getElementById('userSection');
-const loginBtn = document.getElementById('loginBtn');
-const registerBtn = document.getElementById('registerBtn');
-const loggedInUser = document.getElementById('loggedInUser');
-const userAvatar = document.getElementById('userAvatar');
-const userDropdown = document.getElementById('userDropdown');
-const dropdownUsername = document.getElementById('dropdownUsername');
-const dropdownPhone = document.getElementById('dropdownPhone');
-const editProfileBtn = document.getElementById('editProfileBtn');
-const changePasswordBtn = document.getElementById('changePasswordBtn');
-const logoutBtn = document.getElementById('logoutBtn');
+const userSection = document.getElementById('userSection') || null;
+const loginBtn = document.getElementById('loginBtn') || null;
+const registerBtn = document.getElementById('registerBtn') || null;
+const loggedInUser = document.getElementById('loggedInUser') || null;
+const userAvatar = document.getElementById('userAvatar') || null;
+const userDropdown = document.getElementById('userDropdown') || null;
+const dropdownUsername = document.getElementById('dropdownUsername') || null;
+const dropdownPhone = document.getElementById('dropdownPhone') || null;
+const editProfileBtn = document.getElementById('editProfileBtn') || null;
+const changePasswordBtn = document.getElementById('changePasswordBtn') || null;
+const logoutBtn = document.getElementById('logoutBtn') || null;
 
 // 模态框元素
-const modalOverlay = document.getElementById('modalOverlay');
-const modal = document.getElementById('modal');
-const modalTitle = document.getElementById('modalTitle');
-const closeModal = document.getElementById('closeModal');
-const apiMessage = document.getElementById('apiMessage');
+const modalOverlay = document.getElementById('modalOverlay') || null;
+const modal = document.getElementById('modal') || null;
+const modalTitle = document.getElementById('modalTitle') || null;
+const closeModal = document.getElementById('closeModal') || null;
+const apiMessage = document.getElementById('apiMessage') || null;
 
 // 表单元素
-const loginForm = document.getElementById('loginForm');
-const registerForm = document.getElementById('registerForm');
-const editProfileForm = document.getElementById('editProfileForm');
-const changePasswordForm = document.getElementById('changePasswordForm');
+const loginForm = document.getElementById('loginForm') || null;
+const registerForm = document.getElementById('registerForm') || null;
+const editProfileForm = document.getElementById('editProfileForm') || null;
+const changePasswordForm = document.getElementById('changePasswordForm') || null;
 
 // 检查登录状态（Cookie 优先，localStorage 兜底）
 function checkLoginStatus() {
@@ -123,14 +126,18 @@ function setupEventListeners() {
     console.log('设置事件监听器');
 
     // 登录按钮
-    loginBtn.addEventListener('click', () => {
-        showModal('login');
-    });
+    if (loginBtn) {
+        loginBtn.addEventListener('click', () => {
+            showModal('login');
+        });
+    }
 
     // 注册按钮
-    registerBtn.addEventListener('click', () => {
-        showModal('register');
-    });
+    if (registerBtn) {
+        registerBtn.addEventListener('click', () => {
+            showModal('register');
+        });
+    }
 
     // 用户头像点击 - 显示/隐藏下拉菜单
     if (userAvatar) {
@@ -566,3 +573,5 @@ document.addEventListener('DOMContentLoaded', function () {
     checkLoginStatus();
     setupEventListeners();
 });
+
+})(); // 结束 IIFE
