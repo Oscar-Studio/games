@@ -252,6 +252,28 @@
         let target = 10;
         let expression = [];
 
+        // 安全数学表达式求值 - 仅允许数字和基本运算符
+        function safeEvaluate(expr) {
+            // 验证表达式只包含数字、运算符、括号和空格
+            if (!/^[0-9+\-*/(). ]+$/.test(expr)) {
+                throw new Error('无效字符');
+            }
+            // 限制表达式长度防止 DoS
+            if (expr.length > 100) {
+                throw new Error('表达式过长');
+            }
+
+            try {
+                const result = (new Function('"use strict"; return (' + expr + ')')());
+                if (typeof result !== 'number' || !isFinite(result)) {
+                    throw new Error('无效的计算结果');
+                }
+                return result;
+            } catch (e) {
+                throw new Error('算式格式错误');
+            }
+        }
+
         function generateNumbers() {
             numbers = [];
             for (let i = 0; i < 6; i++) {
@@ -305,11 +327,11 @@
 
         function checkAnswer() {
             if (expression.length === 0) return;
-            
+
             const exprStr = expression.map(e => e.value).join('');
-            
+
             try {
-                const result = Function('"use strict"; return (' + exprStr + ')')();
+                const result = safeEvaluate(exprStr);
                 
                 const diff = Math.abs(result - target);
                 const usedNumbers = expression.filter(e => e.type === 'num');
@@ -317,13 +339,13 @@
                 const score = Math.max(0, 100 - penalty);
                 
                 const resultDiv = document.getElementById('result');
-                
+
                 if (diff < 0.01) {
                     resultDiv.className = 'result success';
-                    resultDiv.innerHTML = `🎉 完美！${exprStr} = ${result}，你赢了！`;
+                    resultDiv.textContent = `🎉 完美！${exprStr} = ${result}，你赢了！`;
                 } else {
                     resultDiv.className = 'result fail';
-                    resultDiv.innerHTML = `❌ ${exprStr} = ${result}，目标 ${target}，差 ${diff.toFixed(2)}`;
+                    resultDiv.textContent = `❌ ${exprStr} = ${result}，目标 ${target}，差 ${diff.toFixed(2)}`;
                 }
             } catch (e) {
                 const resultDiv = document.getElementById('result');

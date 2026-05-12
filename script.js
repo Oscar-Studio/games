@@ -275,8 +275,8 @@ const loadedScripts = new Set();
             morphCard.style.minHeight = rect.height + 'px';
             document.body.appendChild(morphCard);
 
-            // Hide original card
-            cardElement.style.visibility = 'hidden';
+            // Don't hide original card yet - let it morph into the card
+            // Keep original card visible until animation completes
 
             // Show backdrop
             backdrop.classList.add('active');
@@ -292,6 +292,10 @@ const loadedScripts = new Set();
             // Animate to center
             if (!isLowQuality) {
                 requestAnimationFrame(() => {
+                    // Now hide original card as morph card starts moving
+                    cardElement.style.opacity = '0';
+                    cardElement.style.transition = 'opacity 0.3s ease';
+
                     morphCard.style.transition = 'all 750ms cubic-bezier(0.34, 1.4, 0.64, 1)';
                     morphCard.style.left = targetLeft + 'px';
                     morphCard.style.top = targetTop + 'px';
@@ -299,6 +303,7 @@ const loadedScripts = new Set();
                     morphCard.style.minHeight = targetHeight + 'px';
                 });
             } else {
+                cardElement.style.display = 'none';
                 morphCard.style.left = targetLeft + 'px';
                 morphCard.style.top = targetTop + 'px';
                 morphCard.style.width = targetWidth + 'px';
@@ -359,6 +364,7 @@ const loadedScripts = new Set();
                 // Immediately show all cards
                 cardContainer.querySelectorAll('.card').forEach(card => {
                     card.style.display = '';
+                    card.style.opacity = '';
                 });
             } else {
                 // Start returning all cards (from bottom to top)
@@ -384,7 +390,8 @@ const loadedScripts = new Set();
                 backdrop.style.opacity = '';
 
                 if (selectedCard) {
-                    selectedCard.style.visibility = 'visible';
+                    selectedCard.style.opacity = '';
+                    selectedCard.style.transition = '';
                 }
 
                 if (!isLowQuality) {
@@ -395,6 +402,8 @@ const loadedScripts = new Set();
                             card.style.transform = '';
                             card.style.opacity = '';
                         });
+                        selectedCard.style.opacity = '';
+                        selectedCard.style.transition = '';
                     }, 800);
                 }
 

@@ -371,6 +371,8 @@
     let rule = 'life';
     let drawing = false;
     let currentTool = 1; // 当前工具绘制值
+    let lastPaintTime = 0;
+    const THROTTLE_MS = 16; // ~60fps throttle for paint events
 
     // 1D CA
     let ca1dRule = 30;
@@ -487,7 +489,15 @@
             drawing = true;
             paint(e);
         });
-        canvas.addEventListener('mousemove', (e) => { if (drawing && rule !== '1d') paint(e); });
+        canvas.addEventListener('mousemove', (e) => {
+            if (drawing && rule !== '1d') {
+                const now = Date.now();
+                if (now - lastPaintTime >= THROTTLE_MS) {
+                    lastPaintTime = now;
+                    paint(e);
+                }
+            }
+        });
         canvas.addEventListener('mouseup', () => drawing = false);
         canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
