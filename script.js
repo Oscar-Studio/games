@@ -395,11 +395,16 @@ const loadedScripts = new Set();
                 }
 
                 if (!isLowQuality) {
-                    // Clean up after animation
+                    // Clean up after animation - use getComputedStyle to preserve final position
                     setTimeout(() => {
                         hidingCards.forEach(card => {
-                            card.classList.remove('returning');
-                            card.style.transform = '';
+                            if (card.classList.contains('returning')) {
+                                // Get current computed transform before removing class
+                                const computedTransform = getComputedStyle(card).transform;
+                                card.classList.remove('returning');
+                                // Re-apply the transform to override animation
+                                card.style.transform = computedTransform !== 'none' ? computedTransform : '';
+                            }
                             card.style.opacity = '';
                         });
                         selectedCard.style.opacity = '';
