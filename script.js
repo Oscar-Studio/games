@@ -370,7 +370,7 @@ const loadedScripts = new Set();
                 // Start returning all cards (from bottom to top)
                 requestAnimationFrame(() => {
                     hidingCards.reverse().forEach((card, i) => {
-                        card.classList.remove('hiding');
+                        card.classList.remove('hiding', 'returning');
                         card.style.transform = 'translateY(-100vh)';
                         card.style.opacity = '0';
                         card.getBoundingClientRect();
@@ -379,6 +379,12 @@ const loadedScripts = new Set();
                         }, i * 40);
                     });
                 });
+
+            // 立即清除 selectedCard 的所有样式，防止残留
+            if (selectedCard) {
+                selectedCard.style.transition = 'none';
+                selectedCard.style.transform = '';
+                selectedCard.style.opacity = '';
             }
 
             setTimeout(() => {
