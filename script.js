@@ -131,6 +131,7 @@ const loadedScripts = new Set();
         let morphCard = null;
         let selectedTool = null;
         let selectedCard = null;
+        let isClosing = false;
 
         // Load tools with timeout
         const controller = new AbortController();
@@ -202,7 +203,7 @@ const loadedScripts = new Set();
         }
 
         function selectCard(cardElement, tool) {
-            if (morphCard) return;
+            if (morphCard || isClosing) return;
 
             // In plasma mode, let particle UI handle card clicks
             if (document.body.classList.contains('plasma-quality')) {
@@ -339,7 +340,8 @@ const loadedScripts = new Set();
         }
 
         function closeMorphCard() {
-            if (!morphCard || !selectedCard) return;
+            if (!morphCard || !selectedCard || isClosing) return;
+            isClosing = true;
             const isLowQuality = document.body.classList.contains('low-quality');
 
             const originalRect = selectedCard.getBoundingClientRect();
