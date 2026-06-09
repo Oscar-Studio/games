@@ -471,6 +471,8 @@ if (window.Opilot) {
             ));
         }
     });
+    const panelBtn = document.getElementById('opilotPanelTrigger');
+    if (panelBtn) panelBtn.addEventListener('click', () => Opilot.openPanel());
 } else {
     searchInput.addEventListener('input', (e) => {
         const term = e.target.value.toLowerCase().trim();
