@@ -154,7 +154,13 @@ const loadedScripts = new Set();
             .catch(error => {
                 clearTimeout(timeoutId);
                 console.error('加载工具配置失败:', error);
-                cardContainer.innerHTML = '<p class="no-results">加载工具失败</p>';
+                const glassCanvas = cardContainer.querySelector('#liquid-glass-canvas');
+                cardContainer.innerHTML = '';
+                if (glassCanvas) cardContainer.appendChild(glassCanvas);
+                const p = document.createElement('p');
+                p.className = 'no-results';
+                p.textContent = '加载工具失败';
+                cardContainer.appendChild(p);
             });
 
         function escapeHtml(str) {
@@ -165,9 +171,15 @@ const loadedScripts = new Set();
         }
 
         function renderCards(toolsToRender) {
+            // 保留 liquid-glass-canvas（如果存在）
+            const glassCanvas = cardContainer.querySelector('#liquid-glass-canvas');
             cardContainer.innerHTML = '';
+            if (glassCanvas) cardContainer.appendChild(glassCanvas);
             if (toolsToRender.length === 0) {
-                cardContainer.innerHTML = '<p class="no-results">没有找到匹配的工具</p>';
+                const p = document.createElement('p');
+                p.className = 'no-results';
+                p.textContent = '没有找到匹配的工具';
+                cardContainer.appendChild(p);
                 return;
             }
 
@@ -202,6 +214,8 @@ const loadedScripts = new Set();
                 card.addEventListener('click', () => selectCard(card, tool));
                 cardContainer.appendChild(card);
             });
+            // 通知 LiquidGlass 重新扫描（cards 数量变化）
+            if (window.LiquidGlass && window.LiquidGlass.refresh) window.LiquidGlass.refresh();
         }
 
         function selectCard(cardElement, tool) {
