@@ -154,9 +154,7 @@ const loadedScripts = new Set();
             .catch(error => {
                 clearTimeout(timeoutId);
                 console.error('加载工具配置失败:', error);
-                const glassCanvas = cardContainer.querySelector('#liquid-glass-canvas');
                 cardContainer.innerHTML = '';
-                if (glassCanvas) cardContainer.appendChild(glassCanvas);
                 const p = document.createElement('p');
                 p.className = 'no-results';
                 p.textContent = '加载工具失败';
@@ -171,10 +169,7 @@ const loadedScripts = new Set();
         }
 
         function renderCards(toolsToRender) {
-            // 保留 liquid-glass-canvas（如果存在）
-            const glassCanvas = cardContainer.querySelector('#liquid-glass-canvas');
             cardContainer.innerHTML = '';
-            if (glassCanvas) cardContainer.appendChild(glassCanvas);
             if (toolsToRender.length === 0) {
                 const p = document.createElement('p');
                 p.className = 'no-results';
