@@ -180,7 +180,7 @@ const loadedScripts = new Set();
 
             toolsToRender.forEach(tool => {
                 const card = document.createElement('div');
-                card.className = 'card';
+                card.className = 'card glass-element';
                 // Use textContent for safe rendering
                 const iconSpan = document.createElement('span');
                 iconSpan.className = 'card-icon';
