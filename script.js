@@ -132,6 +132,7 @@ const loadedScripts = new Set();
         let selectedTool = null;
         let selectedCard = null;
         let isClosing = false;
+        let cardTimeouts = [];
 
         // Load tools with timeout
         const controller = new AbortController();
@@ -220,6 +221,10 @@ const loadedScripts = new Set();
                 morphCard = null;
             }
             if (morphCard || isClosing) return;
+            // Cancel any pending timeouts from a previous close (returning + cleanup)
+            // so they don't re-add .returning or strip .hiding after we set things up
+            cardTimeouts.forEach(clearTimeout);
+            cardTimeouts = [];
 
             // In plasma mode, let particle UI handle card clicks
             if (document.body.classList.contains('plasma-quality')) {
@@ -401,9 +406,9 @@ const loadedScripts = new Set();
                         card.style.transform = 'translateY(-100vh)';
                         card.style.opacity = '0';
                         card.getBoundingClientRect();
-                        setTimeout(() => {
+                        cardTimeouts.push(setTimeout(() => {
                             card.classList.add('returning');
-                        }, i * 40);
+                        }, i * 40));
                     });
                 });
             }
@@ -425,7 +430,7 @@ const loadedScripts = new Set();
                 // Clean up returning cards after their animation
                 if (!isLowQuality) {
                     const cardReturnTime = hidingCards.length * 40 + 700;
-                    setTimeout(() => {
+                    cardTimeouts.push(setTimeout(() => {
                         hidingCards.forEach(card => {
                             card.classList.remove('hiding', 'returning');
                             card.style.transform = '';
@@ -434,7 +439,7 @@ const loadedScripts = new Set();
                         if (selectedCard && selectedCard.isConnected) {
                             selectedCard.style.opacity = '';
                         }
-                    }, cardReturnTime);
+                    }, cardReturnTime));
                 }
 
                 selectedCard = null;
