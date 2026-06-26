@@ -94,6 +94,16 @@
             ],
             "icon": "🔬",
             "featured": false
+        },
+        {
+            "name": "魔方",
+            "description": "3D 魔方，手指滑动转面，拖动空白旋转视角，支持打乱/撤销/计时",
+            "tags": [
+                "益智",
+                "3D"
+            ],
+            "icon": "🧊",
+            "featured": true
         }
     ]
 }
