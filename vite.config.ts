@@ -10,6 +10,7 @@ export default defineConfig({
       targets: [
         { src: 'tools-config.json', dest: '.' },
         { src: 'legacy-tools/*', dest: '.' },
+        { src: 'CNAME', dest: '.' },
       ],
     }),
   ],
