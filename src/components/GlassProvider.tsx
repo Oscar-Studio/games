@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { Glass } from '@samasante/liquid-glass';
 import { initWebGLGlass, destroyWebGLGlass } from '../lib/webglGlass';
 
+// webglGlass.ts fallback canvas params — same as main-station's
+// main-station/src/lib/useUserGlassConfig.tsx DEFAULT_OPTICS.
 const GLASS_OPTICS = {
   sheenWidth: 30,
   strength: 0.15,
@@ -9,6 +11,19 @@ const GLASS_OPTICS = {
   frost: 3,
   dispersion: 0.10,
   brightness: 0.04,
+};
+
+// @samasante/liquid-glass per-element lens params — same as main-station's
+// main-station/src/components/ToolSection.tsx optics prop.
+export const CARD_OPTICS = {
+  brightness: 0.06,
+  sheen: 0.55,
+  sheenWidth: 80,
+  specular: 1.1,
+  dispersion: 0.25,
+  glow: 0.3,
+  glowSpread: 0.18,
+  depth: 0.7,
 };
 
 const API_BASE = 'https://api.oscarstudio.cn';
@@ -43,6 +58,11 @@ async function resolveBgUrl(): Promise<string> {
   return DEFAULT_BG;
 }
 
+function isChromium(): boolean {
+  const ua = navigator.userAgent;
+  return /Chrome|Chromium|Edg\//.test(ua) && !/CriOS|EdgiOS/.test(ua);
+}
+
 export function useGlassBackground() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -65,15 +85,22 @@ export function useGlassBackground() {
     // Apply our bg (user custom if logged in, otherwise default).
     resolveBgUrl().then(applyBackground);
 
-    const inst = initWebGLGlass(GLASS_OPTICS);
-    if (!inst) {
-      observer.disconnect();
-      console.warn('WebGL fallback unavailable');
-      return;
+    // Match main-station: skip webglGlass for Chromium (it relies on per-element
+    // <Glass> components there); only use the ambient canvas for non-Chromium.
+    if (!isChromium()) {
+      const inst = initWebGLGlass(GLASS_OPTICS);
+      if (!inst) {
+        observer.disconnect();
+        console.warn('WebGL fallback unavailable');
+        return;
+      }
+      return () => {
+        observer.disconnect();
+        destroyWebGLGlass();
+      };
     }
     return () => {
       observer.disconnect();
-      destroyWebGLGlass();
     };
   }, []);
 
@@ -94,7 +121,7 @@ export function GlassWrap({ children, className, style, borderRadius = 16 }: Gla
     <Glass
       className={className}
       style={{ borderRadius, ...style }}
-      optics={GLASS_OPTICS}
+      optics={CARD_OPTICS}
     >
       {children}
     </Glass>
