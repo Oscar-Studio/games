@@ -1,29 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { Glass } from '@samasante/liquid-glass';
 import { initWebGLGlass, destroyWebGLGlass } from '../lib/webglGlass';
+import { useUserLiquidGlass } from '../hooks/useUserLiquidGlass';
 
-// webglGlass.ts fallback canvas params — same as main-station's
-// main-station/src/lib/useUserGlassConfig.tsx DEFAULT_OPTICS.
-const GLASS_OPTICS = {
+const AMBIENT_OPTICS = {
   sheenWidth: 30,
   strength: 0.15,
   curvature: 0.15,
   frost: 3,
   dispersion: 0.10,
   brightness: 0.04,
-};
-
-// @samasante/liquid-glass per-element lens params — same as main-station's
-// main-station/src/components/ToolSection.tsx optics prop.
-export const CARD_OPTICS = {
-  brightness: 0.06,
-  sheen: 0.55,
-  sheenWidth: 80,
-  specular: 1.1,
-  dispersion: 0.25,
-  glow: 0.3,
-  glowSpread: 0.18,
-  depth: 0.7,
 };
 
 const API_BASE = 'https://api.oscarstudio.cn';
@@ -37,9 +23,6 @@ function readCookie(name: string): string | null {
 
 type BgCfg = { url: string; overlay?: number; blur?: number };
 
-// 把背景图放到 fixed 层而不是 body.style.backgroundImage，
-// 这样 filter: blur 只影响背景，不会模糊前景内容。
-// 遮罩是另一个 fixed 层（半透明黑色叠加）。
 function applyBackgroundFx(cfg: BgCfg | null) {
   const body = document.body;
   const oldLayer = document.getElementById('userBgLayer');
@@ -57,12 +40,15 @@ function applyBackgroundFx(cfg: BgCfg | null) {
   const overlay = typeof cfg.overlay === 'number' && Number.isFinite(cfg.overlay) ? cfg.overlay : 0;
   const blur = typeof cfg.blur === 'number' && Number.isFinite(cfg.blur) ? cfg.blur : 0;
 
+  // 使用正 z-index 分层，避免 Safari 中 body 上的 stacking context 把
+  // z-index:-1 误压在 body 背景下，导致加入遮罩后只剩玻璃模块透出背景。
+  // 层级：userBgLayer=0、userBgMask=1、内容需 ≥ 2。
   const layer = document.createElement('div');
   layer.id = 'userBgLayer';
   layer.style.cssText = [
     'position:fixed',
     'inset:0',
-    'z-index:-1',
+    'z-index:0',
     'pointer-events:none',
     `background-image:url(${cfg.url})`,
     'background-size:cover',
@@ -70,6 +56,9 @@ function applyBackgroundFx(cfg: BgCfg | null) {
     'background-repeat:no-repeat',
     'background-attachment:fixed',
     blur > 0 ? `filter:blur(${blur}px)` : '',
+    blur > 0 ? `-webkit-filter:blur(${blur}px)` : '',
+    blur > 0 ? 'will-change:transform' : '',
+    blur > 0 ? 'transform:translateZ(0)' : '',
   ].filter(Boolean).join(';');
   document.body.appendChild(layer);
 
@@ -79,7 +68,7 @@ function applyBackgroundFx(cfg: BgCfg | null) {
     mask.style.cssText = [
       'position:fixed',
       'inset:0',
-      'z-index:-1',
+      'z-index:1',
       'pointer-events:none',
       'background:#000',
       `opacity:${overlay}`,
@@ -87,8 +76,6 @@ function applyBackgroundFx(cfg: BgCfg | null) {
     document.body.appendChild(mask);
   }
 
-  body.style.position = 'relative';
-  body.style.isolation = 'isolate';
   body.style.background = 'transparent';
 }
 
@@ -111,18 +98,19 @@ async function resolveBg(): Promise<BgCfg> {
   return fallback;
 }
 
-function isChromium(): boolean {
-  const ua = navigator.userAgent;
-  return /Chrome|Chromium|Edg\//.test(ua) && !/CriOS|EdgiOS/.test(ua);
+function supportsBackdropFilter(): boolean {
+  if (typeof CSS === 'undefined' || !CSS.supports) return false;
+  return CSS.supports('backdrop-filter', 'blur(1px)')
+    || CSS.supports('-webkit-backdrop-filter', 'blur(1px)');
 }
 
 export function useGlassBackground() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const { optics: userOptics } = useUserLiquidGlass();
 
   useEffect(() => {
     document.body.classList.add('no-lg-refraction');
 
-    // Watch for other scripts (user-button.js) clearing the bg — restore ours.
     const observer = new MutationObserver(() => {
       const bg = document.body.style.backgroundImage;
       if (!bg || bg === 'none') {
@@ -135,13 +123,11 @@ export function useGlassBackground() {
     });
     observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
 
-    // Apply our bg (user custom if logged in, otherwise default).
     resolveBg().then(applyBackgroundFx);
 
-    // Match main-station: skip webglGlass for Chromium (it relies on per-element
-    // <Glass> components there); only use the ambient canvas for non-Chromium.
-    if (!isChromium()) {
-      const inst = initWebGLGlass(GLASS_OPTICS);
+    // Safari 自 9 起支持 `-webkit-backdrop-filter`，无需走 WebGL。
+    if (!supportsBackdropFilter()) {
+      const inst = initWebGLGlass({ ...AMBIENT_OPTICS, ...userOptics });
       if (!inst) {
         observer.disconnect();
         console.warn('WebGL fallback unavailable');
@@ -155,7 +141,7 @@ export function useGlassBackground() {
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [userOptics]);
 
   if (canvasRef.current === null) {
     canvasRef.current = document.getElementById('lg-webgl-canvas') as HTMLCanvasElement | null;
@@ -167,14 +153,26 @@ interface GlassWrapProps {
   className?: string;
   style?: React.CSSProperties;
   borderRadius?: number;
+  maxDpr?: number;
+  filterResolution?: number;
 }
 
-export function GlassWrap({ children, className, style, borderRadius = 16 }: GlassWrapProps) {
+export function GlassWrap({
+  children,
+  className,
+  style,
+  borderRadius = 16,
+  maxDpr,
+  filterResolution,
+}: GlassWrapProps) {
+  const { optics } = useUserLiquidGlass();
   return (
     <Glass
       className={className}
       style={{ borderRadius, ...style }}
-      optics={CARD_OPTICS}
+      optics={optics}
+      maxDpr={maxDpr}
+      filterResolution={filterResolution}
     >
       {children}
     </Glass>

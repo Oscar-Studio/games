@@ -226,27 +226,9 @@
             color: var(--text-color);
         }
 
-        /* Low Quality Mode */
-        body.low-quality * {
-            animation: none !important;
-            transition: none !important;
-        }
-
-        body.low-quality .card {
-            transform: none !important;
-        }
-
-        body.low-quality .card:hover {
-            border-color: var(--secondary-color);
-            box-shadow: none;
-        }
-
-        body.low-quality .morph-card {
-            transition: none !important;
-        }
-
-        body.low-quality .backdrop {
-            transition: none !important;
+        /* 性能优先档：保留动画，不做全局抑制 */
+        body.quality-low * {
+            /* 保留动画 */
         }
 
         /* Hero Section */
@@ -311,26 +293,32 @@
         }
 
         /* ==================== WebGL 液态玻璃 Canvas（全屏模式） ==================== */
-        #liquid-glass-canvas {
+        #liquid-glass-canvas,
+        #lg-webgl-canvas {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: 6;
+            z-index: 3;
             pointer-events: none;
         }
 
-        /* Hero / cards / footer 等内容必须在 canvas 之上 */
+        /* userBgLayer(z=0)/userBgMask(z=1) 创建于 body 上；页面内容必须 > 1 */
+        #root,
         #heroSection,
         .card-container {
             position: relative;
-            z-index: 7;
+            z-index: 2;
         }
 
         /* 低画质 / WebGL 不可用：隐藏 canvas，走 CSS 兜底 */
         body.quality-low #liquid-glass-canvas,
-        .no-webgl #liquid-glass-canvas {
+        body.quality-low #lg-webgl-canvas,
+        body.liquid-glass-low #liquid-glass-canvas,
+        body.liquid-glass-low #lg-webgl-canvas,
+        .no-webgl #liquid-glass-canvas,
+        .no-webgl #lg-webgl-canvas {
             display: none;
         }
 
@@ -379,10 +367,10 @@
             left: 100%;
         }
 
-        /* WebGL 不可用 / 低画质 / 等离子：CSS 兜底（backdrop-blur） */
+        /* WebGL 不可用 / 性能优先 / 等离子：CSS 兜底（backdrop-blur） */
         .no-webgl .card,
-        body.low-quality .card,
         body.quality-low .card,
+        body.liquid-glass-low .card,
         body.plasma-quality .card {
             background: rgba(255, 255, 255, 0.04) !important;
             backdrop-filter: blur(8px) saturate(150%) !important;
@@ -390,14 +378,15 @@
         }
 
         .card:hover {
-            transform: translateY(-4px) scale(1.02);
             border-color: rgba(255, 255, 255, 0.25);
             box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2), 0 0 20px rgba(255, 255, 255, 0.05);
         }
 
+        /* 卡片下浮/缩放 hover 由 motion.div 的 whileHover 控制，
+           这里只保留边框/阴影反馈，避免与下落/回弹 transform 打架 */
+
         /* 降级模式 hover 时显示背景 */
         .no-webgl .card:hover,
-        body.low-quality .card:hover,
         body.quality-low .card:hover,
         body.plasma-quality .card:hover {
             background: rgba(255, 255, 255, 0.1) !important;
@@ -461,22 +450,27 @@
             }
         }
 
-        /* Floating Morphing Card */
-        .morph-card {
-            position: fixed;
-            z-index: 300;
-            /* 液态玻璃效果 - 更透亮 */
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px) saturate(150%);
-            -webkit-backdrop-filter: blur(10px) saturate(150%);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 20px;
-            cursor: default;
-            pointer-events: auto;
-            overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
-        }
+/* Floating Morphing Card */
+.morph-card {
+    position: fixed;
+    z-index: 300;
+    /* 液态玻璃效果 - 更透亮 */
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px) saturate(150%);
+    -webkit-backdrop-filter: blur(10px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    cursor: default;
+    pointer-events: auto;
+    overflow: hidden;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+}
+
+/* 动效由 framer-motion 控制，CSS transition 与之冲突会卡死或抖动 */
+.morph-card,
+.backdrop {
+    transition: none !important;
+}
 
         /* 浮动卡片光泽动效 */
         .morph-card::before {

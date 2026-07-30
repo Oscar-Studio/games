@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQualitySetting } from '../hooks/useQualitySetting';
 
 export function TopBar() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
-  const { quality, setQuality } = useQualitySetting();
 
   useEffect(() => {
     if (!settingsOpen) return;
@@ -42,8 +40,17 @@ export function TopBar() {
   }, []);
 
   useEffect(() => {
+    // plasma 效果：检查 localStorage 里的 oscar-quality（如果存在 legacy 'plasma' 值，启用）
     let particleUI: any = null;
     const loaded = new Set<string>();
+
+    const isPlasma = () => {
+      try {
+        return localStorage.getItem('oscar-quality') === 'plasma';
+      } catch {
+        return false;
+      }
+    };
 
     const loadScript = (src: string) =>
       new Promise<void>((resolve, reject) => {
@@ -81,14 +88,14 @@ export function TopBar() {
       }
     };
 
-    if (quality === 'plasma') {
+    if (isPlasma()) {
       initParticle();
     } else {
       destroyParticle();
     }
 
     return () => destroyParticle();
-  }, [quality]);
+  }, []);
 
   return (
     <header className="top-bar glass-element">
@@ -112,40 +119,6 @@ export function TopBar() {
           ⚙
         </button>
         <div className={`settings-dropdown ${settingsOpen ? 'open' : ''}`} id="settingsDropdown">
-          <h4>画质设置</h4>
-          <label className="settings-option">
-            <input
-              type="radio"
-              name="quality"
-              value="low"
-              checked={quality === 'low'}
-              onChange={() => setQuality('low')}
-            />
-            <span className="radio" />
-            <span>低（去除动画）</span>
-          </label>
-          <label className="settings-option">
-            <input
-              type="radio"
-              name="quality"
-              value="normal"
-              checked={quality === 'normal'}
-              onChange={() => setQuality('normal')}
-            />
-            <span className="radio" />
-            <span>正常</span>
-          </label>
-          <label className="settings-option">
-            <input
-              type="radio"
-              name="quality"
-              value="plasma"
-              checked={quality === 'plasma'}
-              onChange={() => setQuality('plasma')}
-            />
-            <span className="radio" />
-            <span>等离子OS</span>
-          </label>
         </div>
       </div>
       <div id="userButtonContainer" />
