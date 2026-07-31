@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>元胞自动机 - 益智游戏</title>
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="cbc5311f-d106-4566-853d-1376d4f4774b"></script>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --panel: #161b22;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-dim: #8b949e;
+            --accent: #58a6ff;
+            --live: #39d353;
+            --dead: #21262d;
+            --wire: #f0883e;
+            --head: #ff6b6b;
+            --tail: #ffd93d;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 { color: var(--accent); margin-bottom: 5px; }
+        .subtitle { color: var(--text-dim); margin-bottom: 20px; font-size: 0.9rem; }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+            flex-wrap: wrap;
+            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 12px;
+            overflow: hidden;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 15px;
+            min-width: 0;
+            overflow: hidden;
+            flex: 1 1 240px;
+        }
+
+        .panel-title {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        select, button {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: border-color 0.2s;
+        }
+        select:hover, button:hover { border-color: var(--accent); }
+        button:active { transform: scale(0.98); }
+
+        .btn-row { display: flex; gap: 8px; }
+        .btn-row button { flex: 1; margin-bottom: 0; }
+
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #000;
+            font-weight: 600;
+        }
+        .btn-primary:hover { background: #79b8ff; }
+
+        .btn-stop { background: #da3633; border-color: #da3633; color: #fff; }
+
+        canvas {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: crosshair;
+            image-rendering: pixelated;
+            transition: transform 0.15s;
+        }
+
+        #canvas-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 0;
+            overflow: hidden;
+            max-width: 100%;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px 6px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px 0 0 10px;
+            border-right: none;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .tool-btn {
+            width: 52px;
+            height: 52px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            background: var(--bg);
+            transition: border-color 0.15s, transform 0.1s;
+            padding: 4px;
+        }
+        .tool-btn:hover { border-color: var(--accent); }
+        .tool-btn.active { border-color: var(--accent); background: rgba(88,166,255,0.1); color: var(--text); }
+        .tool-btn .swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .tool-btn .label { line-height: 1; text-align: center; }
+
+        .zoom-controls {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 6px;
+            align-items: center;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .zoom-controls button {
+            width: 36px;
+            height: 36px;
+            font-size: 1.2rem;
+            padding: 0;
+            margin: 0;
+            flex-shrink: 0;
+        }
+        .zoom-controls span {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            min-width: 40px;
+            text-align: center;
+        }
+
+        #generation {
+            position: absolute;
+            top: 10px; right: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            color: var(--text-dim);
+        }
+        .stat-row span:last-child { color: var(--text); font-weight: 600; }
+
+        .pattern-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .pattern-btn {
+            padding: 6px 4px;
+            font-size: 0.75rem;
+            text-align: center;
+            background: var(--bg);
+        }
+
+        .info-box {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+        .info-box code {
+            background: var(--bg);
+            padding: 1px 5px;
+            border-radius: 3px;
+            color: var(--accent);
+        }
+
+        .color-key {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+        }
+        .color-key span { display: flex; align-items: center; gap: 4px; }
+        .dot { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+
+        /* 1D CA specific */
+        #ca1d-wrapper {
+            display: none;
+            width: 100%;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧬 元胞自动机</h1>
+    <p class="subtitle">Conway's Life · 变体规则 · Wireworld · 一维元胞自动机</p>
+
+    <!-- 规则选择 -->
+    <div class="container">
+        <div id="canvas-wrapper">
+            <div class="toolbar" id="drawToolbar">
+                <!-- 动态生成 -->
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;">
+                <div class="zoom-controls">
+                <button onclick="zoomOut()" title="缩小">−</button>
+                <span id="zoomLabel">100%</span>
+                <button onclick="zoomIn()" title="放大">+</button>
+                <button onclick="zoomReset()" style="font-size:0.7rem;width:auto;padding:0 8px;" title="重置缩放">重置</button>
+            </div>
+            <canvas id="canvas"></canvas>
+            <div id="generation">世代: 0</div>
+            </div>
+        </div>
+
+        <div id="ca1d-wrapper">
+            <canvas id="ca1dCanvas" style="border-radius:8px;"></canvas>
+        </div>
+
+        <div class="sidebar">
+            <div class="panel">
+                <div class="panel-title">选择规则</div>
+                <select id="ruleSelect" onchange="switchRule()">
+                    <optgroup label="二维 · 生命游戏">
+                        <option value="life">Conway's Life (B3/S23)</option>
+                        <option value="highlife">HighLife (B36/S23)</option>
+                        <option value="daynight">Day &amp; Night (B3678/S34678)</option>
+                        <option value="seeds">Seeds (B2/S)</option>
+                        <option value="maze">Maze (B3/S12345)</option>
+                    </optgroup>
+                    <optgroup label="电子电路">
+                        <option value="wireworld">Wireworld</option>
+                    </optgroup>
+                    <optgroup label="一维">
+                        <option value="1d">一维元胞自动机 (Wolfram)</option>
+                    </optgroup>
+                </select>
+
+                <div class="btn-row">
+                    <button class="btn-primary" onclick="toggleRun()" id="runBtn">▶ 运行</button>
+                    <button class="btn-stop" onclick="stepOnce()">⏭ 单步</button>
+                </div>
+                <button onclick="clearAll()">🗑 清空</button>
+                <button onclick="randomFill()">🎲 随机填充</button>
+
+                <div class="panel-title" style="margin-top:12px;">速度</div>
+                <input type="range" id="speedSlider" min="1" max="60" value="10" oninput="updateSpeed(this.value)" style="width:100%">
+                <div style="font-size:0.8rem;color:var(--text-dim);text-align:center;" id="speedLabel">10 步/秒</div>
+            </div>
+
+            <div class="panel">
+                <div class="stat-row"><span>世代</span><span id="genCount">0</span></div>
+                <div class="stat-row"><span>存活细胞</span><span id="cellCount">0</span></div>
+                <div class="stat-row"><span>网格</span><span id="gridSize">80×60</span></div>
+                <div class="stat-row" style="align-items:center;"><span>列数</span>
+                    <input type="number" id="gridCols" value="80" min="10" max="300" onchange="applyGridSize()" style="width:65px;font-size:0.8rem;padding:3px 6px;margin:0;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);">
+                </div>
+                <div class="stat-row" style="align-items:center;"><span>行数</span>
+                    <input type="number" id="gridRows" value="50" min="10" max="300" onchange="applyGridSize()" style="width:65px;font-size:0.8rem;padding:3px 6px;margin:0;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);">
+                </div>
+            </div>
+
+            <div class="panel" id="patternPanel">
+                <div class="panel-title">预设图案</div>
+                <div class="pattern-grid" id="patternGrid"></div>
+            </div>
+
+            <div class="panel" id="ruleInfo">
+                <div class="panel-title">规则说明</div>
+                <div class="info-box" id="infoBox">经典生命游戏！格子里有"活细胞"，每个回合根据邻居数量决定生死。<b>规则很简单：</b>活细胞周围2-3个邻居就能活下去，少了会孤独死了，多了会拥挤死；死细胞周围恰好3个邻居就会诞生新生命。滑翔机就是最经典的图案，会自己移动。</div>
+            </div>
+
+            <div class="panel" id="ca1dPanel" style="display:none;">
+                <div class="panel-title">一维规则 (Wolfram)</div>
+                <select id="ca1dRuleSelect" onchange="switch1DRule()">
+                    <option value="30">Rule 30 — 混沌/伪随机</option>
+                    <option value="110">Rule 110 — 图灵完备</option>
+                    <option value="90">Rule 90 — 谢尔宾斯基三角形</option>
+                    <option value="184">Rule 184 — 交通流</option>
+                    <option value="54">Rule 54 — 振荡/波</option>
+                    <option value="22">Rule 22 — 三角波</option>
+                    <option value="14">Rule 14 — 稳定结构</option>
+                    <option value="45">Rule 45 — 增长</option>
+                </select>
+                <div class="info-box" id="ca1dInfo" style="margin-top:8px;">最著名的混沌规则！Mathematica创始人发明，曾被认为能生成真正的随机数。图案看起来像一团乱码。</div>
+            </div>
+
+            <div class="panel" id="colorLegend" style="display:none;">
+                <div class="panel-title">颜色说明</div>
+                <div class="color-key">
+                    <span><span class="dot" style="background:#21262d;border:1px solid #555;">空</span></span>
+                    <span><span class="dot" style="background:#f0883e;">导线</span></span>
+                    <span><span class="dot" style="background:#ff6b6b;">电子头</span></span>
+                    <span><span class="dot" style="background:#ffd93d;">电子尾</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ─── 全局状态 ───
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const ca1dWrapper = document.getElementById('ca1d-wrapper');
+    const ca1dCanvas = document.getElementById('ca1dCanvas');
+    const ca1dCtx = ca1dCanvas.getContext('2d');
+
+    let CELL_SIZE = 10;
+    let COLS = 80, ROWS = 50;
+    let zoom = 1;
+    let grid = [];
+    let running = false;
+    let animationId = null;
+    let speed = 10;
+    let generation = 0;
+    let rule = 'life';
+    let drawing = false;
+    let currentTool = 1; // 当前工具绘制值
+    let lastPaintTime = 0;
+    const THROTTLE_MS = 16; // ~60fps throttle for paint events
+
+    // 1D CA
+    let ca1dRule = 30;
+    let ca1dCells = [];
+    let ca1dGen = 0;
+    const CA1D_MAX_GEN = 300;
+
+    // Wireworld: 0=空, 1=导线, 2=电子头, 3=电子尾
+    const WW_EMPTY=0, WW_WIRE=1, WW_HEAD=2, WW_TAIL=3;
+
+    // ─── 工具栏配置 ───
+    const TOOLS = {
+        life: [
+            { value: 1, label: '活细胞', color: '#39d353' },
+            { value: 0, label: '空', color: '#21262d' },
+        ],
+        highlife: [
+            { value: 1, label: '活细胞', color: '#39d353' },
+            { value: 0, label: '空', color: '#21262d' },
+        ],
+        daynight: [
+            { value: 1, label: '活细胞', color: '#39d353' },
+            { value: 0, label: '空', color: '#21262d' },
+        ],
+        seeds: [
+            { value: 1, label: '活细胞', color: '#39d353' },
+            { value: 0, label: '空', color: '#21262d' },
+        ],
+        maze: [
+            { value: 1, label: '墙壁', color: '#39d353' },
+            { value: 0, label: '空白', color: '#21262d' },
+        ],
+        wireworld: [
+            { value: WW_WIRE, label: '导线', color: '#f0883e' },
+            { value: WW_EMPTY, label: '空', color: '#21262d' },
+            { value: WW_HEAD, label: '电子头', color: '#ff6b6b' },
+            { value: WW_TAIL, label: '电子尾', color: '#ffd93d' },
+        ]
+    };
+
+    // ─── 规则定义 ───
+    const RULES = {
+        life:      { birth: [3],      survive: [2,3],   name: "Conway's Life",  info: "经典生命游戏！<b>B3/S23</b>：活→周围2-3个就活，<3孤独死，>3拥挤死；死→周围恰好3个就出生。滑翔机会自己移动。" },
+        highlife:  { birth: [3,6],    survive: [2,3],   name: "HighLife",       info: "跟Life一样多一个B6：死细胞周围有6个邻居也能出生！会出现<b>繁殖者(Breeder)</b>，边移动边复制自己。" },
+        daynight:  { birth: [3,6,7,8],survive: [3,4,6,7,8], name: "Day & Night", info: "活死互换的对称规则！你画个图案，它的\"反面世界\"（全活或全死）行为完全一样，超神奇。" },
+        seeds:     { birth: [2],      survive: [],      name: "Seeds",          info: "疯狂爆炸型！活细胞每个回合必死（没有存活条件），但死细胞周围恰好2个就会生一片。永动机式不停扩张。" },
+        maze:      { birth: [3],      survive: [1,2,3,4,5], name: "Maze",        info: "迷宫发生器！墙壁向外延伸形成走廊，走廊被墙壁包围。随机填一下就能看到迷宫结构慢慢长出来。" },
+    };
+
+    // ─── 预设图案 ───
+    const PATTERNS = {
+        life: [
+            { name: '滑翔机', cells: [[0,1],[1,2],[2,0],[2,1],[2,2]] },
+            { name: '滑翔枪', cells: [
+                [24,0],[22,1],[24,1],[12,2],[13,2],[20,2],[21,2],[34,2],[35,2],
+                [11,3],[15,3],[20,3],[21,3],[34,3],[35,3],
+                [0,4],[1,4],[10,4],[16,4],[20,4],[21,4],
+                [0,5],[1,5],[10,5],[14,5],[16,5],[17,5],[22,5],[24,5],
+                [10,6],[16,6],[24,6],[11,7],[15,7],[12,8],[13,8]
+            ]},
+            { name: 'LWSS', cells: [[1,0],[4,0],[5,1],[1,2],[5,2],[2,3],[3,3],[4,3],[5,3],[3,4],[4,4]] },
+            { name: '灯塔(闪烁)', cells: [[0,0],[0,1],[0,2]] },
+            { name: '随机', random: true }
+        ],
+        highlife: [
+            { name: '随机', random: true }
+        ],
+        daynight: [
+            { name: '随机', random: true }
+        ],
+        seeds: [
+            { name: '飞机', cells: [[0,0],[0,1]] },
+            { name: '随机', random: true }
+        ],
+        maze: [
+            { name: '随机', random: true }
+        ],
+        wireworld: [
+            // 环形振荡器：导线围成一圈，电子头绕圈跑
+            { name: '环形振荡器', cells: (()=>{
+                const c=[];
+                // 8格环形
+                for(let i=0;i<8;i++){
+                    const a=i/8*Math.PI*2;
+                    c.push([Math.round(15+8*Math.sin(a)),Math.round(15+8*Math.cos(a))]);
+                }
+                return c;
+            })() },
+            { name: '随机', random: true }
+        ],
+        '1d': [
+            { name: '单点种子', single: true },
+            { name: '随机行', random: true }
+        ]
+    };
+
+    const RULE_INFOS = {
+        life:      '经典生命游戏！格子里有"活细胞"，每个回合根据邻居数量决定生死。<b>规则很简单：</b>活细胞周围2-3个邻居就能活下去，少了会孤独死了，多了会拥挤死；死细胞周围恰好3个邻居就会诞生新生命。滑翔机就是最经典的图案，会自己移动。',
+        highlife:  '跟经典生命游戏一样，但多了一条：死细胞周围有6个邻居也能出生！正因为多了这个"B6"，会出现一种叫"繁殖者"的图案，会一边移动一边复制自己。',
+        daynight:  '超有趣的对称规则！把活和死互换，规则完全一样。最神奇的是：你在这个规则里画个图案，它的"镜像世界"（全是死细胞的版本）行为完全一样。',
+        seeds:     '永动机式爆炸型！活细胞没有任何存活条件——每个活细胞下回合必死。但死细胞周围恰好2个邻居就会生一大片。因为活细胞必死，所以整个世界会不断爆炸式扩张。',
+        maze:      '会自己"长出迷宫"的规则！墙壁（活细胞）会向外延伸形成走廊，而走廊会逐渐被墙壁包围。初始随机填一下，就能看到迷宫结构慢慢形成。',
+        wireworld: '不是生命游戏，是电子电路模拟！有四种状态：<b>空</b>（黑）、<b>导线</b>（橙）、<b>电子头</b>（红）、<b>电子尾</b>（黄）。电子头沿导线跑，跑到就变成尾，尾变回导线——可以模拟时钟、计数器等数字电路。',
+        '1d':      '一维元胞自动机，只有一行格子，但会随时间向下演变出复杂图案。256种规则（Rule 0到Rule 255），每个规则都由上一行三个格子的状态决定下一行中心格子的颜色。有的规则产生混沌，有的产生完美几何，有的甚至能通用计算。'
+    };
+
+    // ─── 初始化 ───
+    function init() {
+        resize();
+        window.addEventListener('resize', resize);
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (rule === '1d') return;
+            drawing = true;
+            paint(e);
+        });
+        canvas.addEventListener('mousemove', (e) => {
+            if (drawing && rule !== '1d') {
+                const now = Date.now();
+                if (now - lastPaintTime >= THROTTLE_MS) {
+                    lastPaintTime = now;
+                    paint(e);
+                }
+            }
+        });
+        canvas.addEventListener('mouseup', () => drawing = false);
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // 1D CA canvas click
+        ca1dCanvas.addEventListener('click', (e) => {
+            if (rule !== '1d') return;
+            const rect = ca1dCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const cellW = ca1dCanvas.width / ca1dCells.length;
+            const idx = Math.floor(x / cellW);
+            if (idx >= 0 && idx < ca1dCells.length) {
+                ca1dCells[idx] = ca1dCells[idx] ? 0 : 1;
+                ca1dGen = 0;
+                draw1D();
+            }
+        });
+
+        document.getElementById('ruleSelect').value = 'life';
+        buildToolbar('life');
+        switchRule();
+    }
+
+    function buildToolbar(r) {
+        const toolbar = document.getElementById('drawToolbar');
+        const tools = TOOLS[r] || TOOLS.life;
+        toolbar.innerHTML = tools.map(t => `
+            <button class="tool-btn ${t.value === currentTool ? 'active' : ''}"
+                    onclick="selectTool(${t.value})"
+                    data-value="${t.value}">
+                <span class="swatch" style="background:${t.color}"></span>
+                <span class="label">${t.label}</span>
+            </button>
+        `).join('');
+    }
+
+    function selectTool(value) {
+        currentTool = value;
+        buildToolbar(rule);
+    }
+
+    function resize() {
+        const availableW = Math.min(window.innerWidth - 40, 800);
+        const availableH = Math.min(window.innerHeight - 180, 600);
+        CELL_SIZE = Math.max(4, Math.min(16, Math.floor(Math.min(availableW, availableH) / Math.max(COLS, ROWS))));
+        canvas.width = COLS * CELL_SIZE;
+        canvas.height = ROWS * CELL_SIZE;
+        canvas.style.width = canvas.width + 'px';
+        canvas.style.height = canvas.height + 'px';
+        canvas.style.transform = `scale(${zoom})`;
+        canvas.style.transformOrigin = 'top left';
+
+        ca1dCanvas.width = availableW;
+        ca1dCanvas.height = CA1D_MAX_GEN * 4;
+
+        document.getElementById('gridSize').textContent = `${COLS}×${ROWS}`;
+        document.getElementById('gridCols').value = COLS;
+        document.getElementById('gridRows').value = ROWS;
+        document.getElementById('zoomLabel').textContent = Math.round(zoom * 100) + '%';
+        if (rule !== '1d') { grid = makeGrid(); draw(); }
+    }
+
+    function applyGridSize() {
+        const c = parseInt(document.getElementById('gridCols').value);
+        const rr = parseInt(document.getElementById('gridRows').value);
+        if (c >= 10 && c <= 300 && rr >= 10 && rr <= 300) {
+            COLS = c; ROWS = rr;
+            running = false;
+            if (animationId) { clearTimeout(animationId); animationId = null; }
+            document.getElementById('runBtn').textContent = '▶ 运行';
+            generation = 0;
+            resize();
+        }
+    }
+
+    function zoomIn() {
+        zoom = Math.min(3, zoom + 0.25);
+        canvas.style.transform = `scale(${zoom})`;
+        document.getElementById('zoomLabel').textContent = Math.round(zoom * 100) + '%';
+    }
+    function zoomOut() {
+        zoom = Math.max(0.25, zoom - 0.25);
+        canvas.style.transform = `scale(${zoom})`;
+        document.getElementById('zoomLabel').textContent = Math.round(zoom * 100) + '%';
+    }
+    function zoomReset() {
+        zoom = 1;
+        canvas.style.transform = `scale(1)`;
+        document.getElementById('zoomLabel').textContent = '100%';
+    }
+
+    function makeGrid(val = 0) {
+        return Array.from({length: ROWS}, () => new Array(COLS).fill(val));
+    }
+
+    function countNeighbors(r, c) {
+        let count = 0;
+        for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+                if (dr === 0 && dc === 0) continue;
+                const nr = (r + dr + ROWS) % ROWS;
+                const nc = (c + dc + COLS) % COLS;
+                if (grid[nr][nc]) count++;
+            }
+        }
+        return count;
+    }
+
+    // ─── 规则执行 ───
+    function stepLife() {
+        const r = RULES[rule];
+        const next = makeGrid();
+        for (let row = 0; row < ROWS; row++) {
+            for (let col = 0; col < COLS; col++) {
+                const alive = grid[row][col];
+                const n = countNeighbors(row, col);
+                if (alive) {
+                    next[row][col] = r.survive.includes(n) ? 1 : 0;
+                } else {
+                    next[row][col] = r.birth.includes(n) ? 1 : 0;
+                }
+            }
+        }
+        grid = next;
+        generation++;
+    }
+
+    function stepWireworld() {
+        const next = grid.map(row => [...row]);
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const cell = grid[r][c];
+                if (cell === WW_HEAD) {
+                    next[r][c] = WW_TAIL;
+                } else if (cell === WW_TAIL) {
+                    next[r][c] = WW_WIRE;
+                } else if (cell === WW_WIRE) {
+                    // 统计周围电子头数量
+                    let heads = 0;
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            if (dr === 0 && dc === 0) continue;
+                            const nr = (r + dr + ROWS) % ROWS;
+                            const nc = (c + dc + COLS) % COLS;
+                            if (grid[nr][nc] === WW_HEAD) heads++;
+                        }
+                    }
+                    if (heads === 1 || heads === 2) next[r][c] = WW_HEAD;
+                }
+            }
+        }
+        grid = next;
+        generation++;
+    }
+
+    function step1D() {
+        if (ca1dGen >= CA1D_MAX_GEN) return false; // 到底了，停止
+        const ruleBits = (ca1dRule >>> 0).toString(2).padStart(8, '0');
+        const next = new Array(ca1dCells.length).fill(0);
+        for (let i = 0; i < ca1dCells.length; i++) {
+            const left = ca1dCells[(i - 1 + ca1dCells.length) % ca1dCells.length];
+            const center = ca1dCells[i];
+            const right = ca1dCells[(i + 1) % ca1dCells.length];
+            const idx = (left << 2) | (center << 1) | right;
+            next[i] = ruleBits[7 - idx] === '1' ? 1 : 0;
+        }
+        ca1dCells = next;
+        ca1dGen++;
+        generation++;
+        draw1D();
+        if (ca1dGen >= CA1D_MAX_GEN) {
+            // 到底了，停止
+            running = false;
+            document.getElementById('runBtn').textContent = '▶ 运行';
+            return false;
+        }
+        return true;
+    }
+
+    function make1DCells() {
+        return new Array(COLS * 3).fill(0);
+    }
+
+    // ─── 绘制 ───
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (rule === 'wireworld') {
+            const colors = ['#21262d', '#f0883e', '#ff6b6b', '#ffd93d'];
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (grid[r][c] !== WW_EMPTY) {
+                        ctx.fillStyle = colors[grid[r][c]];
+                        ctx.fillRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    }
+                }
+            }
+            // grid lines
+            ctx.strokeStyle = '#30363d';
+            ctx.lineWidth = 0.5;
+            for (let r = 0; r <= ROWS; r++) {
+                ctx.beginPath(); ctx.moveTo(0, r * CELL_SIZE); ctx.lineTo(canvas.width, r * CELL_SIZE); ctx.stroke();
+            }
+            for (let c = 0; c <= COLS; c++) {
+                ctx.beginPath(); ctx.moveTo(c * CELL_SIZE, 0); ctx.lineTo(c * CELL_SIZE, canvas.height); ctx.stroke();
+            }
+        } else {
+            // Fill background
+            ctx.fillStyle = '#0d1117';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Grid lines
+            ctx.strokeStyle = '#21262d';
+            ctx.lineWidth = 0.5;
+            for (let r = 0; r <= ROWS; r++) {
+                ctx.beginPath(); ctx.moveTo(0, r * CELL_SIZE); ctx.lineTo(canvas.width, r * CELL_SIZE); ctx.stroke();
+            }
+            for (let c = 0; c <= COLS; c++) {
+                ctx.beginPath(); ctx.moveTo(c * CELL_SIZE, 0); ctx.lineTo(c * CELL_SIZE, canvas.height); ctx.stroke();
+            }
+
+            // Live cells
+            ctx.fillStyle = '#39d353';
+            let count = 0;
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (grid[r][c]) {
+                        count++;
+                        ctx.fillRect(c * CELL_SIZE + 1, r * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+                    }
+                }
+            }
+
+            document.getElementById('cellCount').textContent = count;
+        }
+
+        document.getElementById('genCount').textContent = generation;
+        document.getElementById('generation').textContent = '世代: ' + generation;
+    }
+
+    function draw1D() {
+        ca1dCtx.fillStyle = '#0d1117';
+        ca1dCtx.fillRect(0, 0, ca1dCanvas.width, ca1dCanvas.height);
+
+        const cellH = 4;
+        const row = ca1dGen;
+        const cellW = ca1dCanvas.width / ca1dCells.length;
+
+        for (let i = 0; i < ca1dCells.length; i++) {
+            if (ca1dCells[i]) {
+                ca1dCtx.fillStyle = `hsl(${(i / ca1dCells.length) * 360}, 70%, 60%)`;
+                ca1dCtx.fillRect(i * cellW, row * cellH, cellW, cellH);
+            }
+        }
+
+        document.getElementById('genCount').textContent = ca1dGen;
+        document.getElementById('generation').textContent = '世代: ' + ca1dGen;
+        document.getElementById('cellCount').textContent = ca1dCells.filter(c=>c).length;
+    }
+
+        function paint(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const c = Math.floor(x / CELL_SIZE);
+            const r = Math.floor(y / CELL_SIZE);
+            if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+
+            grid[r][c] = currentTool;
+            draw();
+        }
+
+    // ─── 主循环 ───
+    function loop() {
+        if (!running) return;
+        if (rule === '1d') {
+            const canContinue = step1D();
+            if (!canContinue) return;
+        } else if (rule === 'wireworld') {
+            stepWireworld();
+        } else {
+            stepLife();
+        }
+        if (rule !== '1d') draw();
+        animationId = setTimeout(() => requestAnimationFrame(loop), 1000 / speed);
+    }
+
+    function toggleRun() {
+        running = !running;
+        document.getElementById('runBtn').textContent = running ? '⏸ 暂停' : '▶ 运行';
+        if (running) loop();
+        else if (animationId) { clearTimeout(animationId); animationId = null; }
+    }
+
+    function stepOnce() {
+        if (rule === '1d') { step1D(); return; }
+        else if (rule === 'wireworld') stepWireworld();
+        else stepLife();
+        draw();
+    }
+
+    function clearAll() {
+        if (rule === '1d') {
+            ca1dCells = make1DCells();
+            ca1dGen = 0;
+            generation = 0;
+            draw1D();
+        } else {
+            grid = makeGrid(0);
+            generation = 0;
+            draw();
+        }
+    }
+
+    function randomFill() {
+        if (rule === '1d') {
+            ca1dCells = ca1dCells.map(() => Math.random() < 0.3 ? 1 : 0);
+            ca1dGen = 0;
+            generation = 0;
+            draw1D();
+            return;
+        }
+        const fillVal = rule === 'wireworld' ? WW_WIRE : 1;
+        const threshold = rule === 'wireworld' ? 0.1 : 0.15;
+        grid = makeGrid(rule === 'wireworld' ? WW_EMPTY : 0);
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (Math.random() < threshold) {
+                    grid[r][c] = rule === 'wireworld' ? WW_WIRE : 1;
+                }
+            }
+        }
+        generation = 0;
+        draw();
+    }
+
+    function updateSpeed(val) {
+        speed = parseInt(val);
+        document.getElementById('speedLabel').textContent = speed + ' 步/秒';
+    }
+
+    // ─── 规则切换 ───
+    function switchRule() {
+        rule = document.getElementById('ruleSelect').value;
+
+        // Stop
+        running = false;
+        if (animationId) { clearTimeout(animationId); animationId = null; }
+        document.getElementById('runBtn').textContent = '▶ 运行';
+
+        // 1D vs 2D
+        const is1D = rule === '1d';
+        canvas.style.display = is1D ? 'none' : 'block';
+        ca1dWrapper.style.display = is1D ? 'block' : 'none';
+        document.getElementById('drawToolbar').style.display = is1D ? 'none' : 'flex';
+        document.getElementById('patternPanel').style.display = is1D ? 'none' : 'block';
+        document.getElementById('colorLegend').style.display = rule === 'wireworld' ? 'block' : 'none';
+        document.getElementById('ca1dPanel').style.display = is1D ? 'block' : 'none';
+
+        // Info
+        document.getElementById('infoBox').innerHTML = RULE_INFOS[rule] || '';
+
+        if (is1D) {
+            ca1dCells = make1DCells();
+            ca1dGen = 0;
+            generation = 0;
+            // 初始种子
+            ca1dCells[Math.floor(ca1dCells.length / 2)] = 1;
+            draw1D();
+        } else {
+            grid = makeGrid(0);
+            generation = 0;
+            draw();
+        }
+
+        buildPatternButtons();
+        buildToolbar(rule);
+    }
+
+    const CA1D_INFOS = {
+        30: '最著名的混沌规则！Mathematica创始人发明，曾被认为能生成真正的随机数。图案看起来像一团乱码。',
+        110: '图灵完备！意思是它能像任何计算机一样通用计算，只是速度慢。这个规则本身就相当于一台计算机。',
+        90: '产生完美分形！谢尔宾斯基三角形——一种自相似的几何图案，不管放大多少倍看起来都一样。',
+        184: '交通流模型！模拟车辆在单车道上前进、堵塞、超车的行为，右边车辆多时往右走，左边多时往左。',
+        54: '最复杂的规则之一！会产生振荡器、波、混沌等多种行为，研究它的数学家最多。',
+        22: '产生规整的三角波图案，层层叠叠，排列有序。',
+        14: '几乎静止！所有细胞变化极慢，会形成一些简单稳定结构。',
+        45: '规则45：图案会持续向外扩张增长，结构有趣。'
+    };
+
+    function switch1DRule() {
+        ca1dRule = parseInt(document.getElementById('ca1dRuleSelect').value);
+        document.getElementById('ca1dInfo').textContent = CA1D_INFOS[ca1dRule] || '';
+        ca1dCells.fill(0);
+        ca1dCells[Math.floor(ca1dCells.length / 2)] = 1;
+        ca1dGen = 0;
+        generation = 0;
+        draw1D();
+    }
+
+    function buildPatternButtons() {
+        const grid = document.getElementById('patternGrid');
+        const patterns = PATTERNS[rule] || [];
+        grid.innerHTML = '';
+
+        patterns.forEach(p => {
+            const btn = document.createElement('button');
+            btn.className = 'pattern-btn';
+            btn.textContent = p.name;
+            btn.onclick = () => applyPattern(p);
+            grid.appendChild(btn);
+        });
+
+        if (patterns.length === 0) {
+            grid.innerHTML = '<span style="font-size:0.8rem;color:var(--text-dim);grid-column:1/-1;text-align:center;">随机画吧~</span>';
+        }
+    }
+
+    function applyPattern(p) {
+        if (p.random) { randomFill(); return; }
+        if (p.single) { ca1dCells.fill(0); ca1dCells[Math.floor(ca1dCells.length/2)] = 1; ca1dGen = 0; generation = 0; draw1D(); return; }
+        if (p.cells) {
+            if (rule === 'wireworld') {
+                // Wireworld: place wires + one head in center
+                placePattern(p.cells, WW_WIRE);
+                // add a head at first cell
+                const [hr, hc] = p.cells[0];
+                const offsetR = Math.floor(ROWS / 2) - 5;
+                const offsetC = Math.floor(COLS / 2) - 5;
+                const r = offsetR + hr;
+                const c = offsetC + hc;
+                if (r >= 0 && r < ROWS && c >= 0 && c < COLS) grid[r][c] = WW_HEAD;
+            } else {
+                placePattern(p.cells, 1);
+            }
+            draw();
+        }
+    }
+
+    function placePattern(cells, val) {
+        const offsetR = Math.floor(ROWS / 2) - 5;
+        const offsetC = Math.floor(COLS / 2) - 5;
+        cells.forEach(([dr, dc]) => {
+            const r = offsetR + dr;
+            const c = offsetC + dc;
+            if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+                grid[r][c] = val;
+            }
+        });
+        draw();
+    }
+
+    init();
+    </script>
+</body>
+</html>

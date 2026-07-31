@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D 魔方 - 益智游戏</title>
+    <script defer src="https://cloud.umami.is/script.js"
+        data-website-id="cbc5311f-d106-4566-853d-1376d4f4774b"></script>
+    <script>LA.init({ id: "3ObNUtNXa4Os8xRM", ck: "3ObNUtNXa4Os8xRM" })</script>
+    <style>
+        :root {
+            --primary-color: #2A5CAA;
+            --secondary-color: #00E5FF;
+            --accent-color: #6A00FF;
+            --light-color: #010409;
+            --dark-color: #ffffff;
+            --card-bg: #0d1117;
+            --card-border: 1px solid #30363d;
+            --card-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            --text-secondary: #8b949e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: var(--light-color);
+            color: var(--dark-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        h1 {
+            margin-top: 10px;
+            font-size: 2.5rem;
+            color: var(--secondary-color);
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+            text-align: center;
+        }
+
+        .header-info {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            max-width: 600px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .info-box {
+            background-color: var(--card-bg);
+            border: var(--card-border);
+            border-radius: 6px;
+            padding: 8px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 100px;
+        }
+
+        .info-label {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .info-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #fff;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .controls {
+            margin: 10px 0 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: var(--secondary-color);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+            color: #000;
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: min(90vw, 600px);
+            height: min(90vw, 600px);
+            background: radial-gradient(ellipse at center, #0a1929 0%, #000 80%);
+            border-radius: 10px;
+            border: var(--card-border);
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+        }
+
+        #canvas-container canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .hint {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 12px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .hint kbd {
+            display: inline-block;
+            padding: 1px 6px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: var(--secondary-color);
+            margin: 0 2px;
+        }
+
+        .win-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .win-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .win-content {
+            background: var(--card-bg);
+            border: var(--card-border);
+            padding: 30px 50px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(0, 229, 255, 0.3);
+        }
+
+        .win-title {
+            font-size: 2.5rem;
+            color: var(--secondary-color);
+            margin-bottom: 20px;
+            text-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+        }
+
+        .win-stats {
+            margin: 15px 0 25px;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .win-stats span {
+            color: var(--secondary-color);
+            font-weight: bold;
+        }
+
+        @media (max-width: 500px) {
+            h1 { font-size: 1.8rem; }
+            #canvas-container { width: 95vw; height: 95vw; }
+            .info-box { min-width: 80px; padding: 6px 12px; }
+            .info-value { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>3D 魔方</h1>
+
+    <div class="header-info">
+        <div class="info-box">
+            <span class="info-label">时间</span>
+            <span class="info-value" id="timer">00:00</span>
+        </div>
+        <div class="info-box">
+            <span class="info-label">步数</span>
+            <span class="info-value" id="moves">0</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="scrambleBtn">打乱</button>
+        <button id="undoBtn" disabled>撤销</button>
+        <button id="resetBtn">还原</button>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <div class="hint">
+        在魔方上<strong>滑动</strong>旋转你点中的那一层，拖动<strong>空白处</strong>旋转视角，<kbd>滚轮</kbd>缩放
+    </div>
+    <div class="hint" style="margin-top:4px;">
+        键盘：<kbd>F</kbd><kbd>B</kbd><kbd>L</kbd><kbd>R</kbd><kbd>U</kbd><kbd>D</kbd> 转面（相对于当前视角），<kbd>Shift</kbd> 反向
+    </div>
+
+    <div class="win-modal" id="winModal">
+        <div class="win-content">
+            <div class="win-title">已还原!</div>
+            <div class="win-stats">
+                用时 <span id="winTime">00:00</span> · 共 <span id="winMoves">0</span> 步
+            </div>
+            <button id="newGameBtn">再来一局</button>
+        </div>
+    </div>
+
+    <p><a href="https://beian.miit.gov.cn/" target="_blank">粤ICP备2026012488号-1</a></p>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script>
+    'use strict';
+
+    // ========== Constants ==========
+    const CUBIE_SIZE = 1;
+    const CUBIE_GAP = 0.04;
+    const CUBIE_STEP = CUBIE_SIZE + CUBIE_GAP;
+    const ROTATION_DURATION = 220; // ms
+
+    // Standard Western color scheme (yellow on top, white on bottom)
+    const COLORS = {
+        U: 0xffd500, // Up - yellow
+        D: 0xffffff, // Down - white
+        F: 0x009b48, // Front - green
+        B: 0x0046ad, // Back - blue
+        L: 0xff5900, // Left - orange
+        R: 0xb71234, // Right - red
+        INSIDE: 0x111111
+    };
+
+    // Face definitions: axis letter, layer value, name
+    // M/E/S are middle slice layers (between faces)
+    const FACES = {
+        R: { axis: 'x', layer: 1,  name: '右面' },
+        L: { axis: 'x', layer: -1, name: '左面' },
+        U: { axis: 'y', layer: 1,  name: '顶面' },
+        D: { axis: 'y', layer: -1, name: '底面' },
+        F: { axis: 'z', layer: 1,  name: '前面' },
+        B: { axis: 'z', layer: -1, name: '后面' },
+        M: { axis: 'x', layer: 0,  name: '中层' },
+        E: { axis: 'y', layer: 0,  name: '中层' },
+        S: { axis: 'z', layer: 0,  name: '中层' }
+    };
+
+    // Faces whose uniformity we check for win (outer faces only)
+    const OUTER_FACES = ['F', 'B', 'L', 'R', 'U', 'D'];
+
+    // ========== State ==========
+    const state = {
+        scene: null,
+        camera: null,
+        renderer: null,
+        cubeGroup: null,
+        cubies: [],
+        raycaster: new THREE.Raycaster(),
+        isAnimating: false,
+        timerInterval: null,
+        timerSeconds: 0,
+        timerRunning: false,
+        moveCount: 0,
+        history: [],
+        cameraTheta: -Math.PI / 4,
+        cameraPhi: Math.PI / 4,
+        cameraDistance: 7,
+        gestureMode: null,           // 'face' | 'camera' | null
+        gestureStart: null,          // { x, y, normal, faceName, hitPoint }
+        lastPointer: { x: 0, y: 0 },
+        pinchStartDist: 0,
+        pinchStartCameraDist: 0
+    };
+
+    // ========== Three.js Setup ==========
+    function initThree() {
+        const container = document.getElementById('canvas-container');
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+
+        state.scene = new THREE.Scene();
+        state.scene.background = null;
+
+        state.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+        updateCameraPosition();
+
+        state.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        state.renderer.setSize(w, h);
+        state.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(state.renderer.domElement);
+
+        const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+        state.scene.add(ambient);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 10, 7);
+        state.scene.add(dirLight);
+        const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+        dirLight2.position.set(-5, -3, -7);
+        state.scene.add(dirLight2);
+
+        state.cubeGroup = new THREE.Group();
+        state.scene.add(state.cubeGroup);
+
+        window.addEventListener('resize', onResize);
+        animate();
+    }
+
+    function updateCameraPosition() {
+        const { cameraTheta, cameraPhi, cameraDistance } = state;
+        const x = cameraDistance * Math.sin(cameraPhi) * Math.sin(cameraTheta);
+        const y = cameraDistance * Math.cos(cameraPhi);
+        const z = cameraDistance * Math.sin(cameraPhi) * Math.cos(cameraTheta);
+        state.camera.position.set(x, y, z);
+        state.camera.lookAt(0, 0, 0);
+    }
+
+    function onResize() {
+        const container = document.getElementById('canvas-container');
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        state.camera.aspect = w / h;
+        state.camera.updateProjectionMatrix();
+        state.renderer.setSize(w, h);
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        state.renderer.render(state.scene, state.camera);
+    }
+
+    // ========== Cube Construction ==========
+    // BoxGeometry material order: [+X, -X, +Y, -Y, +Z, -Z]
+    // We assign sticker colors based on initial grid position;
+    // a cubie's quaternion gets multiplied by every rotation it undergoes.
+
+    function makeCubieMaterials(gx, gy, gz) {
+        const mats = Array.from({ length: 6 }, () =>
+            new THREE.MeshStandardMaterial({ color: COLORS.INSIDE })
+        );
+        if (gx === 1)  mats[0].color.setHex(COLORS.R);
+        if (gx === -1) mats[1].color.setHex(COLORS.L);
+        if (gy === 1)  mats[2].color.setHex(COLORS.U);
+        if (gy === -1) mats[3].color.setHex(COLORS.D);
+        if (gz === 1)  mats[4].color.setHex(COLORS.F);
+        if (gz === -1) mats[5].color.setHex(COLORS.B);
+        return mats;
+    }
+
+    function createCube() {
+        for (const c of state.cubies) {
+            state.cubeGroup.remove(c.mesh);
+            c.mesh.geometry.dispose();
+            c.mesh.material.forEach(m => m.dispose());
+        }
+        state.cubies = [];
+
+        const geometry = new THREE.BoxGeometry(CUBIE_SIZE, CUBIE_SIZE, CUBIE_SIZE);
+
+        for (let gx = -1; gx <= 1; gx++) {
+            for (let gy = -1; gy <= 1; gy++) {
+                for (let gz = -1; gz <= 1; gz++) {
+                    const materials = makeCubieMaterials(gx, gy, gz);
+                    const mesh = new THREE.Mesh(geometry, materials);
+                    mesh.position.set(gx * CUBIE_STEP, gy * CUBIE_STEP, gz * CUBIE_STEP);
+                    const edges = new THREE.EdgesGeometry(geometry);
+                    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 }));
+                    mesh.add(line);
+                    state.cubeGroup.add(mesh);
+                    state.cubies.push({
+                        mesh,
+                        gridPos: { x: gx, y: gy, z: gz },
+                        quaternion: new THREE.Quaternion()
+                    });
+                }
+            }
+        }
+    }
+
+    // ========== Face Rotation Logic ==========
+    function getFaceCubies(faceKey) {
+        const { axis, layer } = FACES[faceKey];
+        return state.cubies.filter(c => c.gridPos[axis] === layer);
+    }
+
+    // Rotate a grid position by ±90° around the face's normal axis (layer direction).
+    // dir = +1 is CW as viewed from outside the face (standard Rubik's notation).
+    // For faces whose normal points along -axis (B, D, L), we invert dir so that
+    // dir=+1 consistently means "CW from outside" regardless of which face.
+    function rotateGridPos(pos, axis, layer, dir) {
+        const { x, y, z } = pos;
+        const eff = layer < 0 ? -dir : dir;
+        if (axis === 'x') {
+            return eff > 0 ? { x, y: z, z: -y } : { x, y: -z, z: y };
+        } else if (axis === 'y') {
+            return eff > 0 ? { x: -z, y, z: x } : { x: z, y, z: -x };
+        } else {
+            return eff > 0 ? { x: y, y: -x, z } : { x: -y, y: x, z };
+        }
+    }
+
+    // Standard cube-notation: dir = +1 is CW as viewed from outside the face.
+    // We rotate around the face's normal (layer * axis) so the convention holds
+    // for all six faces, including B/D/L whose normals point along -axis.
+    function rotateFace(faceKey, dir, recordHistory) {
+        if (state.isAnimating) return;
+        state.isAnimating = true;
+
+        const { axis, layer } = FACES[faceKey];
+        const threeAngle = -dir * Math.PI / 2;
+        const axisVec = new THREE.Vector3(
+            axis === 'x' ? layer : 0,
+            axis === 'y' ? layer : 0,
+            axis === 'z' ? layer : 0
+        );
+
+        const faceCubies = getFaceCubies(faceKey);
+        const tempGroup = new THREE.Group();
+        state.scene.add(tempGroup);
+        for (const c of faceCubies) {
+            tempGroup.attach(c.mesh);
+        }
+
+        const startTime = performance.now();
+        const startQuat = new THREE.Quaternion();
+        const endQuat = new THREE.Quaternion().setFromAxisAngle(axisVec, threeAngle);
+
+        function step() {
+            const t = Math.min(1, (performance.now() - startTime) / ROTATION_DURATION);
+            const e = 1 - Math.pow(1 - t, 3); // ease-out cubic
+            const q = new THREE.Quaternion().slerpQuaternions(startQuat, endQuat, e);
+            tempGroup.quaternion.copy(q);
+            if (t < 1) {
+                requestAnimationFrame(step);
+                return;
+            }
+            // Bake transform
+            tempGroup.updateMatrixWorld(true);
+            for (const c of faceCubies) {
+                state.cubeGroup.attach(c.mesh);
+                c.mesh.updateMatrixWorld(true);
+                c.gridPos = rotateGridPos(c.gridPos, axis, layer, dir);
+                // The attach preserved the world transform, so getWorldQuaternion
+                // returns the correct new world quaternion (= R * old world).
+                c.mesh.getWorldQuaternion(c.quaternion);
+                c.mesh.quaternion.copy(c.quaternion);
+            }
+            state.scene.remove(tempGroup);
+            tempGroup.quaternion.identity();
+            state.isAnimating = false;
+
+            if (recordHistory) {
+                state.history.push({ face: faceKey, dir: -dir });
+                state.moveCount++;
+                updateMoveCount();
+                updateUndoButton();
+            }
+            startTimerIfNeeded();
+            checkWin();
+        }
+        requestAnimationFrame(step);
+    }
+
+    // ========== Gesture Detection ==========
+    // Tangent axes (T_u, T_v) on a face: right-handed with face normal N.
+    // We map swipe direction (in face local) to ±90° rotation:
+    //   - "upper-right half" of face local (proj_u > 0, or proj_u=0 & proj_v>0) -> +90° (CCW from outside)
+    //   - otherwise -> -90° (CW from outside)
+    function getTangentAxes(normal) {
+        const n = normal.clone().normalize();
+        let Tu;
+        if (Math.abs(n.y) < 0.9) {
+            Tu = new THREE.Vector3().crossVectors(n, new THREE.Vector3(0, 1, 0)).normalize();
+        } else {
+            Tu = new THREE.Vector3().crossVectors(n, new THREE.Vector3(1, 0, 0)).normalize();
+        }
+        const Tv = new THREE.Vector3().crossVectors(n, Tu).normalize();
+        return [Tu, Tv];
+    }
+
+    function determineRotation(faceName, worldNormal, dx, dy) {
+        // The swipe always rotates the layer (face) that the user touched.
+        // The "layer the pointer is on" is the outer face under the touch point,
+        // so for example touching the leftmost cubie and swiping rotates the L face,
+        // not the middle slice.
+        const [T_u, T_v] = getTangentAxes(worldNormal);
+
+        const camRight = new THREE.Vector3();
+        const camUp = new THREE.Vector3();
+        camRight.setFromMatrixColumn(state.camera.matrixWorld, 0);
+        camUp.setFromMatrixColumn(state.camera.matrixWorld, 1);
+
+        const swipeWorld = new THREE.Vector3()
+            .addScaledVector(camRight, dx)
+            .addScaledVector(camUp, dy);
+
+        const proj_u = swipeWorld.dot(T_u);
+        const proj_v = swipeWorld.dot(T_v);
+        if (Math.max(Math.abs(proj_u), Math.abs(proj_v)) < 1) return null;
+
+        let angle;
+        if (proj_u > 0 || (proj_u === 0 && proj_v > 0)) {
+            angle = Math.PI / 2;
+        } else {
+            angle = -Math.PI / 2;
+        }
+        const dir = -Math.sign(angle);
+        return { face: faceName, dir };
+    }
+
+    function getPointerPos(e) {
+        const rect = state.renderer.domElement.getBoundingClientRect();
+        const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+        const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+        return { x, y };
+    }
+
+    function onPointerDown(e) {
+        if (state.isAnimating) return;
+        e.preventDefault();
+        const point = getPointerPos(e);
+        state.lastPointer = point;
+
+        state.raycaster.setFromCamera(
+            new THREE.Vector2(
+                (point.x / state.renderer.domElement.clientWidth) * 2 - 1,
+                -(point.y / state.renderer.domElement.clientHeight) * 2 + 1
+            ),
+            state.camera
+        );
+        const meshes = state.cubies.map(c => c.mesh);
+        const intersects = state.raycaster.intersectObjects(meshes, false);
+
+        if (intersects.length > 0) {
+            const hit = intersects[0];
+            const normalMatrix = new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld);
+            const worldNormal = hit.face.normal.clone().applyMatrix3(normalMatrix).normalize();
+            const rounded = roundToAxis(worldNormal);
+            let faceName = getFaceNameFromNormal(rounded);
+
+            // Override the picked face using the touched cubie's grid position.
+            // Raycaster picks the face most directly facing the camera, but for
+            // cubies on the boundary of two visible faces (e.g. front-left corner),
+            // the user almost always intends the "outer" face (L for x=-1, R for x=1,
+            // U for y=1, D for y=-1, F for z=1, B for z=-1). The x-axis is checked
+            // first so the leftmost/rightmost column takes priority, matching the
+            // expectation that touching the leftmost area rotates the L face.
+            const cubie = state.cubies.find(c => c.mesh === hit.object);
+            if (cubie) {
+                if (cubie.gridPos.x === -1) faceName = 'L';
+                else if (cubie.gridPos.x === 1) faceName = 'R';
+                else if (cubie.gridPos.y === 1) faceName = 'U';
+                else if (cubie.gridPos.y === -1) faceName = 'D';
+                else if (cubie.gridPos.z === 1) faceName = 'F';
+                else if (cubie.gridPos.z === -1) faceName = 'B';
+            }
+
+            if (faceName) {
+                state.gestureMode = 'face';
+                state.gestureStart = {
+                    x: point.x,
+                    y: point.y,
+                    normal: getNormalFromFaceName(faceName),
+                    faceName
+                };
+            } else {
+                state.gestureMode = 'camera';
+            }
+        } else {
+            state.gestureMode = 'camera';
+        }
+    }
+
+    function onPointerMove(e) {
+        if (state.isAnimating || !state.gestureMode) return;
+        e.preventDefault();
+        const point = getPointerPos(e);
+        const dx = point.x - state.lastPointer.x;
+        const dy = point.y - state.lastPointer.y;
+        if (state.gestureMode === 'camera') {
+            const sens = 0.008;
+            state.cameraTheta -= dx * sens;
+            state.cameraPhi -= dy * sens;
+            const eps = 0.01;
+            state.cameraPhi = Math.max(eps, Math.min(Math.PI - eps, state.cameraPhi));
+            updateCameraPosition();
+        }
+        state.lastPointer = point;
+    }
+
+    function onPointerUp(e) {
+        if (state.isAnimating) return;
+        e.preventDefault();
+        if (state.gestureMode === 'face' && state.gestureStart) {
+            const point = getPointerPos(e);
+            const dx = point.x - state.gestureStart.x;
+            const dy = point.y - state.gestureStart.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > 20) {
+                const result = determineRotation(
+                    state.gestureStart.faceName,
+                    state.gestureStart.normal,
+                    dx, dy
+                );
+                if (result) {
+                    rotateFace(result.face, result.dir, true);
+                }
+            }
+        }
+        state.gestureMode = null;
+        state.gestureStart = null;
+    }
+
+    function roundToAxis(v) {
+        const ax = Math.abs(v.x), ay = Math.abs(v.y), az = Math.abs(v.z);
+        if (ax >= ay && ax >= az) return new THREE.Vector3(Math.sign(v.x), 0, 0);
+        if (ay >= ax && ay >= az) return new THREE.Vector3(0, Math.sign(v.y), 0);
+        return new THREE.Vector3(0, 0, Math.sign(v.z));
+    }
+
+    function getFaceNameFromNormal(normal) {
+        if (normal.x === 1) return 'R';
+        if (normal.x === -1) return 'L';
+        if (normal.y === 1) return 'U';
+        if (normal.y === -1) return 'D';
+        if (normal.z === 1) return 'F';
+        if (normal.z === -1) return 'B';
+        return null;
+    }
+
+    function getNormalFromFaceName(faceName) {
+        switch (faceName) {
+            case 'L': return new THREE.Vector3(-1, 0, 0);
+            case 'R': return new THREE.Vector3(1, 0, 0);
+            case 'U': return new THREE.Vector3(0, 1, 0);
+            case 'D': return new THREE.Vector3(0, -1, 0);
+            case 'F': return new THREE.Vector3(0, 0, 1);
+            case 'B': return new THREE.Vector3(0, 0, -1);
+            default: return null;
+        }
+    }
+
+    // ========== UI / Controls ==========
+    function updateMoveCount() {
+        document.getElementById('moves').textContent = state.moveCount;
+    }
+
+    function updateUndoButton() {
+        document.getElementById('undoBtn').disabled = state.history.length === 0 || state.isAnimating;
+    }
+
+    function startTimerIfNeeded() {
+        if (state.timerRunning) return;
+        state.timerRunning = true;
+        state.timerInterval = setInterval(() => {
+            state.timerSeconds++;
+            updateTimerDisplay();
+        }, 1000);
+    }
+
+    function stopTimer() {
+        if (state.timerInterval) clearInterval(state.timerInterval);
+        state.timerInterval = null;
+        state.timerRunning = false;
+    }
+
+    function resetTimer() {
+        stopTimer();
+        state.timerSeconds = 0;
+        updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+        const m = Math.floor(state.timerSeconds / 60);
+        const s = state.timerSeconds % 60;
+        document.getElementById('timer').textContent =
+            String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+
+    // ========== Win Detection ==========
+    // For each face, the 9 outward stickers must be the same color.
+    // We find the material index whose world-space direction matches the face's outward axis.
+    function getOuterFaceMaterialIndex(cubie, axis, layer) {
+        const target = new THREE.Vector3(
+            axis === 'x' ? layer : 0,
+            axis === 'y' ? layer : 0,
+            axis === 'z' ? layer : 0
+        );
+        const localDirs = [
+            new THREE.Vector3(1, 0, 0),
+            new THREE.Vector3(-1, 0, 0),
+            new THREE.Vector3(0, 1, 0),
+            new THREE.Vector3(0, -1, 0),
+            new THREE.Vector3(0, 0, 1),
+            new THREE.Vector3(0, 0, -1)
+        ];
+        let bestIdx = -1, bestDot = -Infinity;
+        for (let i = 0; i < 6; i++) {
+            const worldDir = localDirs[i].clone().applyQuaternion(cubie.quaternion);
+            const d = worldDir.dot(target);
+            if (d > bestDot) { bestDot = d; bestIdx = i; }
+        }
+        return bestDot > 0.9 ? bestIdx : -1;
+    }
+
+    function checkWin() {
+        // Only the 6 outer faces need to be uniform for a solved cube.
+        // Middle slices (M/E/S) can have mixed colors when solved.
+        for (const faceKey of OUTER_FACES) {
+            const { axis, layer } = FACES[faceKey];
+            const cubies = getFaceCubies(faceKey);
+            const first = cubies[0];
+            const colorIdx = getOuterFaceMaterialIndex(first, axis, layer);
+            if (colorIdx < 0) return false;
+            const refColor = first.mesh.material[colorIdx].color.getHex();
+            for (let i = 1; i < cubies.length; i++) {
+                const ci = getOuterFaceMaterialIndex(cubies[i], axis, layer);
+                if (ci < 0) return false;
+                if (cubies[i].mesh.material[ci].color.getHex() !== refColor) return false;
+            }
+        }
+        showWinModal();
+        return true;
+    }
+
+    function showWinModal() {
+        stopTimer();
+        document.getElementById('winTime').textContent = document.getElementById('timer').textContent;
+        document.getElementById('winMoves').textContent = state.moveCount;
+        document.getElementById('winModal').classList.add('active');
+    }
+
+    function hideWinModal() {
+        document.getElementById('winModal').classList.remove('active');
+    }
+
+    // ========== Scramble / Undo / Reset ==========
+    function scramble() {
+        if (state.isAnimating) return;
+        const faces = ['R', 'L', 'U', 'D', 'F', 'B'];
+        const moves = 25;
+        let lastFace = null;
+        let i = 0;
+        state.history = [];
+        state.moveCount = 0;
+        resetTimer();
+        hideWinModal();
+        updateMoveCount();
+        updateUndoButton();
+        function doNext() {
+            if (i >= moves) {
+                state.isAnimating = false;
+                startTimerIfNeeded();
+                updateUndoButton();
+                return;
+            }
+            let face;
+            do {
+                face = faces[Math.floor(Math.random() * faces.length)];
+            } while (face === lastFace);
+            lastFace = face;
+            const dir = Math.random() < 0.5 ? 1 : -1;
+            rotateFaceNoRecord(face, dir, () => {
+                state.history.push({ face, dir: -dir });
+                i++;
+                doNext();
+            });
+        }
+        doNext();
+    }
+
+    function rotateFaceNoRecord(faceKey, dir, callback) {
+        const { axis, layer } = FACES[faceKey];
+        const threeAngle = -dir * Math.PI / 2;
+        const axisVec = new THREE.Vector3(
+            axis === 'x' ? layer : 0,
+            axis === 'y' ? layer : 0,
+            axis === 'z' ? layer : 0
+        );
+        const faceCubies = getFaceCubies(faceKey);
+        const tempGroup = new THREE.Group();
+        state.scene.add(tempGroup);
+        for (const c of faceCubies) {
+            tempGroup.attach(c.mesh);
+        }
+        const startTime = performance.now();
+        const startQuat = new THREE.Quaternion();
+        const endQuat = new THREE.Quaternion().setFromAxisAngle(axisVec, threeAngle);
+        function step() {
+            const t = Math.min(1, (performance.now() - startTime) / ROTATION_DURATION);
+            const e = 1 - Math.pow(1 - t, 3);
+            const q = new THREE.Quaternion().slerpQuaternions(startQuat, endQuat, e);
+            tempGroup.quaternion.copy(q);
+            if (t < 1) {
+                requestAnimationFrame(step);
+                return;
+            }
+            tempGroup.updateMatrixWorld(true);
+            for (const c of faceCubies) {
+                state.cubeGroup.attach(c.mesh);
+                c.mesh.updateMatrixWorld(true);
+                c.gridPos = rotateGridPos(c.gridPos, axis, layer, dir);
+                c.mesh.getWorldQuaternion(c.quaternion);
+                c.mesh.quaternion.copy(c.quaternion);
+            }
+            state.scene.remove(tempGroup);
+            tempGroup.quaternion.identity();
+            state.isAnimating = false;
+            if (callback) callback();
+        }
+        state.isAnimating = true;
+        requestAnimationFrame(step);
+    }
+
+    function undo() {
+        if (state.isAnimating || state.history.length === 0) return;
+        const last = state.history.pop();
+        rotateFaceNoRecord(last.face, last.dir, () => {
+            if (state.moveCount > 0) state.moveCount--;
+            updateMoveCount();
+            updateUndoButton();
+            hideWinModal();
+            checkWin();
+        });
+    }
+
+    function reset() {
+        state.history = [];
+        state.moveCount = 0;
+        resetTimer();
+        hideWinModal();
+        state.cameraTheta = -Math.PI / 4;
+        state.cameraPhi = Math.PI / 4;
+        state.cameraDistance = 7;
+        updateCameraPosition();
+        createCube();
+        updateMoveCount();
+        updateUndoButton();
+    }
+
+    // Compute the world face that corresponds to each view-relative label.
+    // F/B/L/R are interpreted from the current camera angle:
+    //   F: world face most directly facing the user (largest projected area in screen)
+    //   B: opposite of F
+    //   L: world face at the left of the screen
+    //   R: world face at the right of the screen
+    //   U: world face most aligned with world up direction (top of cube)
+    //   D: opposite of U
+    // This way, pressing F always rotates whichever world face the user
+    // currently perceives as "front" (e.g. blue when camera looks at B).
+    function getViewRelativeFaces() {
+        const camera = state.camera;
+        const faceCenters = {
+            L: new THREE.Vector3(-1, 0, 0),
+            R: new THREE.Vector3(1, 0, 0),
+            U: new THREE.Vector3(0, 1, 0),
+            D: new THREE.Vector3(0, -1, 0),
+            F: new THREE.Vector3(0, 0, 1),
+            B: new THREE.Vector3(0, 0, -1)
+        };
+        // F: face with largest projected area in screen (most directly facing the user)
+        const areas = {};
+        for (const name in faceCenters) {
+            // Project 4 corners of each face to NDC and compute parallelogram area
+            const sign = name === 'L' || name === 'D' || name === 'B' ? 1 : -1; // face winding
+            const corners = [];
+            // Generate 4 corners based on face
+            if (name === 'L' || name === 'R') {
+                const x = name === 'L' ? -1 : 1;
+                corners.push(new THREE.Vector3(x,-1,-1), new THREE.Vector3(x,1,-1),
+                             new THREE.Vector3(x,1,1),  new THREE.Vector3(x,-1,1));
+            } else if (name === 'U' || name === 'D') {
+                const y = name === 'U' ? 1 : -1;
+                corners.push(new THREE.Vector3(-1,y,-1), new THREE.Vector3(1,y,-1),
+                             new THREE.Vector3(1,y,1),  new THREE.Vector3(-1,y,1));
+            } else {
+                const z = name === 'F' ? 1 : -1;
+                corners.push(new THREE.Vector3(-1,-1,z), new THREE.Vector3(1,-1,z),
+                             new THREE.Vector3(1,1,z),  new THREE.Vector3(-1,1,z));
+            }
+            const ndcCorners = corners.map(c => c.clone().project(camera));
+            // Shoelace formula
+            let area = 0;
+            for (let i = 0; i < ndcCorners.length; i++) {
+                const j = (i + 1) % ndcCorners.length;
+                area += ndcCorners[i].x * ndcCorners[j].y - ndcCorners[j].x * ndcCorners[i].y;
+            }
+            areas[name] = Math.abs(area) / 2;
+        }
+        let F = 'F';
+        let maxArea = -Infinity;
+        for (const name in areas) {
+            if (areas[name] > maxArea) { maxArea = areas[name]; F = name; }
+        }
+        // B: opposite of F (the face furthest from the user, hidden)
+        const opposites = { L: 'R', R: 'L', U: 'D', D: 'U', F: 'B', B: 'F' };
+        const B = opposites[F];
+        // L: smallest NDC x; R: largest NDC x
+        const ndcX = {};
+        for (const name in faceCenters) {
+            ndcX[name] = faceCenters[name].clone().project(camera).x;
+        }
+        let L = 'L', minX = Infinity;
+        for (const name in ndcX) {
+            if (ndcX[name] < minX) { minX = ndcX[name]; L = name; }
+        }
+        let R = 'R', maxX = -Infinity;
+        for (const name in ndcX) {
+            if (ndcX[name] > maxX) { maxX = ndcX[name]; R = name; }
+        }
+        // U: most aligned with world up
+        const up = new THREE.Vector3(0, 1, 0);
+        let U = 'U', bestDot = -Infinity;
+        for (const name in faceCenters) {
+            const d = faceCenters[name].dot(up);
+            if (d > bestDot) { bestDot = d; U = name; }
+        }
+        const D = opposites[U];
+        return { F, B, L, R, U, D };
+    }
+
+    // ========== Keyboard Shortcuts ==========
+    // Lowercase = standard CW (from outside); Uppercase = inverse (CCW from outside)
+    // F/B/L/R/U/D are view-relative (mapped to world faces based on camera).
+    // M/E/S are middle slice layers (between faces), world axes.
+    function onKeyDown(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        if (state.isAnimating) return;
+        const k = e.key;
+        const lower = k.toLowerCase();
+        const faces = getViewRelativeFaces();
+        const keyToFace = {
+            f: faces.F, b: faces.B, l: faces.L,
+            r: faces.R, u: faces.U, d: faces.D,
+            m: 'M', e: 'E', s: 'S'
+        };
+        const face = keyToFace[lower];
+        if (face) {
+            e.preventDefault();
+            const dir = (k === lower) ? 1 : -1; // uppercase letter = inverse
+            rotateFace(face, dir, true);
+        }
+    }
+
+    // ========== Input Wiring ==========
+    function setupInput() {
+        const canvas = state.renderer.domElement;
+        canvas.addEventListener('pointerdown', onPointerDown);
+        canvas.addEventListener('pointermove', onPointerMove);
+        canvas.addEventListener('pointerup', onPointerUp);
+        canvas.addEventListener('pointercancel', onPointerUp);
+        canvas.addEventListener('pointerleave', onPointerUp);
+        canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const sens = 0.001;
+            state.cameraDistance *= 1 + e.deltaY * sens;
+            state.cameraDistance = Math.max(4, Math.min(15, state.cameraDistance));
+            updateCameraPosition();
+        }, { passive: false });
+
+        // Touch pinch zoom
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                state.pinchStartDist = Math.hypot(dx, dy);
+                state.pinchStartCameraDist = state.cameraDistance;
+            }
+        }, { passive: true });
+        canvas.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && state.pinchStartDist > 0) {
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                const newDist = Math.hypot(dx, dy);
+                state.cameraDistance = state.pinchStartCameraDist * (state.pinchStartDist / newDist);
+                state.cameraDistance = Math.max(4, Math.min(15, state.cameraDistance));
+                updateCameraPosition();
+            }
+        }, { passive: true });
+        canvas.addEventListener('touchend', () => {
+            state.pinchStartDist = 0;
+        }, { passive: true });
+
+        document.getElementById('scrambleBtn').addEventListener('click', scramble);
+        document.getElementById('undoBtn').addEventListener('click', undo);
+        document.getElementById('resetBtn').addEventListener('click', reset);
+        document.getElementById('newGameBtn').addEventListener('click', () => {
+            hideWinModal();
+            reset();
+        });
+
+        window.addEventListener('keydown', onKeyDown);
+    }
+
+    // ========== Init ==========
+    window.addEventListener('DOMContentLoaded', () => {
+        initThree();
+        createCube();
+        setupInput();
+    });
+    </script>
+</body>
+
+</html>

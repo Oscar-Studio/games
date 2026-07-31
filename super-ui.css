@@ -1,0 +1,173 @@
+/**
+ * Super UI - 等离子态界面样式
+ * 仅在等离子OS模式下加载，不影响正常/低画质模式
+ */
+
+/* Plasma Quality Only Styles */
+
+/* Hide entire hero HTML content in plasma mode - only particle text shows */
+body.plasma-quality .hero {
+    display: none;
+}
+
+/* Hide HTML Explore button in plasma mode - particle text replaces it */
+body.plasma-quality .plasma-explore-container {
+    display: none;
+}
+
+/* Hero Explore Button - only visible in plasma mode */
+body.plasma-quality .hero .btn-primary {
+    display: inline-block;
+    margin-top: 30px;
+    padding: 15px 50px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(135deg, #2A5CAA, #6A00FF);
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+body.plasma-quality .hero .btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(106, 0, 255, 0.3);
+}
+
+/* Hide normal card container in plasma mode */
+body.plasma-quality .card-container {
+    display: none;
+}
+
+/* Particle Canvas */
+#particle-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 50;
+}
+
+/* Particle Modal */
+body.plasma-quality .particle-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: rgba(13, 17, 23, 0.95);
+    border: 1px solid rgba(255, 107, 53, 0.35);
+    border-radius: 20px;
+    padding: 50px;
+    text-align: center;
+    z-index: 200;
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 40px rgba(255, 107, 53, 0.08);
+}
+
+body.plasma-quality .particle-modal.active {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+}
+
+body.plasma-quality .particle-modal-content {
+    position: relative;
+}
+
+body.plasma-quality .particle-modal-close {
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: #8b949e;
+    font-size: 1.4rem;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.plasma-quality .particle-modal-close:hover {
+    background: rgba(255, 107, 53, 0.15);
+    color: #FF6B35;
+}
+
+body.plasma-quality .particle-modal-icon {
+    font-size: 4.5rem;
+    margin-bottom: 20px;
+}
+
+body.plasma-quality .particle-modal h2 {
+    font-size: 1.8rem;
+    margin-bottom: 15px;
+    color: #FF6B35;
+}
+
+body.plasma-quality .particle-modal p {
+    color: #8b949e;
+    font-size: 1rem;
+    line-height: 1.7;
+    margin-bottom: 25px;
+}
+
+body.plasma-quality .particle-modal-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 25px;
+}
+
+body.plasma-quality .particle-modal-tags .tag {
+    font-size: 0.8rem;
+    padding: 4px 12px;
+    background: rgba(255, 107, 53, 0.12);
+    border: 1px solid rgba(255, 107, 53, 0.35);
+    color: #FFB347;
+    border-radius: 12px;
+}
+
+body.plasma-quality .particle-modal .btn-explore {
+    display: inline-block;
+    padding: 12px 40px;
+    background: linear-gradient(135deg, #FF6B35, #6A00FF);
+    color: white;
+    text-decoration: none;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+body.plasma-quality .particle-modal .btn-explore:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 107, 53, 0.35);
+}
+
+/* Quality mode indicator */
+body.plasma-quality .quality-indicator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid #FF6B35;
+    border-radius: 20px;
+    color: #FF6B35;
+    font-size: 0.85rem;
+    z-index: 1000;
+    display: block;
+}
+
+body.plasma-quality .quality-indicator.hidden {
+    display: none;
+}

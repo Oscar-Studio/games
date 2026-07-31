@@ -1,0 +1,112 @@
+{
+  "tools": [
+    {
+      "id": "chess-international",
+      "name": "国际象棋",
+      "description": "经典国际象棋，支持王车易位、吃过路兵、兵升变等全部规则",
+      "tags": ["棋类"],
+      "icon": "♔",
+      "featured": false,
+      "demoFile": "国际象棋/index.html"
+    },
+    {
+      "id": "gobang",
+      "name": "五子棋",
+      "description": "五子棋棋盘",
+      "tags": ["棋类"],
+      "icon": "♟️",
+      "featured": false,
+      "demoFile": "五子棋/index.html"
+    },
+    {
+      "id": "chinese-chess",
+      "name": "中国象棋",
+      "description": "中国象棋棋盘",
+      "tags": ["棋类"],
+      "icon": "♟️",
+      "featured": false,
+      "demoFile": "中国象棋/index.html"
+    },
+    {
+      "id": "schulte-grid",
+      "name": "舒尔特方格",
+      "description": "练习专注力和对数字敏感程度的舒尔特方格游戏",
+      "tags": ["数字", "专注"],
+      "icon": "♟️",
+      "featured": false,
+      "demoFile": "舒尔特方格/index.html"
+    },
+    {
+      "id": "game-2048",
+      "name": "2048",
+      "description": "简单好玩的2048游戏",
+      "tags": ["数字"],
+      "icon": "♟️",
+      "featured": false,
+      "demoFile": "2048/index.html"
+    },
+    {
+      "id": "skill-gobang",
+      "name": "技能五子棋",
+      "description": "全新的技能五子棋游戏",
+      "tags": ["棋类"],
+      "icon": "♟️",
+      "featured": true,
+      "demoFile": "技能五子棋/index.html"
+    },
+    {
+      "id": "word-match",
+      "name": "单词翻翻乐",
+      "description": "中英文单词记忆匹配游戏",
+      "tags": ["学习", "益智"],
+      "icon": "🎴",
+      "featured": true,
+      "demoFile": "单词翻翻乐/index.html"
+    },
+    {
+      "id": "twenty-four",
+      "name": "二十四点",
+      "description": "用四个数字通过加减乘除得到24的经典数学游戏",
+      "tags": ["数学", "益智"],
+      "icon": "🎯",
+      "featured": false,
+      "demoFile": "二十四点/index.html"
+    },
+    {
+      "id": "penalty-game",
+      "name": "罚分游戏",
+      "description": "用给出的数字计算目标值，差值越大扣分越多",
+      "tags": ["数学", "益智"],
+      "icon": "🎯",
+      "featured": false,
+      "demoFile": "罚分游戏/index.html"
+    },
+    {
+      "id": "cellular-automata",
+      "name": "元胞自动机",
+      "description": "生命游戏、电子电路Wireworld、一维Wolfram规则，支持7种规则切换与预设图案",
+      "tags": ["模拟", "益智"],
+      "icon": "🔬",
+      "featured": false,
+      "demoFile": "元胞自动机/index.html"
+    },
+    {
+      "id": "rubiks-cube",
+      "name": "魔方",
+      "description": "3D 魔方，手指滑动转面，拖动空白旋转视角，支持打乱/撤销/计时",
+      "tags": ["益智", "3D"],
+      "icon": "🧊",
+      "featured": true,
+      "demoFile": "魔方/index.html"
+    },
+    {
+      "id": "sudoku",
+      "name": "数独",
+      "description": "经典 9×9 数独，5 级难度，每难度 10-20 题，按需生成唯一解，支持笔记与冲突检测",
+      "tags": ["益智", "数字"],
+      "icon": "🔢",
+      "featured": true,
+      "demoFile": "数独/index.html"
+    }
+  ]
+}
