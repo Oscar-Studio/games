@@ -3,7 +3,10 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5">
+    <meta name="theme-color" content="#010409">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <title>益智游戏集 - Oscar Studio</title>
     <link rel="stylesheet" href="/style.css?v=11">
@@ -11,13 +14,41 @@
     <link rel="stylesheet" href="/user-auth.css">
     <script defer src="https://cloud.umami.is/script.js"
         data-website-id="cbc5311f-d106-4566-853d-1376d4f4774b"></script>
-    <script>LA.init({ id: "3ObNUtNXa4Os8xRM", ck: "3ObNUtNXa4Os8xRM" })</script>
+    <link rel="preconnect" href="https://sdk.51.la" />
+    <script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js" defer></script>
+    <script defer>window.LA && LA.init({ id: "3ObNUtNXa4Os8xRM", ck: "3ObNUtNXa4Os8xRM" });</script>
+    <script>
+      // 渲染前应用 light/dark 主题，避免闪烁
+      (function() {
+        try {
+          var t = localStorage.getItem('oscar-theme');
+          var resolved;
+          if (t === 'light' || t === 'dark') {
+            resolved = t;
+          } else {
+            // system 或未设置：跟随系统
+            resolved = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', resolved);
+        } catch (e) { /* ignore */ }
+      })();
+      // 渲染前应用 games 主题（classic / arcade），避免闪烁
+      (function() {
+        try {
+          var gt = localStorage.getItem('oscar-games-theme');
+          if (gt !== 'classic' && gt !== 'arcade') gt = 'arcade';
+          document.documentElement.setAttribute('data-games-theme', gt);
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
 </head>
 
 <body>
     <div id="root"></div>
-    <!-- WebGL 液态玻璃 canvas（由 React 组件按需初始化） -->
-    <canvas id="liquid-glass-canvas" data-lg-auto aria-hidden="true"></canvas>
     <!-- 共享头部/侧栏挂载点（保留给 user-button.js / opilot.js） -->
     <div id="userButtonContainer" style="display:none"></div>
     <script type="module" src="/src/main.tsx"></script>
