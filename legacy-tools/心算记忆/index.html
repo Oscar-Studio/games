@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>心算记忆 · Oscar Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script defer src="https://cloud.umami.is/script.js"
+        data-website-id="cbc5311f-d106-4566-853d-1376d4f4774b"></script>
+    <style>
+        :root {
+            /* Claude design tokens */
+            --primary: #cc785c;
+            --primary-active: #a9583e;
+            --primary-disabled: #e6dfd8;
+            --ink: #141413;
+            --body: #3d3d3a;
+            --body-strong: #252523;
+            --muted: #6c6a64;
+            --muted-soft: #8e8b82;
+            --hairline: #e6dfd8;
+            --hairline-soft: #ebe6df;
+            --canvas: #faf9f5;
+            --surface-soft: #f5f0e8;
+            --surface-card: #efe9de;
+            --surface-cream-strong: #e8e0d2;
+            --surface-dark: #181715;
+            --surface-dark-elevated: #252320;
+            --surface-dark-soft: #1f1e1b;
+            --on-primary: #ffffff;
+            --on-dark: #faf9f5;
+            --on-dark-soft: #a09d96;
+            --success: #5db872;
+            --error: #c64545;
+
+            --serif: 'Cormorant Garamond', 'Tiempos Headline', Garamond, 'Times New Roman', serif;
+            --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --mono: 'JetBrains Mono', ui-monospace, monospace;
+
+            --r-md: 8px;
+            --r-lg: 12px;
+            --r-xl: 16px;
+            --r-pill: 9999px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--canvas);
+            color: var(--ink);
+            font-family: var(--sans);
+            font-size: 16px;
+            line-height: 1.55;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 32px 20px 48px;
+        }
+
+        .page {
+            width: 100%;
+            max-width: 640px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            flex: 1;
+        }
+
+        /* === Typography === */
+        .display-xl {
+            font-family: var(--serif);
+            font-weight: 500;
+            font-size: clamp(40px, 9vw, 64px);
+            line-height: 1.05;
+            letter-spacing: -0.02em;
+            color: var(--ink);
+        }
+
+        .display-md {
+            font-family: var(--serif);
+            font-weight: 500;
+            font-size: 36px;
+            line-height: 1.15;
+            letter-spacing: -0.01em;
+            color: var(--ink);
+        }
+
+        .display-sm {
+            font-family: var(--serif);
+            font-weight: 500;
+            font-size: 28px;
+            line-height: 1.2;
+            letter-spacing: -0.01em;
+        }
+
+        .caption-uppercase {
+            font-family: var(--sans);
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .body-md {
+            font-size: 16px;
+            line-height: 1.7;
+            color: var(--body);
+        }
+
+        .body-sm {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--body);
+        }
+
+        /* === Top bar === */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-mark {
+            width: 22px;
+            height: 22px;
+            color: var(--ink);
+        }
+
+        .brand-name {
+            font-family: var(--serif);
+            font-weight: 500;
+            font-size: 22px;
+            letter-spacing: -0.01em;
+            color: var(--ink);
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .stat-value {
+            font-family: var(--serif);
+            font-weight: 500;
+            font-size: 22px;
+            line-height: 1;
+            letter-spacing: -0.01em;
+            color: var(--ink);
+        }
+
+        .stat-label {
+            font-family: var(--sans);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        /* === Buttons === */
+        .btn {
+            font-family: var(--sans);
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1;
+            padding: 0 20px;
+            height: 44px;
+            border: none;
+            border-radius: var(--r-md);
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--on-primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-active);
+        }
+
+        .btn-primary:disabled {
+            background: var(--primary-disabled);
+            color: var(--muted);
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--canvas);
+            color: var(--ink);
+            border: 1px solid var(--hairline);
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface-soft);
+        }
+
+        .btn-on-dark {
+            background: transparent;
+            color: var(--on-dark);
+            border: 1px solid rgba(250, 249, 245, 0.18);
+        }
+
+        .btn-on-dark:hover {
+            background: rgba(250, 249, 245, 0.06);
+        }
+
+        /* === Start screen === */
+        .hero {
+            text-align: center;
+            padding: 24px 0 8px;
+        }
+
+        .hero .display-xl {
+            margin-bottom: 12px;
+        }
+
+        .hero .subtitle {
+            font-size: 18px;
+            line-height: 1.6;
+            color: var(--body);
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .level-btn {
+            padding: 12px 6px;
+            background: var(--canvas);
+            border: 1px solid var(--hairline);
+            border-radius: var(--r-md);
+            cursor: pointer;
+            transition: border-color 0.15s ease, background 0.15s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--ink);
+            font-family: inherit;
+        }
+
+        .level-btn:hover {
+            border-color: var(--ink);
+        }
+
+        .level-btn.selected {
+            background: var(--ink);
+            color: var(--canvas);
+            border-color: var(--ink);
+        }
+
+        .level-num {
+            font-family: var(--serif);
+            font-weight: 500;
+            font-size: 22px;
+            line-height: 1;
+            letter-spacing: -0.01em;
+        }
+
+        .level-best {
+            font-family: var(--sans);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .level-btn.selected .level-best {
+            color: rgba(250, 249, 245, 0.6);
+        }
+
+        .help {
+            background: var(--surface-card);
+            border-radius: var(--r-lg);
+            padding: 24px 28px;
+            font-size: 14px;
+            line-height: 1.75;
+            color: var(--body);
+        }
+
+        .help b {
+            color: var(--ink);
+            font-weight: 500;
+        }
+
+        .actions-center {
+            display: flex;
+            justify-content: center;
+        }
+
+        /* === Game screen === */
+        .game {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            flex: 1;
+            min-height: 60vh;
+        }
+
+        .equation-card {
+            background: var(--surface-card);
+            border-radius: var(--r-xl);
+            padding: 40px 32px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            min-height: 180px;
+        }
+
+        .input-zone {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: auto;
+            padding-top: 8px;
+        }
+
+        .input-divider {
+            height: 1px;
+            background: var(--hairline);
+            margin-bottom: 4px;
+        }
+
+        .equation-meta {
+            font-family: var(--sans);
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .equation {
+            font-family: var(--serif);
+            font-weight: 500;
+            font-size: clamp(56px, 14vw, 96px);
+            line-height: 1;
+            letter-spacing: -0.02em;
+            color: var(--ink);
+            word-break: break-word;
+        }
+
+        .equation-feedback {
+            font-family: var(--sans);
+            font-size: 13px;
+            color: var(--muted);
+            min-height: 18px;
+        }
+
+        .equation-feedback.success {
+            color: var(--success);
+        }
+
+        .equation-feedback.error {
+            color: var(--error);
+        }
+
+        /* Recall area (at the bottom) */
+        .recall-card {
+            background: var(--canvas);
+            border: 1px solid var(--hairline);
+            border-radius: var(--r-lg);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .recall-card.hidden {
+            display: none;
+        }
+
+        .recall-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .recall-label {
+            font-family: var(--sans);
+            font-size: 14px;
+            color: var(--body);
+        }
+
+        .recall-label b {
+            font-family: var(--serif);
+            font-weight: 500;
+            font-size: 20px;
+            color: var(--ink);
+            margin: 0 2px;
+        }
+
+        .recall-display {
+            font-family: var(--mono);
+            font-weight: 500;
+            font-size: 32px;
+            line-height: 1;
+            color: var(--ink);
+            background: var(--surface-soft);
+            border: 1px solid var(--hairline);
+            border-radius: var(--r-md);
+            padding: 16px;
+            text-align: center;
+            letter-spacing: 6px;
+            min-height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+        }
+
+        .recall-display.empty {
+            color: var(--muted-soft);
+        }
+
+        .recall-display.correct {
+            border-color: var(--success);
+            color: var(--success);
+            background: rgba(93, 184, 114, 0.06);
+        }
+
+        .recall-display.wrong {
+            border-color: var(--error);
+            color: var(--error);
+            background: rgba(198, 69, 69, 0.06);
+        }
+
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .num-btn {
+            font-family: var(--sans);
+            font-weight: 500;
+            font-size: 22px;
+            background: var(--canvas);
+            border: 1px solid var(--hairline);
+            color: var(--ink);
+            border-radius: var(--r-md);
+            padding: 0;
+            cursor: pointer;
+            height: 60px;
+            transition: background 0.1s ease, border-color 0.1s ease, transform 0.05s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .num-btn:hover {
+            border-color: var(--ink);
+            background: var(--surface-soft);
+        }
+
+        .num-btn:active {
+            transform: scale(0.96);
+            background: var(--surface-cream-strong);
+        }
+
+        .num-btn.action {
+            background: var(--surface-soft);
+            color: var(--muted);
+            font-size: 18px;
+        }
+
+        .num-btn.action:hover {
+            color: var(--ink);
+            background: var(--surface-cream-strong);
+        }
+
+        .game-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        /* === Game over screen === */
+        .over-card {
+            background: var(--surface-dark);
+            color: var(--on-dark);
+            border-radius: var(--r-lg);
+            padding: 36px;
+        }
+
+        .over-title {
+            font-family: var(--serif);
+            font-weight: 500;
+            font-size: 32px;
+            line-height: 1.1;
+            letter-spacing: -0.01em;
+            color: var(--on-dark);
+            margin-bottom: 8px;
+        }
+
+        .over-subtitle {
+            font-size: 14px;
+            color: var(--on-dark-soft);
+            margin-bottom: 28px;
+        }
+
+        .over-rows {
+            border-top: 1px solid rgba(250, 249, 245, 0.12);
+            margin-bottom: 28px;
+        }
+
+        .over-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(250, 249, 245, 0.12);
+            font-size: 14px;
+        }
+
+        .over-row span {
+            color: var(--on-dark-soft);
+        }
+
+        .over-row strong {
+            color: var(--on-dark);
+            font-weight: 500;
+            font-family: var(--mono);
+        }
+
+        .over-row strong.highlight {
+            color: var(--primary);
+        }
+
+        .over-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* === Helpers === */
+        .hidden {
+            display: none !important;
+        }
+
+        footer {
+            margin-top: 48px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--muted-soft);
+            font-family: var(--sans);
+        }
+
+        footer .mark {
+            color: var(--ink);
+            font-family: var(--serif);
+            font-size: 14px;
+            margin-right: 6px;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 20px 14px 40px;
+            }
+
+            .page {
+                gap: 24px;
+            }
+
+            .hero {
+                padding: 12px 0 0;
+            }
+
+            .hero .subtitle {
+                font-size: 16px;
+            }
+
+            .equation-card {
+                padding: 32px 18px;
+                min-height: 160px;
+                border-radius: var(--r-lg);
+            }
+
+            .recall-card {
+                padding: 20px;
+            }
+
+            .over-card {
+                padding: 24px;
+            }
+
+            .help {
+                padding: 18px 20px;
+            }
+
+            .level-grid {
+                gap: 6px;
+            }
+
+            .level-btn {
+                padding: 10px 2px;
+            }
+
+            .level-num {
+                font-size: 18px;
+            }
+
+            .stats-row {
+                gap: 14px;
+            }
+
+            .stat-value {
+                font-size: 18px;
+            }
+
+            .brand-name {
+                font-size: 18px;
+            }
+
+            .num-btn {
+                height: 52px;
+                font-size: 20px;
+            }
+
+            .recall-display {
+                font-size: 28px;
+                min-height: 56px;
+                padding: 14px;
+            }
+        }
+    </style>
+<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js"></script>
+<script>LA.init({id:"3ObNUtNXa4Os8xRM",ck:"3ObNUtNXa4Os8xRM"})</script>
+</head>
+
+<body>
+    <div class="page">
+        <!-- Top bar -->
+        <div class="topbar">
+            <div class="brand">
+                <svg class="brand-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="12" y1="2.5" x2="12" y2="21.5" />
+                        <line x1="2.5" y1="12" x2="21.5" y2="12" />
+                        <line x1="5.3" y1="5.3" x2="18.7" y2="18.7" />
+                        <line x1="18.7" y1="5.3" x2="5.3" y2="18.7" />
+                    </g>
+                </svg>
+                <span class="brand-name">心算记忆</span>
+            </div>
+            <div class="stats-row" id="topStats">
+                <div class="stat">
+                    <span class="stat-value" id="statRound">—</span>
+                    <span class="stat-label">轮次</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="statLevel">—</span>
+                    <span class="stat-label">难度</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="statBest">—</span>
+                    <span class="stat-label">最佳</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Start screen -->
+        <div id="startScreen">
+            <div class="hero">
+                <h1 class="display-xl">心算记忆</h1>
+                <p class="subtitle">心算答案、记住前轮 —— 训练你的工作记忆</p>
+            </div>
+
+            <div>
+                <div class="section-title">
+                    <span class="caption-uppercase">选择难度</span>
+                </div>
+                <div class="level-grid" id="levelGrid"></div>
+            </div>
+
+            <div class="help" id="helpText">
+                <b>玩法</b>　每轮显示一个算式，你需要心算出答案并记住。<br>
+                从第 <b id="helpStartRound">2</b> 轮起，每轮都要输入 <b id="helpAgo">1</b> 轮前的答案。<br>
+                难度越高，需要回忆的轮次越远。<br><br>
+                <b>算式曲线</b>　一位数 → 两位数 → 乘法 → 混合运算。
+            </div>
+
+            <div class="actions-center">
+                <button class="btn btn-primary" id="startBtn" style="min-width: 200px;">开始挑战</button>
+            </div>
+        </div>
+
+        <!-- Game screen -->
+        <div id="gameScreen" class="hidden game">
+            <div class="equation-card">
+                <span class="equation-meta">第 <span id="roundMeta">1</span> 轮</span>
+                <div class="equation" id="equation"></div>
+                <div class="equation-feedback" id="equationFeedback">心算后点下一题</div>
+            </div>
+
+            <div class="input-zone">
+                <div class="recall-card hidden" id="recallCard">
+                    <div class="recall-header">
+                        <span class="recall-label">上 <b id="recallN">1</b> 轮的答案</span>
+                    </div>
+                    <div class="recall-display empty" id="recallDisplay">_</div>
+                    <div class="numpad" id="numpad">
+                        <button class="num-btn" data-digit="1">1</button>
+                        <button class="num-btn" data-digit="2">2</button>
+                        <button class="num-btn" data-digit="3">3</button>
+                        <button class="num-btn" data-digit="4">4</button>
+                        <button class="num-btn" data-digit="5">5</button>
+                        <button class="num-btn" data-digit="6">6</button>
+                        <button class="num-btn" data-digit="7">7</button>
+                        <button class="num-btn" data-digit="8">8</button>
+                        <button class="num-btn" data-digit="9">9</button>
+                        <button class="num-btn action" data-action="back" aria-label="退格">⌫</button>
+                        <button class="num-btn" data-digit="0">0</button>
+                        <button class="num-btn action" data-action="clear" aria-label="清除">C</button>
+                    </div>
+                </div>
+
+                <div class="game-actions">
+                    <button class="btn btn-primary" id="nextBtn" style="min-width: 140px;">下一题</button>
+                    <button class="btn btn-secondary" id="quitBtn">放弃</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game over screen -->
+        <div id="overScreen" class="hidden">
+            <div class="over-card">
+                <div class="over-title">本局结束</div>
+                <div class="over-subtitle" id="overSubtitle">心算与工作记忆的边界，又近了一点</div>
+                <div class="over-rows" id="overRows"></div>
+                <div class="over-actions">
+                    <button class="btn btn-primary" id="restartBtn" style="min-width: 140px;">再来一局</button>
+                    <button class="btn btn-on-dark" id="backBtn">返回选关</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <span class="mark">✦</span>心算记忆 · Oscar Studio
+    </footer>
+
+    <script>
+        // ---- State ----
+        let level = 1;
+        let round = 0;
+        let history = [];   // [{expr, answer}]
+        let recallBuffer = '';
+        let gameActive = false;
+        let advancing = false;
+        let bestByLevel = {};
+
+        // ---- DOM ----
+        const $ = (id) => document.getElementById(id);
+        const startScreen = $('startScreen');
+        const gameScreen = $('gameScreen');
+        const overScreen = $('overScreen');
+        const levelGrid = $('levelGrid');
+        const recallCard = $('recallCard');
+        const recallDisplay = $('recallDisplay');
+        const recallN = $('recallN');
+        const numpad = $('numpad');
+        const equationEl = $('equation');
+        const equationFeedback = $('equationFeedback');
+        const roundMeta = $('roundMeta');
+        const statRound = $('statRound');
+        const statLevel = $('statLevel');
+        const statBest = $('statBest');
+        const helpStartRound = $('helpStartRound');
+        const helpAgo = $('helpAgo');
+        const overRows = $('overRows');
+
+        // ---- Persistence ----
+        function loadBest() {
+            try {
+                const stored = localStorage.getItem('mentalMemory.best');
+                if (stored) bestByLevel = JSON.parse(stored);
+            } catch (e) {
+                bestByLevel = {};
+            }
+        }
+
+        function saveBest() {
+            try {
+                localStorage.setItem('mentalMemory.best', JSON.stringify(bestByLevel));
+            } catch (e) { /* ignore */ }
+        }
+
+        // ---- Equation generation ----
+        function randInt(lo, hi) {
+            return Math.floor(Math.random() * (hi - lo + 1)) + lo;
+        }
+
+        function generateEquation(r) {
+            if (r <= 5) {
+                // 一位数 ±（结果非负）
+                const a = randInt(1, 9), b = randInt(1, 9);
+                const x = Math.max(a, b), y = Math.min(a, b);
+                return Math.random() < 0.5
+                    ? { expr: `${x} + ${y}`, answer: x + y }
+                    : { expr: `${x} − ${y}`, answer: x - y };
+            }
+            if (r <= 10) {
+                // 两位数 ±
+                const a = randInt(10, 50), b = randInt(5, 30);
+                const x = Math.max(a, b), y = Math.min(a, b);
+                return Math.random() < 0.5
+                    ? { expr: `${x} + ${y}`, answer: x + y }
+                    : { expr: `${x} − ${y}`, answer: x - y };
+            }
+            if (r <= 15) {
+                // 一位数 ×
+                const a = randInt(2, 9), b = randInt(2, 9);
+                return { expr: `${a} × ${b}`, answer: a * b };
+            }
+            // 混合 ×±
+            const m = randInt(2, 9), n = randInt(2, 9);
+            const product = m * n;
+            const c = randInt(1, Math.max(1, product - 1));
+            return Math.random() < 0.5
+                ? { expr: `${m} × ${n} + ${c}`, answer: product + c }
+                : { expr: `${m} × ${n} − ${c}`, answer: product - c };
+        }
+
+        // ---- UI ----
+        function renderLevelGrid() {
+            levelGrid.innerHTML = '';
+            helpStartRound.textContent = level + 1;
+            helpAgo.textContent = level;
+            for (let i = 1; i <= 10; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'level-btn' + (i === level ? ' selected' : '');
+                const best = bestByLevel[i] || 0;
+                btn.innerHTML = `<span class="level-num">${i}</span><span class="level-best">${best > 0 ? `最佳 ${best}` : '—'}</span>`;
+                btn.onclick = () => { level = i; renderLevelGrid(); };
+                levelGrid.appendChild(btn);
+            }
+        }
+
+        function updateStats() {
+            statRound.textContent = round || '—';
+            statLevel.textContent = level;
+            statBest.textContent = bestByLevel[level] || '—';
+        }
+
+        function renderRound() {
+            const eq = generateEquation(round);
+            history.push(eq);
+
+            equationEl.textContent = eq.expr;
+            roundMeta.textContent = round;
+
+            const recallIdx = round - level - 1;
+            if (recallIdx >= 0) {
+                recallCard.classList.remove('hidden');
+                recallN.textContent = level;
+                recallBuffer = '';
+                recallDisplay.classList.remove('correct', 'wrong');
+                updateRecallDisplay();
+                equationFeedback.className = 'equation-feedback';
+                equationFeedback.textContent = '输入上方数字键作答';
+            } else {
+                recallCard.classList.add('hidden');
+                equationFeedback.className = 'equation-feedback';
+                equationFeedback.textContent = '心算后点下一题';
+            }
+
+            updateStats();
+        }
+
+        function handleNext() {
+            if (!gameActive || advancing) return;
+            advancing = true;
+
+            const recallIdx = round - level - 1;
+
+            if (recallIdx >= 0) {
+                const expected = history[recallIdx].answer;
+                const entered = parseInt(recallBuffer, 10);
+                if (isNaN(entered) || entered !== expected) {
+                    endGame(expected, isNaN(entered) ? null : entered);
+                    return;
+                }
+                recallDisplay.classList.add('correct');
+                equationFeedback.className = 'equation-feedback success';
+                equationFeedback.textContent = '✓ 答案正确';
+            }
+
+            setTimeout(() => {
+                round++;
+                advancing = false;
+                renderRound();
+            }, 350);
+        }
+
+        function endGame(expected, entered) {
+            gameActive = false;
+            advancing = false;
+            recallDisplay.classList.add('wrong');
+            equationFeedback.className = 'equation-feedback error';
+            equationFeedback.textContent = entered === null
+                ? `✗ 未输入答案（${expected}）`
+                : `✗ 正确答案 ${expected}`;
+
+            const reachedRound = round;
+            const prevBest = bestByLevel[level] || 0;
+            let isNewRecord = false;
+            if (reachedRound > prevBest) {
+                bestByLevel[level] = reachedRound;
+                saveBest();
+                isNewRecord = true;
+            }
+
+            const failRecallIdx = round - level - 1;
+            const failEq = failRecallIdx >= 0 ? history[failRecallIdx] : null;
+
+            setTimeout(() => {
+                gameScreen.classList.add('hidden');
+                overScreen.classList.remove('hidden');
+                overRows.innerHTML = `
+                    <div class="over-row"><span>难度</span><strong>${level} 级</strong></div>
+                    <div class="over-row"><span>坚持轮次</span><strong class="highlight">${reachedRound}</strong></div>
+                    <div class="over-row"><span>历史最佳</span><strong>${bestByLevel[level]} 轮${isNewRecord ? ' · 新纪录' : ''}</strong></div>
+                    <div class="over-row"><span>需要回忆</span><strong>${failEq ? failEq.expr : '—'}</strong></div>
+                    <div class="over-row"><span>正确答案</span><strong>${expected}</strong></div>
+                    <div class="over-row"><span>你的输入</span><strong>${entered === null ? '（空）' : entered}</strong></div>
+                `;
+                updateStats();
+            }, 950);
+        }
+
+        function quitGame() {
+            if (!gameActive) return;
+            if (!confirm('确定放弃本局？')) return;
+            gameActive = false;
+            gameScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+            updateStats();
+            renderLevelGrid();
+        }
+
+        function startGame() {
+            round = 0;
+            history = [];
+            recallBuffer = '';
+            gameActive = true;
+            advancing = false;
+            startScreen.classList.add('hidden');
+            overScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            round++;
+            renderRound();
+        }
+
+        function backToStart() {
+            overScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+            updateStats();
+            renderLevelGrid();
+        }
+
+        // ---- Recall (numpad) ----
+        function tapDigit(d) {
+            if (recallBuffer.length >= 4) return;
+            if (recallBuffer === '0') recallBuffer = d;
+            else if (recallBuffer === '' && d === '0') recallBuffer = '0';
+            else recallBuffer += d;
+            updateRecallDisplay();
+        }
+
+        function backspaceRecall() {
+            recallBuffer = recallBuffer.slice(0, -1);
+            updateRecallDisplay();
+        }
+
+        function clearRecall() {
+            recallBuffer = '';
+            updateRecallDisplay();
+        }
+
+        function updateRecallDisplay() {
+            if (recallBuffer === '') {
+                recallDisplay.textContent = '_';
+                recallDisplay.classList.add('empty');
+            } else {
+                recallDisplay.textContent = recallBuffer;
+                recallDisplay.classList.remove('empty');
+            }
+        }
+
+        numpad.addEventListener('click', (e) => {
+            const btn = e.target.closest('.num-btn');
+            if (!btn) return;
+            if (btn.dataset.digit !== undefined) tapDigit(btn.dataset.digit);
+            else if (btn.dataset.action === 'back') backspaceRecall();
+            else if (btn.dataset.action === 'clear') clearRecall();
+        });
+
+        // ---- Wire up ----
+        $('startBtn').onclick = startGame;
+        $('nextBtn').onclick = handleNext;
+        $('quitBtn').onclick = quitGame;
+        $('restartBtn').onclick = startGame;
+        $('backBtn').onclick = backToStart;
+
+        // 桌面键盘
+        document.addEventListener('keydown', (e) => {
+            if (!gameActive || advancing) return;
+            if (recallCard.classList.contains('hidden')) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleNext();
+                }
+                return;
+            }
+            if (e.key >= '0' && e.key <= '9') {
+                tapDigit(e.key);
+                e.preventDefault();
+            } else if (e.key === 'Backspace') {
+                backspaceRecall();
+                e.preventDefault();
+            } else if (e.key === 'Escape') {
+                clearRecall();
+                e.preventDefault();
+            } else if (e.key === 'Enter') {
+                handleNext();
+                e.preventDefault();
+            }
+        });
+
+        // ---- Init ----
+        loadBest();
+        renderLevelGrid();
+        updateStats();
+    </script>
+</body>
+
+</html>
