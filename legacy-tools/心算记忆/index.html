@@ -365,12 +365,50 @@
         }
 
         .equation-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            width: 100%;
             font-family: var(--sans);
             font-size: 12px;
             font-weight: 500;
             letter-spacing: 1.5px;
             text-transform: uppercase;
             color: var(--muted);
+        }
+
+        .timer {
+            font-family: var(--mono);
+            font-size: 16px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            color: var(--ink);
+            text-transform: none;
+            font-variant-numeric: tabular-nums;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .timer::before {
+            content: '⏱';
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .timer.warning {
+            color: var(--accent-amber);
+        }
+
+        .timer.critical {
+            color: var(--error);
+            animation: timerPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes timerPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
         .equation {
@@ -719,7 +757,8 @@
                 <b>玩法</b>　每轮显示一个算式，你需要心算出答案并记住。<br>
                 从第 <b id="helpStartRound">2</b> 轮起，每轮都要输入 <b id="helpAgo">1</b> 轮前的答案。<br>
                 难度越高，需要回忆的轮次越远。<br><br>
-                <b>算式曲线</b>　一位数 → 两位数 → 乘法 → 混合运算。
+                <b>算式曲线</b>　一位数 → 两位数 → 乘法 → 混合运算。<br>
+                <b>时间限制</b>　1-3 级 <b>60 秒</b> · 4-6 级 <b>120 秒</b> · 7-10 级 <b>180 秒</b>。时间到即结束，答错也提前结束。
             </div>
 
             <div class="actions-center">
@@ -730,7 +769,10 @@
         <!-- Game screen -->
         <div id="gameScreen" class="hidden game">
             <div class="equation-card">
-                <span class="equation-meta">第 <span id="roundMeta">1</span> 轮</span>
+                <span class="equation-meta">
+                    <span>第 <span id="roundMeta">1</span> 轮</span>
+                    <span class="timer" id="timerValue">01:00</span>
+                </span>
                 <div class="equation" id="equation"></div>
                 <div class="equation-feedback" id="equationFeedback">心算后点下一题</div>
             </div>
@@ -792,6 +834,12 @@
         let advancing = false;
         let bestByLevel = {};
 
+        // ---- Timer ----
+        let timerStart = 0;        // Date.now() when timer started
+        let timerDuration = 60000; // ms, set per level
+        let timerInterval = null;
+        let timeUsedMs = 0;        // how long the game lasted (for end screen)
+
         // ---- DOM ----
         const $ = (id) => document.getElementById(id);
         const startScreen = $('startScreen');
@@ -808,6 +856,7 @@
         const statRound = $('statRound');
         const statLevel = $('statLevel');
         const statBest = $('statBest');
+        const timerValue = $('timerValue');
         const helpStartRound = $('helpStartRound');
         const helpAgo = $('helpAgo');
         const overRows = $('overRows');
@@ -920,7 +969,7 @@
                 const expected = history[recallIdx].answer;
                 const entered = parseInt(recallBuffer, 10);
                 if (isNaN(entered) || entered !== expected) {
-                    endGame(expected, isNaN(entered) ? null : entered);
+                    endGame(expected, isNaN(entered) ? null : entered, 'wrong');
                     return;
                 }
                 recallDisplay.classList.add('correct');
@@ -935,14 +984,51 @@
             }, 350);
         }
 
-        function endGame(expected, entered) {
+        // ---- Timer ----
+        function getTimerDuration(lv) {
+            if (lv <= 3) return 60 * 1000;
+            if (lv <= 6) return 120 * 1000;
+            return 180 * 1000;       // 7-10
+        }
+
+        function formatMMSS(ms) {
+            const sec = Math.max(0, Math.ceil(ms / 1000));
+            return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+        }
+
+        function startTimer() {
+            timerDuration = getTimerDuration(level);
+            timerStart = Date.now();
+            timerValue.classList.remove('warning', 'critical');
+            timerValue.textContent = formatMMSS(timerDuration);
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimerDisplay, 200);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateTimerDisplay() {
+            if (!gameActive) return;
+            const remaining = timerDuration - (Date.now() - timerStart);
+            timerValue.textContent = formatMMSS(remaining);
+            timerValue.classList.toggle('warning', remaining <= 30000 && remaining > 10000);
+            timerValue.classList.toggle('critical', remaining <= 10000);
+            if (remaining <= 0) {
+                endGame(null, null, 'timeout');
+            }
+        }
+
+        function endGame(expected, entered, reason) {
+            // reason: 'wrong' (default) | 'timeout' | 'quit'
+            stopTimer();
+            timeUsedMs = Date.now() - timerStart;
             gameActive = false;
             advancing = false;
-            recallDisplay.classList.add('wrong');
-            equationFeedback.className = 'equation-feedback error';
-            equationFeedback.textContent = entered === null
-                ? `✗ 未输入答案（${expected}）`
-                : `✗ 正确答案 ${expected}`;
 
             const reachedRound = round;
             const prevBest = bestByLevel[level] || 0;
@@ -955,17 +1041,46 @@
 
             const failRecallIdx = round - level - 1;
             const failEq = failRecallIdx >= 0 ? history[failRecallIdx] : null;
+            const usedSec = Math.floor(timeUsedMs / 1000);
+            const usedTime = `${String(Math.floor(usedSec / 60)).padStart(2, '0')}:${String(usedSec % 60).padStart(2, '0')}`;
+
+            if (reason === 'timeout') {
+                equationFeedback.className = 'equation-feedback error';
+                equationFeedback.textContent = '⏰ 时间到';
+                recallDisplay.classList.remove('wrong');
+            } else if (reason === 'quit') {
+                equationFeedback.className = 'equation-feedback';
+                equationFeedback.textContent = '';
+                recallDisplay.classList.remove('wrong');
+            } else {
+                recallDisplay.classList.add('wrong');
+                equationFeedback.className = 'equation-feedback error';
+                equationFeedback.textContent = entered === null
+                    ? `✗ 未输入答案（${expected}）`
+                    : `✗ 正确答案 ${expected}`;
+            }
 
             setTimeout(() => {
                 gameScreen.classList.add('hidden');
                 overScreen.classList.remove('hidden');
+                const failBlock = (reason === 'wrong')
+                    ? `
+                    <div class="over-row"><span>需要回忆</span><strong>${failEq ? failEq.expr : '—'}</strong></div>
+                    <div class="over-row"><span>正确答案</span><strong>${expected}</strong></div>
+                    <div class="over-row"><span>你的输入</span><strong>${entered === null ? '（空）' : entered}</strong></div>`
+                    : '';
+                const subtitle = reason === 'timeout'
+                    ? `${usedTime} 用尽，答对 ${reachedRound} 轮`
+                    : reason === 'quit'
+                    ? `主动放弃，答对 ${reachedRound} 轮`
+                    : '心算与工作记忆的边界，又近了一点';
+                $('overSubtitle').textContent = subtitle;
                 overRows.innerHTML = `
                     <div class="over-row"><span>难度</span><strong>${level} 级</strong></div>
                     <div class="over-row"><span>坚持轮次</span><strong class="highlight">${reachedRound}</strong></div>
+                    <div class="over-row"><span>用时</span><strong>${usedTime}</strong></div>
                     <div class="over-row"><span>历史最佳</span><strong>${bestByLevel[level]} 轮${isNewRecord ? ' · 新纪录' : ''}</strong></div>
-                    <div class="over-row"><span>需要回忆</span><strong>${failEq ? failEq.expr : '—'}</strong></div>
-                    <div class="over-row"><span>正确答案</span><strong>${expected}</strong></div>
-                    <div class="over-row"><span>你的输入</span><strong>${entered === null ? '（空）' : entered}</strong></div>
+                    ${failBlock}
                 `;
                 updateStats();
             }, 950);
@@ -974,6 +1089,7 @@
         function quitGame() {
             if (!gameActive) return;
             if (!confirm('确定放弃本局？')) return;
+            stopTimer();
             gameActive = false;
             gameScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
@@ -991,6 +1107,7 @@
             overScreen.classList.add('hidden');
             gameScreen.classList.remove('hidden');
             round++;
+            startTimer();
             renderRound();
         }
 
