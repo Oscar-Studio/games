@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>数独 - Oscar Studio</title>
+  <meta name="description" content="在线数独游戏，5 级难度，按需生成唯一解">
+  <link rel="stylesheet" href="数独.css">
+</head>
+
+<body>
+
+  <!-- ============== 主视图：难度选择 ============== -->
+  <section class="view view-home" id="homeView">
+    <div class="home-bar">
+      <a class="home-back" href="../../" aria-label="返回">‹ Oscar Studio</a>
+      <span class="home-brand">数独 Sudoku</span>
+    </div>
+
+    <header class="home-hero">
+      <div class="home-icon">🔢</div>
+      <h1 class="home-title">数 独</h1>
+      <p class="home-subtitle">经典 9×9 益智游戏 · 5 级难度 · 按需生成唯一解</p>
+    </header>
+
+    <div class="diff-list" id="diffList">
+      <!-- JS 注入 -->
+    </div>
+
+    <div class="home-tip">
+      <div class="tip-row"><kbd>1-9</kbd> 填数 · <kbd>N</kbd> 笔记 · <kbd>Backspace</kbd> 清除 · <kbd>Shift+Z</kbd> 撤销 · <kbd>H</kbd> 提示</div>
+    </div>
+  </section>
+
+  <!-- ============== 游玩视图 ============== -->
+  <section class="view view-game" id="gameView" hidden>
+
+    <div class="top-bar">
+      <button class="back-btn" id="backBtn" aria-label="返回主页">‹</button>
+      <div>
+        <div class="title">数独</div>
+        <div id="titleLevel" style="font-size:0.82rem;color:var(--text-dim);margin-top:2px;">选择难度开始</div>
+      </div>
+      <div class="top-stats">
+        <div class="stat-pill timer">
+          <span class="label">用时</span>
+          <span class="value" id="timer">00:00</span>
+        </div>
+        <div class="stat-pill errors">
+          <span class="label">错误</span>
+          <span class="value" id="errors">0</span>
+        </div>
+        <div class="stat-pill hints">
+          <span class="label">提示</span>
+          <span class="value" id="hints">3</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="puzzle-nav" id="puzzleNav">
+      <button id="puzzlePrev" aria-label="上一题">‹</button>
+      <span class="label" id="puzzleLabel">1 / 10</span>
+      <button id="puzzleNext" aria-label="下一题">›</button>
+    </div>
+
+    <div class="board-wrap">
+      <div class="board" id="board"></div>
+    </div>
+
+    <div class="toolbar">
+      <button class="tool-btn" id="resetBtn" title="重新开始本题">
+        <span class="ico">↺</span><span>重置</span>
+      </button>
+      <button class="tool-btn" id="undoBtn" title="撤销 (Shift+Z)">
+        <span class="ico">↶</span><span>撤销</span>
+      </button>
+      <button class="tool-btn" id="hintBtn" title="提示 (H)">
+        <span class="ico">💡</span><span>提示</span>
+      </button>
+      <button class="tool-btn" id="noteBtn" title="笔记模式 (N)">
+        <span class="ico">✎</span><span>笔记 关</span>
+      </button>
+      <button class="tool-btn" id="eraseBtn" title="清除 (Backspace)">
+        <span class="ico">⌫</span><span>清除</span>
+      </button>
+      <button class="tool-btn primary" id="newBtn" title="下一题">
+        <span class="ico">▶</span><span>下一题</span>
+      </button>
+    </div>
+
+    <div class="numpad" id="numpad">
+      <button class="num-key" data-value="1">1</button>
+      <button class="num-key" data-value="2">2</button>
+      <button class="num-key" data-value="3">3</button>
+      <button class="num-key" data-value="4">4</button>
+      <button class="num-key" data-value="5">5</button>
+      <button class="num-key" data-value="6">6</button>
+      <button class="num-key" data-value="7">7</button>
+      <button class="num-key" data-value="8">8</button>
+      <button class="num-key" data-value="9">9</button>
+    </div>
+
+  </section>
+
+  <!-- 胜利弹窗 -->
+  <div class="modal-mask" id="winModal">
+    <div class="modal">
+      <div class="modal-title">完成！</div>
+      <div class="modal-subtitle">恭喜通关</div>
+      <div class="win-info">
+        <div class="win-item">
+          <div class="label">用时</div>
+          <div class="value" id="winTime">00:00</div>
+        </div>
+        <div class="win-item">
+          <div class="label">错误</div>
+          <div class="value" id="winErrors">0</div>
+        </div>
+        <div class="win-item">
+          <div class="label">所需技巧</div>
+          <div class="value" id="winTech">基础排除</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn" id="winHomeBtn">回到主页</button>
+        <button class="modal-btn primary" id="winCloseBtn">下一题</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="数独.js"></script>
+</body>
+
+</html>

@@ -253,23 +253,85 @@
         let expression = [];
 
         // 安全数学表达式求值 - 仅允许数字和基本运算符
+        // 用自实现的递归下降解析器实现安全求值（避免动态代码执行风险）
         function safeEvaluate(expr) {
-            // 验证表达式只包含数字、运算符、括号和空格
-            if (!/^[0-9+\-*/(). ]+$/.test(expr)) {
-                throw new Error('无效字符');
+            // 验证表达式只包含整数（0-9）、运算符、括号和空格
+            if (!/^[0-9+\-*/() ]+$/.test(expr)) {
+                throw new Error('invalid: 表达式含非法字符或小数');
             }
             // 限制表达式长度防止 DoS
             if (expr.length > 100) {
                 throw new Error('表达式过长');
             }
 
+            // 递归下降解析器
+            let pos = 0;
+            function skipSpaces() { while (expr[pos] === ' ') pos++; }
+            function parseNumber() {
+                skipSpaces();
+                const start = pos;
+                if (expr[pos] === '0') {
+                    pos++;
+                    skipSpaces();
+                    if (/[0-9]/.test(expr[pos])) throw new Error('数字格式无效');
+                    return 0;
+                }
+                if (!/[1-9]/.test(expr[pos])) throw new Error('算式格式错误');
+                while (/[0-9]/.test(expr[pos])) pos++;
+                return parseInt(expr.slice(start, pos), 10);
+            }
+            function parseFactor() {
+                skipSpaces();
+                if (expr[pos] === '(') {
+                    pos++;
+                    const v = parseExpr();
+                    skipSpaces();
+                    if (expr[pos] !== ')') throw new Error('算式格式错误');
+                    pos++;
+                    return v;
+                }
+                if (expr[pos] === '-') { pos++; return -parseFactor(); }
+                if (expr[pos] === '+') { pos++; return parseFactor(); }
+                return parseNumber();
+            }
+            function parseTerm() {
+                let v = parseFactor();
+                skipSpaces();
+                while (expr[pos] === '*' || expr[pos] === '/') {
+                    const op = expr[pos++];
+                    const r = parseFactor();
+                    if (op === '/') {
+                        if (r === 0) throw new Error('除零无效');
+                        v = v / r;
+                    } else {
+                        v = v * r;
+                    }
+                    skipSpaces();
+                }
+                return v;
+            }
+            function parseExpr() {
+                let v = parseTerm();
+                skipSpaces();
+                while (expr[pos] === '+' || expr[pos] === '-') {
+                    const op = expr[pos++];
+                    const r = parseTerm();
+                    v = op === '+' ? v + r : v - r;
+                    skipSpaces();
+                }
+                return v;
+            }
+
             try {
-                const result = (new Function('"use strict"; return (' + expr + ')')());
+                const result = parseExpr();
+                skipSpaces();
+                if (pos !== expr.length) throw new Error('算式格式错误');
                 if (typeof result !== 'number' || !isFinite(result)) {
                     throw new Error('无效的计算结果');
                 }
                 return result;
             } catch (e) {
+                if (e.message === '算式格式错误' || e.message === '除零无效' || e.message === '无效的计算结果') throw e;
                 throw new Error('算式格式错误');
             }
         }

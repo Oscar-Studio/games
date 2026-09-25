@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>猜数字 - Oscar Studio</title>
+  <meta name="description" content="1A2B 数字 + Mastermind 颜色双模式推理破译游戏，3 档难度">
+  <link rel="stylesheet" href="猜数字.css">
+</head>
+
+<body>
+
+  <header class="top-bar">
+    <a class="home-back" href="../../" aria-label="返回">‹ Oscar Studio</a>
+    <span class="page-title">🔐 猜数字</span>
+  </header>
+
+  <main class="container">
+
+    <!-- 模式切换 -->
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-mode="1a2b" role="tab" aria-selected="true">
+        <span class="tab-icon">🔢</span>
+        <span class="tab-label">1A2B 数字</span>
+      </button>
+      <button class="tab" data-mode="mastermind" role="tab" aria-selected="false">
+        <span class="tab-icon">🎨</span>
+        <span class="tab-label">Mastermind 颜色</span>
+      </button>
+    </div>
+
+    <!-- 难度 + 新局 -->
+    <div class="control-row">
+      <div class="difficulty" role="tablist">
+        <button class="diff-btn" data-difficulty="easy">
+          <span class="diff-label">易</span>
+          <span class="diff-meta">3 位 · 6 次</span>
+        </button>
+        <button class="diff-btn active" data-difficulty="medium">
+          <span class="diff-label">中</span>
+          <span class="diff-meta">4 位 · 8 次</span>
+        </button>
+        <button class="diff-btn" data-difficulty="hard">
+          <span class="diff-label">难</span>
+          <span class="diff-meta">5 位 · 10 次</span>
+        </button>
+      </div>
+      <button class="new-btn" id="newGameBtn" title="新的一局 (N)">↻ 新局</button>
+    </div>
+
+    <!-- 状态 -->
+    <div class="status-row">
+      <div class="stat">
+        <span class="stat-label">剩余</span>
+        <span class="stat-value" id="remainingCount">8</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">连击</span>
+        <span class="stat-value" id="streakCount">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">最佳</span>
+        <span class="stat-value" id="bestCount">—</span>
+      </div>
+    </div>
+
+    <!-- 图例 -->
+    <div class="legend" id="legend">
+      <span class="legend-item legend-1a2b">
+        <span class="dot a"></span><b>A</b> 位置正确
+        <span class="dot b"></span><b>B</b> 数字对位错
+      </span>
+      <span class="legend-item legend-mastermind" hidden>
+        <span class="peg-dot black"></span>位置正确
+        <span class="peg-dot white"></span>颜色对位错
+      </span>
+    </div>
+
+    <!-- 棋盘：历史 + 当前 -->
+    <div class="board">
+      <div class="history" id="history"></div>
+      <div class="current-input" id="currentInput"></div>
+    </div>
+
+    <!-- 输入面板 -->
+    <div class="keypad" id="keypad"></div>
+
+    <!-- 操作 -->
+    <div class="controls">
+      <button class="ctrl-btn delete" id="deleteBtn" title="删除 (Backspace)">
+        <span class="ico">⌫</span><span>删除</span>
+      </button>
+      <button class="ctrl-btn submit" id="submitBtn" disabled title="提交 (Enter)">
+        <span class="ico">✓</span><span>提交</span>
+      </button>
+    </div>
+
+    <!-- 提示 -->
+    <p class="hint">
+      <kbd id="kbdHint">0-9</kbd> 填数字 ·
+      <kbd>Backspace</kbd> 删除 ·
+      <kbd>Enter</kbd> 提交 ·
+      <kbd>N</kbd> 新局 ·
+      <kbd>Esc</kbd> 关闭弹窗
+    </p>
+  </main>
+
+  <!-- 胜利弹窗 -->
+  <div class="modal-mask" id="winModal" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-title">🎉 破译成功！</div>
+      <div class="modal-subtitle" id="winMsg">用了 X 次破解</div>
+      <div class="answer-row" id="winAnswer"></div>
+      <div class="modal-actions">
+        <button class="modal-btn" id="winCloseBtn">查看</button>
+        <button class="modal-btn primary" id="winAgainBtn">再来一局</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 失败弹窗 -->
+  <div class="modal-mask" id="loseModal" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-title">💔 机会用尽</div>
+      <div class="modal-subtitle" id="loseMsg">下次再接再厉！</div>
+      <div class="answer-row" id="loseAnswer"></div>
+      <div class="modal-actions">
+        <button class="modal-btn" id="loseCloseBtn">查看</button>
+        <button class="modal-btn primary" id="loseAgainBtn">再来一局</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 轻提示 -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="猜数字.js"></script>
+</body>
+</html>

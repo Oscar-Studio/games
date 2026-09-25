@@ -1,3 +1,5 @@
+/* tokens.css 必须在 globals.css 之前导入（main.tsx 已处理） */
+
 /* Global overrides for React-mounted subsite */
 
 #root {
@@ -17,17 +19,6 @@
 #root {
   position: relative;
   z-index: 2;
-}
-
-/* Make sure LiquidGlass canvas sits behind content */
-#liquid-glass-canvas,
-#lg-webgl-canvas {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 3;
-  pointer-events: none;
 }
 
 #root > *:not(.top-bar) {
@@ -55,37 +46,433 @@
   z-index: 300;
 }
 
-/* Glass fallback styles (no WebGL) */
-body.no-lg-refraction .card {
-  background: rgba(255, 255, 255, 0.04) !important;
-  backdrop-filter: blur(8px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(8px) saturate(150%) !important;
+/* ===================== Theme Toggle Dropdown ===================== */
+.theme-dropdown {
+  min-width: 180px;
+  padding: 6px;
 }
 
-body.no-lg-refraction .top-bar {
-  background: rgba(255, 255, 255, 0.04) !important;
-  backdrop-filter: blur(10px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(10px) saturate(150%) !important;
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-color);
+  font-size: 0.9rem;
+  font-family: inherit;
+  text-align: left;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-/* 性能优先档不再全局关闭动画 */
-body.quality-low #liquid-glass-canvas,
-body.liquid-glass-low #liquid-glass-canvas {
+.theme-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.theme-option.active {
+  background: rgba(0, 229, 255, 0.12);
+  color: var(--secondary-color);
+}
+
+.theme-option-icon {
+  width: 16px;
+  text-align: center;
+}
+
+.theme-option-shortcut {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* =====================================================
+   Topbar 主题切换按钮（classic / arcade）
+   ===================================================== */
+.theme-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: var(--canvas-soft);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  padding: 3px;
+  margin: 0 4px;
+  height: 32px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.theme-mode-toggle button {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  padding: 0 12px;
+  height: 24px;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.theme-mode-toggle button:hover {
+  color: var(--ink);
+}
+
+.theme-mode-toggle button.active {
+  background: var(--ink);
+  color: var(--canvas);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* =====================================================
+   Classic 主题专用样式
+   ===================================================== */
+.hero {
+  padding: 60px 24px 40px;
+  text-align: center;
+  position: relative;
+}
+
+.hero-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.hero-icon {
+  font-size: 32px;
+}
+
+.hero h1 {
+  font-size: var(--fs-h1);
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.5px;
+}
+
+.hero p {
+  max-width: 520px;
+  margin: 12px auto 0;
+  color: var(--muted);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+}
+
+/* =====================================================
+   Arcade 主题专用样式
+   —— 参照 tools/word-counter/codec 与 edu/_shared/design-tokens
+   —— 极简编辑风：暖米/深海军 + 单色靛蓝 accent
+   —— 用 [data-games-theme="arcade"] 作用域框住
+   ===================================================== */
+
+/* 整体画布：ambient 模糊光斑 + 暖色径向渐变 */
+:root[data-games-theme="arcade"] body {
+  background-color: var(--canvas) !important;
+  background-image: var(--hero-gradient) !important;
+  transition: background 0.25s, color 0.25s;
+}
+
+:root[data-games-theme="arcade"] body::before,
+:root[data-games-theme="arcade"] body::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  filter: blur(60px);
+  opacity: 0.35;
+  border-radius: 50%;
+  z-index: -1;
+}
+:root[data-games-theme="arcade"] body::before {
+  width: 260px; height: 260px;
+  background: var(--ambient-1);
+  top: 9%; right: 8%;
+}
+:root[data-games-theme="arcade"] body::after {
+  width: 220px; height: 220px;
+  background: var(--ambient-2);
+  bottom: 4%; left: 3%;
+}
+
+/* —— Hero（editorial 风格）—— */
+:root[data-games-theme="arcade"] .arcade-hero {
+  background: transparent;
+  padding: clamp(48px, 8vw, 96px) clamp(20px, 4vw, 64px) clamp(24px, 4vw, 48px);
+  border-bottom: 1px solid var(--hairline);
+}
+
+:root[data-games-theme="arcade"] .arcade-hero__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+:root[data-games-theme="arcade"] .intro-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: clamp(24px, 4vw, 64px);
+  flex-wrap: wrap;
+}
+
+:root[data-games-theme="arcade"] .intro-left { flex: 1 1 320px; min-width: 0; }
+:root[data-games-theme="arcade"] .intro-right {
+  flex: 0 1 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+:root[data-games-theme="arcade"] .eyebrow {
+  font-size: var(--fs-eyebrow);
+  letter-spacing: 0.16em;
+  color: var(--primary);
+  font-weight: 700;
+  margin: 0 0 14px;
+  text-transform: uppercase;
+}
+
+:root[data-games-theme="arcade"] .intro-left h1 {
+  font-size: clamp(36px, 4.4vw, 60px);
+  line-height: 1.1;
+  letter-spacing: -0.05em;
+  margin: 0;
+  font-weight: 700;
+  color: var(--ink);
+}
+:root[data-games-theme="arcade"] .intro-left h1 em {
+  color: var(--primary);
+  font-style: normal;
+}
+
+:root[data-games-theme="arcade"] .intro-copy {
+  color: var(--muted);
+  font-size: var(--fs-body-lg);
+  line-height: 1.7;
+  margin: 0;
+  max-width: 56ch;
+}
+
+:root[data-games-theme="arcade"] .privacy-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: var(--success);
+  font-size: var(--fs-label);
+  line-height: 1.5;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--success) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success) 18%, transparent);
+}
+:root[data-games-theme="arcade"] .privacy-note small {
+  color: var(--muted);
+  display: block;
+  margin-top: 2px;
+}
+:root[data-games-theme="arcade"] .privacy-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  flex-shrink: 0;
+  margin-top: 6px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--success) 12%, transparent);
+}
+
+/* —— Card Grid —— */
+:root[data-games-theme="arcade"] .arcade-grid {
+  padding: clamp(40px, 6vw, 72px) clamp(20px, 4vw, 64px) clamp(48px, 6vw, 96px);
+  background: transparent;
+}
+
+:root[data-games-theme="arcade"] .arcade-grid__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+:root[data-games-theme="arcade"] .arcade-grid__header {
+  margin-bottom: 28px;
+}
+:root[data-games-theme="arcade"] .arcade-grid__title {
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 6px 0 0;
+  color: var(--ink);
+}
+
+:root[data-games-theme="arcade"] .arcade-grid__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+:root[data-games-theme="arcade"] .arcade-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface-card);
+  border: var(--card-border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--card-shadow);
+  padding: 22px 22px 26px;
+  text-decoration: none;
+  color: var(--ink);
+  transition: transform 0.18s var(--ease-snap),
+              box-shadow 0.22s var(--ease-snap),
+              border-color 0.22s;
+  cursor: pointer;
+  min-height: 160px;
+}
+:root[data-games-theme="arcade"] .arcade-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary);
+  box-shadow: var(--card-shadow-hover);
+}
+
+:root[data-games-theme="arcade"] .arcade-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+:root[data-games-theme="arcade"] .arcade-card__tag {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--primary);
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+}
+:root[data-games-theme="arcade"] .arcade-card__icon {
+  font-size: 24px;
+  line-height: 1;
+  color: var(--muted);
+  transition: color 0.18s, transform 0.18s var(--ease-snap);
+}
+:root[data-games-theme="arcade"] .arcade-card:hover .arcade-card__icon {
+  color: var(--primary);
+  transform: translateX(2px);
+}
+
+:root[data-games-theme="arcade"] .arcade-card__name {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 4px 0 0;
+  color: var(--ink);
+}
+:root[data-games-theme="arcade"] .arcade-card__desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+:root[data-games-theme="arcade"] .arcade-card__arrow {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  font-size: 14px;
+  color: var(--muted);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.18s, transform 0.18s var(--ease-snap), color 0.18s;
+}
+:root[data-games-theme="arcade"] .arcade-card:hover .arcade-card__arrow {
+  opacity: 1;
+  transform: translateX(0);
+  color: var(--primary);
+}
+
+/* —— 隐藏用户背景图：arcade 主题走干净画布（跟主站 atlas 一致） —— */
+:root[data-games-theme="arcade"] #userBgLayer,
+:root[data-games-theme="arcade"] #userBgMask {
   display: none;
 }
 
-body.quality-low #lg-webgl-canvas,
-body.liquid-glass-low #lg-webgl-canvas {
+/* —— 主题切换：在 arcade 主题下隐藏 classic 的卡片网格 —— */
+
+:root[data-games-theme="arcade"] .classic-only {
   display: none;
 }
 
-body.quality-low .card,
-body.quality-low .top-bar,
-body.quality-low .morph-card,
-body.liquid-glass-low .card,
-body.liquid-glass-low .top-bar,
-body.liquid-glass-low .morph-card {
-  background: rgba(255, 255, 255, 0.04) !important;
-  backdrop-filter: blur(8px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(8px) saturate(150%) !important;
+:root[data-games-theme="arcade"] .arcade-landing {
+  display: block;
+}
+
+/* classic 主题：Hero 卡片网格（保持现有逻辑，但用 tokens 改硬编码） */
+.card-grid {
+  padding: 0 24px 60px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.card-grid__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.card-grid__item {
+  background: var(--surface-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--ink);
+  box-shadow: var(--card-shadow);
+  transition: transform 0.18s var(--ease-snap), box-shadow 0.18s var(--ease-snap), border-color 0.18s;
+  cursor: pointer;
+}
+
+.card-grid__item:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--card-shadow-hover);
+  border-color: var(--primary);
+}
+
+.card-grid__item-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.card-grid__item-title {
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.card-grid__item-desc {
+  font-size: var(--fs-body);
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* 在 arcade 主题下隐藏 classic 的卡片网格（避免双显示） */
+:root[data-games-theme="arcade"] .classic-only {
+  display: none;
+}
+
+:root[data-games-theme="arcade"] .arcade-landing {
+  display: block;
+}
+
+:root[data-games-theme="arcade"] .hero {
+  display: none;
 }

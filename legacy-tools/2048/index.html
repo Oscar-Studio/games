@@ -658,10 +658,21 @@
                 document.getElementById('finalScore').innerText = this.score;
                 const rank = this.saveScore(this.score);
                 const rankElement = document.getElementById('finalRank');
+                rankElement.textContent = ''; // 安全清空
                 if (rank) {
-                    rankElement.innerHTML = `排名: <span style="color: var(--secondary-color); font-weight: bold;">第 ${rank} 名</span>`;
+                    const labelSpan = document.createElement('span');
+                    labelSpan.textContent = '排名: ';
+                    const rankSpan = document.createElement('span');
+                    rankSpan.style.color = 'var(--secondary-color)';
+                    rankSpan.style.fontWeight = 'bold';
+                    rankSpan.textContent = `第 ${rank} 名`;
+                    rankElement.appendChild(labelSpan);
+                    rankElement.appendChild(rankSpan);
                 } else {
-                    rankElement.innerHTML = `排名: <span style="color: #666;">未上榜</span>`;
+                    const labelSpan = document.createElement('span');
+                    labelSpan.style.color = '#666';
+                    labelSpan.textContent = '排名: 未上榜';
+                    rankElement.appendChild(labelSpan);
                 }
 
                 setTimeout(() => {
@@ -809,11 +820,18 @@
                 leaderboard.forEach((item, index) => {
                     const li = document.createElement('li');
                     li.classList.add('leaderboard-item');
-                    li.innerHTML = `
-                        <span class="rank">${index + 1}</span>
-                        <span class="score">${item.score}</span>
-                        <span class="date">${item.date}</span>
-                    `;
+                    const rankSpan = document.createElement('span');
+                    rankSpan.className = 'rank';
+                    rankSpan.textContent = String(index + 1);
+                    const scoreSpan = document.createElement('span');
+                    scoreSpan.className = 'score';
+                    scoreSpan.textContent = String(item.score);
+                    const dateSpan = document.createElement('span');
+                    dateSpan.className = 'date';
+                    dateSpan.textContent = String(item.date);
+                    li.appendChild(rankSpan);
+                    li.appendChild(scoreSpan);
+                    li.appendChild(dateSpan);
                     list.appendChild(li);
                 });
             }

@@ -1,676 +1,1439 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>二十四点 - 益智游戏</title>
-    <script defer src="https://cloud.umami.is/script.js"
-        data-website-id="cbc5311f-d106-4566-853d-1376d4f4774b"></script>
-    <style>
-        :root {
-            --primary-color: #2A5CAA;
-            --secondary-color: #00E5FF;
-            --accent-color: #6A00FF;
-            --light-color: #010409;
-            --dark-color: #ffffff;
-            --card-bg: #0d1117;
-            --card-border: 1px solid #30363d;
-            --card-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-            --text-secondary: #8b949e;
-            --success-color: #28a745;
-            --error-color: #e74c3c;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>二十四点 · 牌桌</title>
+<style>
+  :root {
+    --felt:        #0b3d2e;
+    --felt-edge:   #07291f;
+    --gold:        #d4af37;
+    --gold-soft:   #f4d27a;
+    --ink:         #1a1a1a;
+    --paper:       #fdfdf6;
+    --paper-soft:  #f1ecdb;
+    --red:         #c0392b;
+    --black:       #1a1a1a;
+    --shadow-lg:   0 18px 38px rgba(0,0,0,.45);
+    --shadow-md:   0 8px 18px rgba(0,0,0,.35);
+    --shadow-sm:   0 3px 6px rgba(0,0,0,.25);
+  }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-            background-color: var(--light-color);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            color: var(--dark-color);
-        }
+  html, body {
+    height: 100%;
+    font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    color: #fff;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    overflow: hidden;
+  }
 
-        .container {
-            width: 100%;
-            max-width: 800px;
-            background-color: var(--card-bg);
-            border-radius: 15px;
-            box-shadow: var(--card-shadow);
-            padding: 30px;
-            border: var(--card-border);
-        }
+  body {
+    background:
+      radial-gradient(ellipse at 50% 35%, #15694e 0%, var(--felt) 45%, var(--felt-edge) 100%);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
 
-        h1 {
-            text-align: center;
-            margin-bottom: 10px;
-            color: var(--secondary-color);
-            font-weight: 600;
-            font-size: 2rem;
-        }
+  /* ============ Header ============ */
+  header {
+    padding: 14px 24px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .brand h1 {
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+    color: var(--gold-soft);
+    text-shadow: 0 2px 6px rgba(0,0,0,.5);
+  }
+  .brand .sub {
+    font-size: .85rem;
+    color: rgba(255,255,255,.7);
+    letter-spacing: 1px;
+  }
+  .toolbar {
+    display: flex; gap: 10px; align-items: center;
+  }
+  .stat {
+    background: rgba(0,0,0,.35);
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(212,175,55,.4);
+    font-size: .85rem;
+    color: var(--gold-soft);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .v { color: #fff; font-weight: 600; margin-left: 6px; }
 
-        .subtitle {
-            text-align: center;
-            color: var(--text-secondary);
-            margin-bottom: 30px;
-        }
+  button.tool {
+    background: linear-gradient(180deg, #f5d97a 0%, var(--gold) 100%);
+    color: #2b1d05;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: transform .15s ease, box-shadow .15s ease;
+    font-size: .9rem;
+    letter-spacing: .5px;
+  }
+  button.tool:hover { transform: translateY(-1px); box-shadow: 0 6px 12px rgba(0,0,0,.4); }
+  button.tool:active { transform: translateY(0); }
+  button.tool.ghost {
+    background: rgba(255,255,255,.08);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.25);
+  }
+  button.tool.ghost:hover { background: rgba(255,255,255,.15); }
 
-        .game-area {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
+  /* ============ Table ============ */
+  .table {
+    flex: 1;
+    position: relative;
+    margin: 12px 24px;
+    border-radius: 28px;
+    background:
+      radial-gradient(ellipse at 50% 50%, rgba(255,255,255,.04) 0%, transparent 60%),
+      var(--felt);
+    box-shadow:
+      inset 0 0 60px rgba(0,0,0,.5),
+      inset 0 0 0 6px rgba(212,175,55,.25),
+      var(--shadow-lg);
+    overflow: hidden;
+  }
+  .table::before {
+    /* gold inner border */
+    content: "";
+    position: absolute; inset: 12px;
+    border: 2px solid rgba(212,175,55,.35);
+    border-radius: 20px;
+    pointer-events: none;
+  }
 
-        .number-card {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: white;
-            box-shadow: 0 4px 15px rgba(42, 92, 170, 0.4);
-            transition: transform 0.3s ease;
-        }
+  /* ============ Deck (top-left) ============ */
+  .deck {
+    position: absolute;
+    top: 32px;
+    left: 36px;
+    width: 96px;
+    height: 132px;
+    cursor: pointer;
+    z-index: 5;
+    transition: transform .2s ease;
+  }
+  .deck:hover { transform: translateY(-3px) rotate(-2deg); }
+  .deck.disabled { cursor: not-allowed; opacity: .6; }
 
-        .number-card:hover {
-            transform: scale(1.05);
-        }
+  .deck .stack {
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    box-shadow: var(--shadow-md);
+    /* 统一牌背：蓝白菱形网格 SVG */
+    background: #ffffff url('cards/back.svg') center/cover no-repeat;
+    border: 2px solid #ffffff;
+  }
+  .deck .stack.back {
+    transform: translate(5px, 5px);
+    opacity: .9;
+  }
+  .deck .stack.mid {
+    transform: translate(2.5px, 2.5px);
+    opacity: .95;
+  }
+  .deck .stack.front {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  .deck .stack.front .big {
+    font-size: 2.2rem;
+    line-height: 1;
+    background: linear-gradient(180deg, #fff7d4, var(--gold));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 900;
+    text-shadow: 0 1px 0 rgba(255,255,255,.6);
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.45));
+    letter-spacing: 1px;
+  }
+  .deck .stack.front .lbl {
+    font-size: .65rem;
+    margin-top: 4px;
+    letter-spacing: 2px;
+    color: #ffffff;
+    background: rgba(0,0,0,.35);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+  }
 
-        .input-area {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
+  /* ============ Center play area ============ */
+  .play-area {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .cards-row {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 70%;
+    pointer-events: auto;
+    padding: 24px;
+  }
 
-        .operator-btn {
-            width: 50px;
-            height: 50px;
-            background-color: var(--primary-color);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-size: 1.5rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
+  /* ============ A playing card (face) ============ */
+  .pcard {
+    width: 96px;
+    height: 132px;
+    position: relative;
+    perspective: 1000px;
+    cursor: grab;
+    transition: transform .25s ease;
+    flex-shrink: 0;
+    /* 自定义 Pointer Events 拖拽：禁止浏览器默认的触摸滚动/缩放，否则触屏拖拽时页面会跟着滚 */
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .pcard.dragging { cursor: grabbing; }
+  .pcard:hover:not(.locked):not(.dragging):not(.dealing) {
+    transform: translateY(-6px);
+  }
+  .pcard.locked { cursor: default; }
+  .pcard.dealing {
+    /* 发牌中的牌：禁用 hover/拖拽，统一用外层 transform 做位移 */
+    cursor: default;
+    pointer-events: none;
+    transition: none;
+  }
 
-        .operator-btn:hover {
-            background-color: var(--secondary-color);
-            transform: scale(1.1);
-        }
+  .pcard .flip {
+    width: 100%; height: 100%;
+    position: relative;
+    transition: transform .6s cubic-bezier(.4,.2,.2,1);
+    transform-style: preserve-3d;
+    /* 透传命中测试：让最外层 .pcard 接收 pointer/drag 事件，
+       否则浏览器原生 drag 会拿中间的 .flip 当 source，
+       dragstart 永远不冒泡到 .pcard，扑克牌无法拖动。 */
+    pointer-events: none;
+  }
+  /* 翻面：默认让 .face 单独以左边缘为轴可翻转 */
+  .pcard .face {
+    transform-origin: left center;
+    transition: transform .6s cubic-bezier(.4,.2,.2,1);
+  }
+  .pcard.flipped .face { transform: rotateY(-180deg); }
 
-        .operator-btn.selected {
-            background-color: var(--accent-color);
-            box-shadow: 0 0 15px rgba(106, 0, 255, 0.5);
-        }
+  .pcard .face, .pcard .back {
+    position: absolute; inset: 0;
+    border-radius: 10px;
+    box-shadow: var(--shadow-md);
+    /* 让 .pcard 自己成为命中测试的目标：.face/.back 是纯视觉层，
+       否则浏览器原生 drag 会拿最顶层的不可拖动子元素当 source，
+       dragstart 永远不冒泡到 .pcard，导致扑克牌拖不动。 */
+    pointer-events: none;
+  }
+  /* 发牌动画用真正的双面牌：飞行时牌背朝上，落位后 .flip 绕中心转到 0° 露出正面 */
+  .pcard.dealing .flip {
+    transform: rotateY(180deg);
+    transition: none;
+  }
+  .pcard.dealing .face,
+  .pcard.dealing .back {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transition: none;
+  }
+  .pcard.dealing .face {
+    transform-origin: center center;
+    z-index: 1;
+  }
+  .pcard.dealing .back {
+    transform: rotateY(180deg);
+    z-index: 0;
+  }
+  .pcard .face {
+    background: #ffffff;
+    color: var(--ink);
+    padding: 0;
+    border: none;
+    overflow: hidden;
+  }
+  .pcard .face .card-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+    /* 缩进 1.5px，遮盖 SVG 自带的黑色边框（hayeah 仓库残留的边框） */
+    padding: 1.5px;
+    box-sizing: border-box;
+  }
+  /* 合成牌：数字徽章浮在牌面上 */
+  .pcard .face .composite-badge {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(180deg, #fff7d4, var(--gold));
+    color: #2b1d05;
+    padding: 8px 16px;
+    border-radius: 12px;
+    border: 2px solid #b08a1e;
+    box-shadow: 0 6px 16px rgba(0,0,0,.55);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .pcard .face .composite-badge .composite-val {
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+  .pcard .face .composite-badge .composite-lbl {
+    font-size: .65rem;
+    margin-top: 3px;
+    letter-spacing: 2px;
+    color: #6b4e0c;
+    font-weight: 700;
+  }
 
-        .expression-input {
-            width: 100%;
-            max-width: 400px;
-            padding: 15px;
-            border-radius: 8px;
-            border: 2px solid var(--card-border);
-            background: var(--light-color);
-            color: var(--dark-color);
-            font-size: 1.2rem;
-            text-align: center;
-            outline: none;
-            transition: border-color 0.3s ease;
-        }
+  .pcard .back {
+    background: #ffffff url('cards/back.svg') center/cover no-repeat;
+    border: 2px solid #ffffff;
+    /* 让 .back 永远位于 .face 之下：避免它"反转"后镜像盖住 .face */
+    z-index: -1;
+  }
+  /* 牌背去掉之前的金黄内框（rgba(244,210,122) 在深绿桌面上偏暖，读起来像红），
+     只保留 SVG 自带的蓝白菱形 + 外圈白边，画面更干净。 */
+  .pcard .back::after { content: none; }
 
-        .expression-input:focus {
-            border-color: var(--secondary-color);
-        }
+  /* a "synthesized" card: number badge on top of a card-face SVG */
 
-        .btn {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            margin: 5px;
-            transition: all 0.3s ease;
-        }
+  /* drag/hover ghost */
+  .pcard.ghost {
+    pointer-events: none;
+    position: fixed;
+    z-index: 1000;
+    transform: rotate(-6deg);
+    transition: none;
+  }
 
-        .btn:hover {
-            background-color: var(--secondary-color);
-            transform: translateY(-2px);
-        }
+  /* ============ Bottom dock ============ */
+  .dock {
+    position: relative;
+    margin: 0 24px 18px;
+    padding: 18px 22px;
+    background: linear-gradient(180deg, rgba(0,0,0,.4), rgba(0,0,0,.55));
+    border-radius: 18px;
+    border: 1px solid rgba(212,175,55,.3);
+    box-shadow: var(--shadow-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    min-height: 200px;
+  }
 
-        .btn-success {
-            background-color: var(--success-color);
-        }
+  .slot {
+    width: 96px; height: 132px;
+    border-radius: 10px;
+    border: 2.5px dashed rgba(255,255,255,.35);
+    background: rgba(0,0,0,.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,.45);
+    font-size: .8rem;
+    letter-spacing: 1px;
+    position: relative;
+    transition: background .2s, border-color .2s;
+  }
+  .slot.empty::before {
+    content: "拖入牌";
+    position: absolute;
+    font-size: .8rem;
+    letter-spacing: 2px;
+  }
+  .slot.hover {
+    border-color: var(--gold-soft);
+    background: rgba(212,175,55,.15);
+    box-shadow: 0 0 0 4px rgba(212,175,55,.18);
+  }
+  .slot .pcard {
+    position: absolute;
+    inset: 0;
+  }
+  .slot.has-card {
+    border-style: solid;
+    border-color: transparent;
+    background: transparent;
+  }
+  .slot .clear {
+    position: absolute;
+    top: -8px; right: -8px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: #c0392b;
+    color: #fff;
+    font-size: .85rem;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    display: none;
+    z-index: 5;
+  }
+  .slot.has-card .clear { display: block; }
 
-        .btn-success:hover {
-            background-color: #2ea043;
-        }
+  /* operator bar (accordion) */
+  .ops {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .ops-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  .op-btn {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: 2px solid var(--gold);
+    background: linear-gradient(180deg, #fff7d4, #e9c25a);
+    color: #2b1d05;
+    font-size: 1.6rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: transform .15s, box-shadow .15s;
+    font-family: "Cambria Math", "STIX Two Math", serif;
+  }
+  .op-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(0,0,0,.45);
+  }
+  .op-btn:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+  }
+  .op-btn.active {
+    background: linear-gradient(180deg, var(--gold-soft), var(--gold));
+    box-shadow: 0 0 0 3px rgba(244,210,122,.5), var(--shadow-md);
+  }
+  .accordion {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height .4s cubic-bezier(.4,.2,.2,1);
+    width: 100%;
+  }
+  .accordion.open { max-height: 140px; }
+  .accordion-inner {
+    padding-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+  .accordion-inner .preview-op {
+    font-size: 2.4rem;
+    color: var(--gold-soft);
+    font-weight: 700;
+    font-family: "Cambria Math", serif;
+    text-shadow: 0 2px 4px rgba(0,0,0,.4);
+  }
+  .accordion-inner .preview-eq {
+    font-size: 1.1rem;
+    color: rgba(255,255,255,.7);
+  }
+  .accordion-inner .confirm {
+    background: #2ecc71;
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    letter-spacing: 1px;
+  }
+  .accordion-inner .confirm:hover { background: #27ae60; }
+  .accordion-inner .cancel {
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.25);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
 
-        .btn-error {
-            background-color: var(--error-color);
-        }
+  /* ============ Toast / status ============ */
+  .toast {
+    position: fixed;
+    top: 80px; left: 50%;
+    transform: translateX(-50%) translateY(-30px);
+    background: rgba(0,0,0,.85);
+    color: var(--gold-soft);
+    padding: 14px 26px;
+    border-radius: 12px;
+    border: 1px solid rgba(212,175,55,.5);
+    font-size: 1.05rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .3s, transform .3s;
+    z-index: 200;
+    box-shadow: var(--shadow-md);
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .toast.win {
+    background: linear-gradient(180deg, #2ecc71, #27ae60);
+    color: #fff;
+    border-color: #1e8449;
+    font-size: 1.3rem;
+    letter-spacing: 1px;
+  }
 
-        .buttons {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
+  /* floating arrows when dragging */
+  .drop-hint {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    display: none;
+  }
+  .drop-hint.show { display: block; }
 
-        .result {
-            text-align: center;
-            margin-top: 20px;
-            padding: 20px;
-            border-radius: 10px;
-            font-size: 1.2rem;
-            display: none;
-        }
-
-        .result.success {
-            display: block;
-            background-color: rgba(40, 167, 69, 0.2);
-            border: 1px solid var(--success-color);
-            color: var(--success-color);
-        }
-
-        .result.error {
-            display: block;
-            background-color: rgba(231, 76, 60, 0.2);
-            border: 1px solid var(--error-color);
-            color: var(--error-color);
-        }
-
-        .score-board {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: rgba(0, 229, 255, 0.1);
-            border-radius: 10px;
-        }
-
-        .score-item {
-            text-align: center;
-        }
-
-        .score-label {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        .score-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--secondary-color);
-        }
-
-        .history {
-            margin-top: 20px;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .history h3 {
-            color: var(--text-secondary);
-            margin-bottom: 10px;
-            font-size: 1rem;
-        }
-
-        .history-item {
-            padding: 8px;
-            margin: 5px 0;
-            background: var(--card-bg);
-            border-radius: 5px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .history-item.correct {
-            border-left: 3px solid var(--success-color);
-        }
-
-        .history-item.wrong {
-            border-left: 3px solid var(--error-color);
-        }
-
-        .history-expression {
-            color: var(--dark-color);
-        }
-
-        .history-time {
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-        }
-
-        .help-text {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            text-align: center;
-            margin-top: 15px;
-        }
-
-        footer {
-            margin-top: 30px;
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 600px) {
-            .number-card {
-                width: 60px;
-                height: 60px;
-                font-size: 1.8rem;
-            }
-
-            .operator-btn {
-                width: 45px;
-                height: 45px;
-                font-size: 1.2rem;
-            }
-
-            .container {
-                padding: 20px;
-            }
-        }
-    </style>
-<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js"></script>
-<script>LA.init({id:"3ObNUtNXa4Os8xRM",ck:"3ObNUtNXa4Os8xRM"})</script>
+  /* ============ Responsive ============ */
+  @media (max-width: 720px) {
+    .table { margin: 8px; }
+    .dock {
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 12px;
+      margin: 0 8px 12px;
+      min-height: auto;
+    }
+    .slot { width: 80px; height: 110px; }
+    .pcard { width: 80px; height: 110px; }
+    .pcard .face .composite-badge { padding: 5px 10px; border-radius: 8px; }
+    .pcard .face .composite-badge .composite-val { font-size: 1.2rem; }
+    .op-btn { width: 46px; height: 46px; font-size: 1.3rem; }
+    .deck {
+      width: 70px; height: 96px;
+      top: 16px; left: 12px;
+    }
+    .deck .stack.front .big { font-size: 1.6rem; }
+    .cards-row { gap: 14px; max-width: 90%; }
+  }
+</style>
 </head>
-
 <body>
-    <div class="container">
-        <h1>🎯 二十四点</h1>
-        <p class="subtitle">用四个数字和基本运算得到24</p>
 
-        <div class="score-board">
-            <div class="score-item">
-                <div class="score-label">正确</div>
-                <div class="score-value" id="correctCount">0</div>
-            </div>
-            <div class="score-item">
-                <div class="score-label">错误</div>
-                <div class="score-value" id="wrongCount">0</div>
-            </div>
-            <div class="score-item">
-                <div class="score-label">连续正确</div>
-                <div class="score-value" id="streakCount">0</div>
-            </div>
-        </div>
+<header>
+  <div class="brand">
+    <h1>🎯 二十四点</h1>
+    <span class="sub">·  牌桌版  ·</span>
+  </div>
+  <div class="toolbar">
+    <div class="stat">⏱ <span id="timer" class="v">00:00</span></div>
+    <div class="stat">🔁 <span id="round" class="v">1</span></div>
+    <button class="tool ghost" id="resetBtn" title="把当前所有合成牌拆开，回到最初四张">⟲ 重置</button>
+    <button class="tool" id="skipBtn" title="放弃这一手，重新发牌">⏭ 跳过</button>
+  </div>
+</header>
 
-        <div class="game-area" id="numberCards">
-            <!-- 数字卡片会在这里生成 -->
-        </div>
-
-        <div class="input-area">
-            <button class="operator-btn" data-op="+">+</button>
-            <button class="operator-btn" data-op="-">−</button>
-            <button class="operator-btn" data-op="*">×</button>
-            <button class="operator-btn" data-op="/">÷</button>
-            <button class="operator-btn" data-op="(">(</button>
-            <button class="operator-btn" data-op=")">)</button>
-        </div>
-
-        <div style="display: flex; justify-content: center;">
-            <input type="text" class="expression-input" id="expressionInput" placeholder="输入你的算式，如：(1+2)*3*4" autocomplete="off">
-        </div>
-
-        <div class="buttons">
-            <button class="btn btn-success" onclick="checkAnswer()">检查答案</button>
-            <button class="btn" onclick="deleteLast()">删除</button>
-            <button class="btn" onclick="newGame()">新的一局</button>
-            <button class="btn btn-error" onclick="giveUp()">放弃</button>
-        </div>
-
-        <div class="result" id="result"></div>
-
-        <p class="help-text">💡 提示：使用括号可以改变运算顺序</p>
-
-        <div class="history" id="history">
-            <h3>历史记录</h3>
-            <div id="historyList"></div>
-        </div>
+<div class="table" id="table">
+  <!-- 牌堆 -->
+  <div class="deck" id="deck" title="点击抽牌">
+    <div class="stack back"></div>
+    <div class="stack mid"></div>
+    <div class="stack front">
+      <div class="big">24</div>
+      <div class="lbl">DRAW</div>
     </div>
+  </div>
 
-    <footer>
-        <p>二十四点 &copy; 2026 - Designed by Oscar</p>
-    </footer>
+  <!-- 中央出牌区 -->
+  <div class="play-area">
+    <div class="cards-row" id="playArea"></div>
+  </div>
+</div>
 
-    <script>
-        // 游戏状态
-        let currentNumbers = [];
-        let correctCount = 0;
-        let wrongCount = 0;
-        let streakCount = 0;
-        let gameHistory = [];
+<!-- 下方操作区 -->
+<div class="dock">
+  <div class="slot empty" id="slotA" data-slot="A"></div>
 
-        // 安全数学表达式求值 - 仅允许数字和基本运算符
-        function safeEvaluate(expr) {
-            // 验证表达式只包含数字、运算符、括号和空格
-            if (!/^[0-9+\-*/(). ]+$/.test(expr)) {
-                throw new Error('无效字符');
+  <div class="ops">
+    <div class="ops-buttons">
+      <button class="op-btn" data-op="+">+</button>
+      <button class="op-btn" data-op="-">−</button>
+      <button class="op-btn" data-op="*">×</button>
+      <button class="op-btn" data-op="/">÷</button>
+    </div>
+  </div>
+
+  <div class="slot empty" id="slotB" data-slot="B"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   1) 扑克牌：1～10，每种花色
+   ============================================================ */
+const SUITS = [
+  { key: "S", name: "spade",   symbol: "♠", color: "black" },
+  { key: "H", name: "heart",   symbol: "♥", color: "red"   },
+  { key: "D", name: "diamond", symbol: "♦", color: "red"   },
+  { key: "C", name: "club",    symbol: "♣", color: "black" },
+];
+const RANKS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const RANK_DISPLAY = { 1: "A", 10: "10" };
+
+function displayRank(r) { return RANK_DISPLAY[r] || String(r); }
+
+/* ============================================================
+   2) 状态
+   ============================================================ */
+const state = {
+  // 桌面中央的牌（每张牌：{id, value, rank, suit, ...}）
+  tableCards: [],
+  // 选中的两张牌（位于槽位）
+  slotA: null,
+  slotB: null,
+  // 当前回合计数
+  round: 1,
+  // 用于"重置"回到本轮最初四张
+  initialCards: [],
+  // 计时器
+  startTime: 0,
+  timerId: null,
+  // 当前是否正在进行抽牌动画
+  busy: false,
+  // 历史（合成链）
+  history: [],
+  // 当前正在拖拽的牌 id（用于拖到桌面外时把牌放回原位）
+  draggingId: null,
+  // 拖拽图像（克隆节点），dragend 再清理
+  dragGhost: null,
+};
+
+/* ============================================================
+   3) 工具：DOM、SVG、辅助
+   ============================================================ */
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+
+const playArea = $("#playArea");
+const slotAEl = $("#slotA");
+const slotBEl = $("#slotB");
+const toastEl = $("#toast");
+const deckEl = $("#deck");
+const timerEl = $("#timer");
+const roundEl = $("#round");
+
+function uid() { return "c_" + Math.random().toString(36).slice(2, 9); }
+
+function showToast(msg, kind = "") {
+  toastEl.className = "toast " + kind;
+  toastEl.textContent = msg;
+  requestAnimationFrame(() => toastEl.classList.add("show"));
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toastEl.classList.remove("show"), 1800);
+}
+
+function fmtTime(ms) {
+  const s = Math.floor(ms / 1000);
+  return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+}
+
+function startTimer() {
+  state.startTime = Date.now();
+  if (state.timerId) clearInterval(state.timerId);
+  state.timerId = setInterval(() => {
+    timerEl.textContent = fmtTime(Date.now() - state.startTime);
+  }, 1000);
+}
+
+/* ============================================================
+   4) SVG 扑克牌
+   ============================================================ */
+function suitPath(suitKey) {
+  // 用 SVG path 绘制花色（适配 <svg viewBox="0 0 100 100">）
+  switch (suitKey) {
+    case "S": // spade
+      return "M50 18 C 30 42, 18 56, 18 70 C 18 84, 32 92, 44 84 C 47 82, 49 80, 50 78 C 51 80, 53 82, 56 84 C 68 92, 82 84, 82 70 C 82 56, 70 42, 50 18 Z M 42 86 L 58 86 L 54 96 L 46 96 Z";
+    case "H": // heart
+      return "M50 86 C 20 64, 14 44, 22 30 C 28 20, 42 18, 50 32 C 58 18, 72 20, 78 30 C 86 44, 80 64, 50 86 Z";
+    case "D": // diamond
+      return "M50 10 L 88 50 L 50 90 L 12 50 Z";
+    case "C": // club
+      return "M30 32 m -16 0 a 16 16 0 1 0 32 0 a 16 16 0 1 0 -32 0 M 70 32 m -16 0 a 16 16 0 1 0 32 0 a 16 16 0 1 0 -32 0 M 50 60 m -18 0 a 18 18 0 1 0 36 0 a 18 18 0 1 0 -36 0 M 46 72 L 54 72 L 58 96 L 42 96 Z";
+  }
+  return "";
+}
+
+function renderSuitSVG(suitKey, size = 50) {
+  return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true">
+    <path d="${suitPath(suitKey)}" fill="currentColor" />
+  </svg>`;
+}
+
+/* 真实扑克牌 SVG 文件名（hayeah/playing-cards-assets） */
+const RANK_TO_FILE = { 1: "ace", 10: "10" };
+const SUIT_TO_FILE = { S: "spades", H: "hearts", D: "diamonds", C: "clubs" };
+function cardSvgFileName(rank, suitKey) {
+  const r = RANK_TO_FILE[rank] || String(rank);
+  const s = SUIT_TO_FILE[suitKey];
+  return `${r}_of_${s}.svg`;
+}
+
+function renderCardFace(card) {
+  // 普通牌：直接加载真实 SVG
+  // 合成牌：显示扑克牌背面 + 数字徽章（展示合成结果）
+  if (card.isComposite) {
+    const displayVal = formatValue(card.value);
+    return `
+      <div class="face composite">
+        <img class="card-svg" src="cards/back.svg" alt="" draggable="false">
+        <div class="composite-badge" title="${card.formula || ''}">
+          <span class="composite-val">${displayVal}</span>
+          <span class="composite-lbl">合成</span>
+        </div>
+      </div>
+      <div class="back"></div>
+    `;
+  }
+
+  const fileName = cardSvgFileName(card.rank, card.suit);
+  return `
+    <div class="face">
+      <img class="card-svg" src="cards/${fileName}" alt="${displayRank(card.rank)}${SUITS.find(s=>s.key===card.suit).symbol}" draggable="false">
+    </div>
+    <div class="back"></div>
+  `;
+}
+
+/* 用分数表示中间值（保证精度）。card.value 始终是 Fraction */
+function Fraction(n, d = 1) {
+  if (d === 0) throw new Error("divide by zero");
+  if (d < 0) { n = -n; d = -d; }
+  const g = gcd(Math.abs(n), Math.abs(d));
+  return { n: n / g, d: d / g };
+}
+function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b]; } return a || 1; }
+function fracEq(a, b) { return a.n * b.d === b.n * a.d; }
+function fracToNumber(f) { return f.n / f.d; }
+function formatValue(f) {
+  // 整数就显示整数；分数显示 "a/b"
+  if (f.d === 1) return String(f.n);
+  return `${f.n}/${f.d}`;
+}
+
+/* ============================================================
+   5) 求解（保证可解）
+   ============================================================ */
+function checkHasSolution(fractions) {
+  // 输入 fractions: 数组，元素是 {n, d}（Fraction）对象
+  // 输出 bool
+  if (!Array.isArray(fractions) || fractions.length !== 4) return false;
+  for (const f of fractions) {
+    if (!f || typeof f.n !== "number" || typeof f.d !== "number") return false;
+  }
+  // 尝试 (a op b) 和 (b op a) 两种顺序
+  function calc(a, b, op) {
+    switch (op) {
+      case "+": return Fraction(a.n * b.d + b.n * a.d, a.d * b.d);
+      case "-": return Fraction(a.n * b.d - b.n * a.d, a.d * b.d);
+      case "*": return Fraction(a.n * b.n, a.d * b.d);
+      case "/":
+        if (b.n === 0) return null;
+        return Fraction(a.n * b.d, a.d * b.n);
+    }
+    return null;
+  }
+  function rec(arr) {
+    if (arr.length === 1) {
+      // 经典 24 点规则：等于 ±24 都算赢（玩家可以把符号留着不必硬转正）
+      const t = Fraction(24);
+      return fracEq(arr[0], t) || fracEq(arr[0], Fraction(-24, 1));
+    }
+    for (let i = 0; i < arr.length; i++) {
+      for (let j = i + 1; j < arr.length; j++) {
+        const rest = [];
+        for (let k = 0; k < arr.length; k++) if (k !== i && k !== j) rest.push(arr[k]);
+        const a = arr[i], b = arr[j];
+        // 尝试 a op b
+        for (const op of ["+", "-", "*", "/"]) {
+          const r1 = calc(a, b, op);
+          if (r1 && rec([...rest, r1])) return true;
+          // 对 - 和 / 同时尝试 b op a
+          if (op === "-" || op === "/") {
+            const r2 = calc(b, a, op);
+            if (r2 && rec([...rest, r2])) return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+  return rec(fractions.slice());
+}
+
+function dealFourCards() {
+  // 一直抽直到 canSolve
+  let nums;
+  for (let attempt = 0; attempt < 200; attempt++) {
+    nums = [];
+    for (let i = 0; i < 4; i++) nums.push(1 + Math.floor(Math.random() * 10));
+    if (checkHasSolution(nums)) break;
+  }
+  // 随机分配四种花色（4 张牌确保每张花色不同）
+  const suits = ["S", "H", "D", "C"];
+  // shuffle
+  for (let i = suits.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [suits[i], suits[j]] = [suits[j], suits[i]];
+  }
+  return nums.map((rank, i) => ({
+    id: uid(),
+    rank,
+    suit: suits[i],
+    value: Fraction(rank, 1),
+    isComposite: false,
+  }));
+}
+
+/* ============================================================
+   6) 渲染桌面中央
+   ============================================================ */
+function renderTable() {
+  playArea.innerHTML = "";
+  state.tableCards.forEach(card => {
+    playArea.appendChild(buildCardElement(card, /*draggable*/ true));
+  });
+}
+
+function buildCardElement(card, draggable) {
+  const el = document.createElement("div");
+  el.className = "pcard" + (card.isComposite ? " composite" : "");
+  el.dataset.id = card.id;
+  el.innerHTML = `<div class="flip">${renderCardFace(card)}</div>`;
+  if (draggable) attachDragHandlers(el);
+  return el;
+}
+
+function attachDragHandlers(el) {
+  // 用 Pointer Events 自定义拖拽。原因：
+  //   1) HTML5 原生 drag 在某些 Chrome 版本上会因为顶层的不可拖动子元素
+  //      （face/back）而完全不触发 dragstart，用户反馈「鼠标按住没反应」。
+  //   2) HTML5 drag 在触屏设备上根本不工作，Pointer Events 同时覆盖鼠标 + 触摸。
+  // 拖拽门槛设为 4px，避免「点一下」也变成一次拖拽造成误删原卡。
+  const DRAG_THRESHOLD = 4;
+  let drag = null; // 当前指针的拖拽会话
+
+  // 用一个闭包外的"全局"清理函数，配合 window 上的兜底监听器，
+  // 避免 pointerup / pointercancel 偶发不发（出窗口、alt-tab、Chrome 切换）
+  // 导致 ghost 卡在屏幕上、原牌永远 visibility:hidden 的"卡死"问题。
+  const windowCleanup = () => {
+    if (!drag) return;
+    const ghost = drag.ghost;
+    const pointerId = drag.pointerId;
+    if (drag.moved) {
+      const restore = playArea.querySelector(`.pcard[data-id="${drag.id}"]`);
+      if (restore) restore.style.visibility = "";
+    }
+    $$(".slot.hover").forEach(s => s.classList.remove("hover"));
+    if (ghost && ghost.parentNode) ghost.remove();
+    state.draggingId = null;
+    drag = null;
+    // 不尝试 releasePointerCapture —— 指针可能已不存在
+  };
+
+  el.addEventListener("pointerdown", (e) => {
+    if (state.busy) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    // 阻止后续 mousedown / click 与文本选择；setPointerCapture 之后事件
+    // 全部回流到这张牌上，即使指针跑出元素范围也不会丢。
+    e.preventDefault();
+    try { el.setPointerCapture(e.pointerId); } catch (_) {}
+
+    const rect = el.getBoundingClientRect();
+    drag = {
+      pointerId: e.pointerId,
+      id: el.dataset.id,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      startX: e.clientX,
+      startY: e.clientY,
+      moved: false,
+      ghost: null,
+    };
+  });
+
+  el.addEventListener("pointermove", (e) => {
+    if (!drag || drag.pointerId !== e.pointerId) return;
+
+    if (!drag.moved) {
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      // 第一次跨过门槛：隐藏原牌、生成 ghost，开始真正的拖拽
+      drag.moved = true;
+      state.draggingId = drag.id;
+      el.style.visibility = "hidden";
+      const r = el.getBoundingClientRect();
+      const ghost = el.cloneNode(true);
+      ghost.classList.add("ghost");
+      ghost.style.position = "fixed";
+      ghost.style.left = r.left + "px";
+      ghost.style.top = r.top + "px";
+      ghost.style.width = r.width + "px";
+      ghost.style.height = r.height + "px";
+      ghost.style.display = "";
+      ghost.style.visibility = "";
+      document.body.appendChild(ghost);
+      drag.ghost = ghost;
+    }
+
+    // 跟随指针
+    drag.ghost.style.left = (e.clientX - drag.offsetX) + "px";
+    drag.ghost.style.top  = (e.clientY - drag.offsetY) + "px";
+
+    // 槽位 hover 高亮（放宽：找指针下方最近的 .slot，必要时取 dock 范围内的最近槽位）
+    const slot = findSlotAt(e.clientX, e.clientY);
+    $$(".slot.hover").forEach(s => { if (s !== slot) s.classList.remove("hover"); });
+    if (slot) slot.classList.add("hover");
+  });
+
+  const finishDrag = (dropped) => {
+    if (!drag) return;
+    const id = drag.id;
+    const ghost = drag.ghost;
+    const pointerId = drag.pointerId;
+    const lastEvent = drag.lastEvent;
+
+    $$(".slot.hover").forEach(s => s.classList.remove("hover"));
+
+    if (dropped) {
+      const cx = lastEvent ? lastEvent.clientX : drag.startX;
+      const cy = lastEvent ? lastEvent.clientY : drag.startY;
+      const slot = findSlotAt(cx, cy);
+
+      if (slot) {
+        const card = state.tableCards.find(c => c.id === id);
+        if (card) {
+          // 从桌面移除原节点（已 visibility:hidden）
+          const originalInTable = playArea.querySelector(`.pcard[data-id="${id}"]`);
+          if (originalInTable) originalInTable.remove();
+          // 如果该牌已在另一槽位，先清空另一槽位
+          const otherKey = slot.dataset.slot === "A" ? "slotB" : "slotA";
+          if (state[otherKey] && state[otherKey].id === id) {
+            const otherEl = slot.dataset.slot === "A" ? slotBEl : slotAEl;
+            setSlot(otherEl, null);
+          }
+          // 如果目标槽位已经有别的牌，把"老住户"放回桌面，避免直接吞掉
+          const slotKey = slot.dataset.slot;
+          if (state["slot" + slotKey] && state["slot" + slotKey].id !== id) {
+            const displaced = state["slot" + slotKey];
+            const displacedEl = buildCardElement(displaced, /*draggable*/ true);
+            playArea.appendChild(displacedEl);
+          }
+          setSlot(slot, card);
+          updateOpAvailability();
+        }
+      } else {
+        // 拖到桌面外：把原牌显示回来
+        const restore = playArea.querySelector(`.pcard[data-id="${id}"]`);
+        if (restore) restore.style.visibility = "";
+      }
+    } else if (drag.moved) {
+      // pointercancel：把原牌显示回来
+      const restore = playArea.querySelector(`.pcard[data-id="${id}"]`);
+      if (restore) restore.style.visibility = "";
+    }
+
+    if (ghost && ghost.parentNode) ghost.remove();
+    try { el.releasePointerCapture(pointerId); } catch (_) {}
+    state.draggingId = null;
+    drag = null;
+  };
+
+  el.addEventListener("pointerup", (e) => {
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    drag.lastEvent = e;
+    finishDrag(true);
+  });
+  el.addEventListener("pointercancel", (e) => {
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    finishDrag(false);
+  });
+
+  // 兜底：浏览器切换、alt-tab、指针出窗口等都可能让 pointerup 静默丢失，
+  // 用 window 上的 pointerup + blur 把 ghost / 隐藏的原牌强制还原。
+  const onWindowPointerUp = (e) => {
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    drag.lastEvent = e;
+    finishDrag(true);
+  };
+  window.addEventListener("pointerup", onWindowPointerUp, true);
+  window.addEventListener("blur", windowCleanup);
+  // 牌销毁时解绑，否则 GC 不会回收元素
+  el.addEventListener("DOMNodeRemovedFromDocument", () => {
+    window.removeEventListener("pointerup", onWindowPointerUp, true);
+    window.removeEventListener("blur", windowCleanup);
+  }, { once: true });
+}
+
+// 在 (cx, cy) 处找最合适的槽位：
+//   1) 优先用 elementFromPoint 直接命中
+//   2) 若点到了 dock 内部（运算符之间）但没命中 slot，按"哪半边更近"吸附
+// 这样玩家即使拖到运算符附近也能稳稳落进 A/B 槽，不会出现"卡住"。
+function findSlotAt(cx, cy) {
+  const elem = document.elementFromPoint(cx, cy);
+  if (elem) {
+    const slot = elem.closest && elem.closest(".slot");
+    if (slot) return slot;
+    // 在 dock 区域里但没命中 slot 时，按 x 坐标吸附
+    const dock = elem.closest && elem.closest(".dock");
+    if (dock) {
+      const aR = slotAEl.getBoundingClientRect();
+      const bR = slotBEl.getBoundingClientRect();
+      const dA = Math.abs(cx - (aR.left + aR.width / 2));
+      const dB = Math.abs(cx - (bR.left + bR.width / 2));
+      return dA <= dB ? slotAEl : slotBEl;
+    }
+  }
+  return null;
+}
+
+/* ============================================================
+   7) 槽位
+   ============================================================ */
+function setSlot(slotEl, card) {
+  // slotEl.dataset.slot === "A" | "B"
+  const key = slotEl.dataset.slot;
+  state["slot" + key] = card;
+  slotEl.innerHTML = "";
+  if (!card) {
+    slotEl.classList.add("empty");
+    slotEl.classList.remove("has-card");
+    return;
+  }
+  slotEl.classList.remove("empty");
+  slotEl.classList.add("has-card");
+  const cardEl = buildCardElement(card, /*draggable*/ false);
+  cardEl.classList.add("locked");
+  slotEl.appendChild(cardEl);
+  // 牌已经被放进槽位，dragend 不应再把它“放回桌面”
+  if (state.draggingId === card.id) state.draggingId = null;
+
+  // clear button
+  const clr = document.createElement("button");
+  clr.className = "clear";
+  clr.textContent = "×";
+  clr.title = "取回桌面";
+  clr.addEventListener("click", (e) => {
+    e.stopPropagation();
+    // drop handler 已经把桌面那张牌从 DOM 移走；点 × 取回时需要重渲染桌面，
+    // 否则那张牌既不在槽位、也回不到桌面，玩家就"丢"了这张牌。
+    setSlot(slotEl, null);
+    renderTable();
+    updateOpAvailability();
+  });
+  slotEl.appendChild(clr);
+}
+
+function updateOpAvailability() {
+  const ready = state.slotA && state.slotB;
+  $$(".op-btn").forEach(b => b.disabled = !ready);
+}
+
+/* ============================================================
+   8) 拖拽接收
+   ============================================================ */
+[slotAEl, slotBEl].forEach(slot => {
+  slot.addEventListener("dragover", (e) => {
+    if (state.busy) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    slot.classList.add("hover");
+  });
+  slot.addEventListener("dragleave", () => slot.classList.remove("hover"));
+  slot.addEventListener("drop", (e) => {
+    e.preventDefault();
+    slot.classList.remove("hover");
+    if (state.busy) return;
+    const id = e.dataTransfer.getData("text/plain");
+    const card = state.tableCards.find(c => c.id === id);
+    if (!card) return;
+    // dragstart 已经把桌面那张牌 display:none；这里彻底从 DOM 里移掉，
+    // 避免「拖到槽位后桌面那张还藏着、用户点 × 取回时找不到」的 bug。
+    const originalInTable = playArea.querySelector(`.pcard[data-id="${id}"]`);
+    if (originalInTable) originalInTable.remove();
+    // 如果该牌已在另一槽位，先清空另一槽位
+    const otherKey = slot.dataset.slot === "A" ? "slotB" : "slotA";
+    if (state[otherKey] && state[otherKey].id === id) {
+      const otherEl = slot.dataset.slot === "A" ? slotBEl : slotAEl;
+      setSlot(otherEl, null);
+    }
+    setSlot(slot, card);
+    updateOpAvailability();
+  });
+});
+
+/* ============================================================
+   9) 运算符：点一下立即合成（不需要"合成"确认按钮）
+   ============================================================ */
+$$(".op-btn").forEach(btn => {
+  btn.disabled = true;
+  btn.addEventListener("click", () => {
+    if (state.busy) return;
+    if (!state.slotA || !state.slotB) return;
+    combine(btn.dataset.op);
+  });
+});
+
+function opDisplay(op) {
+  return { "+": "+", "-": "−", "*": "×", "/": "÷" }[op] || op;
+}
+
+/* ============================================================
+   10) 合成：两张牌 → 一张
+   ============================================================ */
+function combine(op) {
+  const a = state.slotA, b = state.slotB;
+  if (!a || !b || !op) return;
+  let res;
+  switch (op) {
+    case "+": res = Fraction(a.value.n * b.value.d + b.value.n * a.value.d, a.value.d * b.value.d); break;
+    case "-": res = Fraction(a.value.n * b.value.d - b.value.n * a.value.d, a.value.d * b.value.d); break;
+    case "*": res = Fraction(a.value.n * b.value.n, a.value.d * b.value.d); break;
+    case "/":
+      if (b.value.n === 0) {
+        showToast("÷ 0 无意义，请换一张牌");
+        return;
+      }
+      res = Fraction(a.value.n * b.value.d, a.value.d * b.value.n);
+      break;
+  }
+  if (!res) return;
+
+  state.busy = true;
+  updateOpAvailability();
+
+  // 动画：两张牌合到中间 → 翻面变牌背 → 翻回正面显示结果 → 飞回桌面中央
+  const aEl = slotAEl.querySelector(".pcard");
+  const bEl = slotBEl.querySelector(".pcard");
+  const aRect = aEl.getBoundingClientRect();
+  const bRect = bEl.getBoundingClientRect();
+  const tableRect = $("#table").getBoundingClientRect();
+
+  // 在两个槽位中间位置生成一张新"临时"卡（牌背）
+  const temp = document.createElement("div");
+  temp.className = "pcard composite ghost-anim";
+  temp.style.position = "fixed";
+  temp.style.left = ((aRect.right + bRect.left) / 2 - 48) + "px";
+  temp.style.top = (aRect.top) + "px";
+  temp.style.zIndex = 999;
+  temp.style.transition = "transform .4s ease";
+  temp.innerHTML = `<div class="flip"><div class="face composite">
+    <img class="card-svg" src="cards/back.svg" alt="" draggable="false">
+    <div class="composite-badge"><span class="composite-val">?</span><span class="composite-lbl">合成</span></div>
+  </div><div class="back"></div></div>`;
+  document.body.appendChild(temp);
+
+  // 两张原牌淡出
+  aEl.style.transition = "opacity .3s, transform .3s";
+  bEl.style.transition = "opacity .3s, transform .3s";
+  aEl.style.opacity = "0";
+  bEl.style.opacity = "0";
+  aEl.style.transform = "scale(.6)";
+  bEl.style.transform = "scale(.6)";
+
+  setTimeout(() => {
+    // 翻开临时牌 → 牌背 → 正面
+    temp.querySelector(".pcard, .flip").classList.add("flipped");
+    setTimeout(() => {
+      // 真正显示结果
+      const newCard = {
+        id: uid(),
+        rank: 0,
+        suit: ["S","H","D","C"][Math.floor(Math.random()*4)],
+        value: res,
+        isComposite: true,
+        formula: `${formatValue(a.value)}${opDisplay(op)}${formatValue(b.value)}=${formatValue(res)}`,
+      };
+      // 替换临时牌的内容（仍然是牌背 + 数字徽章）
+      temp.innerHTML = `<div class="flip"><div class="face composite">
+        <img class="card-svg" src="cards/back.svg" alt="" draggable="false">
+        <div class="composite-badge" title="${newCard.formula}"><span class="composite-val">${formatValue(res)}</span><span class="composite-lbl">合成</span></div>
+      </div><div class="back"></div></div>`;
+
+      setTimeout(() => {
+        // 翻回正面
+        const flip = temp.querySelector(".flip");
+        flip.classList.remove("flipped");
+
+        setTimeout(() => {
+          // 移动到桌面中央（保留足够空间）
+          const targetX = (tableRect.left + tableRect.right) / 2 - 48;
+          const targetY = tableRect.top + tableRect.height / 2 - 66;
+          temp.style.transition = "left .5s ease, top .5s ease, transform .5s ease";
+          temp.style.left = targetX + "px";
+          temp.style.top = targetY + "px";
+
+          setTimeout(() => {
+            // 更新状态
+            state.tableCards = state.tableCards.filter(c => c.id !== a.id && c.id !== b.id);
+            state.tableCards.push(newCard);
+            state.history.push({ a, b, op, result: res });
+
+            setSlot(slotAEl, null);
+            setSlot(slotBEl, null);
+            temp.remove();
+            state.busy = false;
+            renderTable();
+            checkWin();
+          }, 520);
+        }, 350);
+      }, 250);
+    }, 600);
+  }, 320);
+}
+
+function checkWin() {
+  // 胜利条件：只剩一张牌且其值 === 24（或 -24，按经典 24 点规则）
+  if (state.tableCards.length === 1) {
+    if (fracEq(state.tableCards[0].value, Fraction(24)) ||
+        fracEq(state.tableCards[0].value, Fraction(-24, 1))) {
+      showToast("🎉 挑战成功！用 " + state.round + " 手搞定 24 点！", "win");
+      // 翻转牌显示高亮
+      const card = playArea.querySelector(".pcard");
+      if (card) {
+        card.classList.add("flipped");
+        card.style.transition = "transform .4s";
+        card.style.transform = "scale(1.15)";
+      }
+      // 自动开始下一手（不阻塞）
+      setTimeout(() => {
+        state.round++;
+        roundEl.textContent = state.round;
+        nextRound();
+      }, 2200);
+    } else {
+      showToast("剩最后一张但不是 24，再想想？");
+    }
+  } else if (state.tableCards.length === 0) {
+    showToast("牌用完了…再抽一组吧");
+  }
+}
+
+/* ============================================================
+   11) 重置 / 跳过
+   ============================================================ */
+$("#resetBtn").addEventListener("click", () => {
+  if (state.busy) return;
+  if (!state.initialCards.length) return;
+  state.tableCards = state.initialCards.map(c => ({ ...c }));
+  setSlot(slotAEl, null);
+  setSlot(slotBEl, null);
+  renderTable();
+  showToast("已重置到本轮最初四张");
+});
+
+$("#skipBtn").addEventListener("click", () => {
+  if (state.busy) return;
+  state.round++;
+  roundEl.textContent = state.round;
+  nextRound();
+});
+
+deckEl.addEventListener("click", () => {
+  if (state.busy) return;
+  // 牌堆点击 = 重新抽一组（与 skip 行为一致）
+  state.round++;
+  roundEl.textContent = state.round;
+  nextRound();
+});
+
+/* ============================================================
+   12) 新一轮
+   ============================================================ */
+function nextRound() {
+  state.tableCards = dealFourCards();
+  state.initialCards = state.tableCards.map(c => ({ ...c }));
+  setSlot(slotAEl, null);
+  setSlot(slotBEl, null);
+  state.history = [];
+  // 飞行出牌动画：4 张牌依次从牌堆飞出到桌面中央，再翻面
+  flyCardsFromDeck(state.tableCards);
+}
+
+/* ============================================================
+   出牌动画：从牌堆位置（背面朝上）飞到桌面中央，再翻面显示正面
+   ============================================================ */
+function flyCardsFromDeck(cards) {
+  // 清空桌面
+  playArea.innerHTML = "";
+  state.busy = true;
+
+  const STAGGER = 110;      // 每张牌错开的间隔
+  const FLIGHT_MS = 520;    // 从牌堆飞到目标位置
+  const SHIFT_MS = 180;     // 向右挪出半张牌宽
+  const FLIP_MS = 380;      // 翻面 + 回正
+
+  const deckRect = deckEl.getBoundingClientRect();
+
+  // 先一次性把正式牌放回桌面布局中：这样目标位置由 flex 布局决定，
+  // 移动端换行 / 窗口尺寸变化时也能准确对齐，不再依赖硬编码坐标。
+  // 发牌期间用 .dealing 显示牌背并禁用交互，发完后移除即可。
+  const cardEls = cards.map(card => {
+    const el = buildCardElement(card, /*draggable*/ true);
+    el.classList.add("dealing");
+    el.style.visibility = "hidden";
+    playArea.appendChild(el);
+    return el;
+  });
+
+  // 等一帧让浏览器完成布局，再读取每张牌的实际目标位置
+  requestAnimationFrame(() => {
+    cardEls.forEach((el, idx) => {
+      const targetRect = el.getBoundingClientRect();
+      const fromX = deckRect.left - targetRect.left;
+      const fromY = deckRect.top - targetRect.top;
+      const cardW = targetRect.width || 96;
+      const shiftX = cardW * 0.55; // 向右挪出约半张牌宽
+
+      // 阶段 1：从牌堆飞到目标位置（飞行中保持牌背朝上）
+      const flight = el.animate(
+        [
+          { transform: `translate(${fromX}px, ${fromY}px) rotate(-6deg) scale(.7)` },
+          { transform: "translate(0, 0) rotate(0deg) scale(1)" },
+        ],
+        {
+          duration: FLIGHT_MS,
+          delay: idx * STAGGER,
+          easing: "cubic-bezier(.22, 1, .36, 1)", // 无过冲，落地更稳
+          fill: "both",
+        }
+      );
+
+      // fill: "both" 会在 delay 期间就应用首帧变换，所以按节奏显示即可
+      setTimeout(() => { el.style.visibility = "visible"; }, idx * STAGGER);
+
+      flight.onfinish = () => {
+        // 把飞行 WA 的结果固定到内联样式再取消，避免恢复 left/top 时跳动
+        el.style.transform = "translate(0, 0)";
+        flight.cancel();
+
+        // 阶段 2：向右挪出半张牌宽，模拟捏住牌的左边缘
+        const slideRight = el.animate(
+          [
+            { transform: "translate(0, 0)" },
+            { transform: `translate(${shiftX}px, 0)` },
+          ],
+          {
+            duration: SHIFT_MS,
+            easing: "cubic-bezier(.4, .2, .2, 1)",
+            fill: "forwards",
+          }
+        );
+
+        slideRight.onfinish = () => {
+          el.style.transform = `translate(${shiftX}px, 0)`;
+          slideRight.cancel();
+
+          const flip = el.querySelector(".flip");
+
+          // 阶段 3：翻面和向左回正同时进行。
+          // 这样牌在翻面过程中就落回最终位置，避免“翻完后再跳一下”。
+          const flipAnim = flip.animate(
+            [
+              { transform: "rotateY(180deg)" },
+              { transform: "rotateY(0deg)" },
+            ],
+            {
+              duration: FLIP_MS,
+              easing: "cubic-bezier(.5, .05, .3, 1)",
+              fill: "forwards",
             }
-            // 限制表达式长度防止 DoS
-            if (expr.length > 100) {
-                throw new Error('表达式过长');
+          );
+          const slideBack = el.animate(
+            [
+              { transform: `translate(${shiftX}px, 0)` },
+              { transform: "translate(0, 0)" },
+            ],
+            {
+              duration: FLIP_MS,
+              easing: "cubic-bezier(.5, .05, .3, 1)",
+              fill: "forwards",
             }
+          );
 
-            // 使用 Function 构造但配合严格模式和安全上下文
-            // 同时使用 try-catch 防止恶意代码执行
-            try {
-                const result = (new Function('"use strict"; return (' + expr + ')')());
-                if (typeof result !== 'number' || !isFinite(result)) {
-                    throw new Error('无效的计算结果');
-                }
-                return result;
-            } catch (e) {
-                throw new Error('算式格式错误');
+          let settled = 0;
+          const settle = () => {
+            settled++;
+            if (settled < 2) return;
+
+            // 先固定最终状态，再移除 .dealing 交回普通交互样式
+            flip.style.transform = "rotateY(0deg)";
+            el.style.transform = "translate(0, 0)";
+            flipAnim.cancel();
+            slideBack.cancel();
+
+            el.classList.remove("dealing");
+            flip.style.transform = "";
+            el.style.transform = "";
+
+            if (idx === cards.length - 1) {
+              state.busy = false;
             }
-        }
+          };
+          flipAnim.onfinish = settle;
+          slideBack.onfinish = settle;
+        };
+      };
+    });
+  });
+}
 
-        // 生成随机数字 (1-10)
-        function generateNumbers() {
-            const numbers = [];
-            for (let i = 0; i < 4; i++) {
-                numbers.push(Math.floor(Math.random() * 10) + 1);
-            }
-            return numbers;
-        }
+/* ============================================================
+   13) 初始化
+   ============================================================ */
+function init() {
+  nextRound();
+  startTimer();
+}
 
-        // 检查是否有解
-        function hasSolution(numbers) {
-            const ops = ['+', '-', '*', '/'];
-            const used = [false, false, false, false];
-            
-            function calc(a, b, op) {
-                switch(op) {
-                    case '+': return a + b;
-                    case '-': return a - b;
-                    case '*': return a * b;
-                    case '/': return b !== 0 ? a / b : null;
-                }
-            }
+init();
 
-            function tryAll(index, current) {
-                if (index === 4) {
-                    return Math.abs(current - 24) < 0.0001;
-                }
-                
-                for (let i = 0; i < 4; i++) {
-                    if (!used[i]) {
-                        used[i] = true;
-                        
-                        // 使用两个数运算
-                        for (let j = i + 1; j < 4; j++) {
-                            if (!used[j]) {
-                                used[j] = true;
-                                for (let op of ops) {
-                                    const result = calc(current, numbers[i], op);
-                                    if (result !== null && tryAll(index + 1, result)) {
-                                        return true;
-                                    }
-                                }
-                                used[j] = false;
-                            }
-                        }
-                        used[i] = false;
-                    }
-                }
-                return false;
-            }
-
-            // 尝试不同的组合
-            for (let i = 0; i < 4; i++) {
-                for (let j = i + 1; j < 4; j++) {
-                    for (let op of ops) {
-                        const result = calc(numbers[i], numbers[j], op);
-                        if (result !== null) {
-                            const remaining = numbers.filter((_, idx) => idx !== i && idx !== j);
-                            const newNumbers = [...remaining, result];
-                            
-                            // 递归检查
-                            function checkRec(nums, target) {
-                                if (nums.length === 1) {
-                                    return Math.abs(nums[0] - target) < 0.0001;
-                                }
-                                for (let a = 0; a < nums.length; a++) {
-                                    for (let b = a + 1; b < nums.length; b++) {
-                                        const remaining2 = [];
-                                        for (let k = 0; k < nums.length; k++) {
-                                            if (k !== a && k !== b) remaining2.push(nums[k]);
-                                        }
-                                        for (let op2 of ops) {
-                                            const res = calc(nums[a], nums[b], op2);
-                                            if (res !== null) {
-                                                if (checkRec([...remaining2, res], target)) return true;
-                                            }
-                                        }
-                                    }
-                                }
-                                return false;
-                            }
-                            
-                            if (checkRec(newNumbers, 24)) return true;
-                        }
-                    }
-                }
-            }
-            
-            return tryAll(1, numbers[0]);
-        }
-
-        // 初始化游戏
-        function initGame() {
-            currentNumbers = generateNumbers();
-            
-            // 确保有解，如果没有就重新生成
-            let attempts = 0;
-            while (!hasSolution(currentNumbers) && attempts < 100) {
-                currentNumbers = generateNumbers();
-                attempts++;
-            }
-            
-            renderNumberCards();
-            document.getElementById('expressionInput').value = '';
-            document.getElementById('result').className = 'result';
-            document.getElementById('result').textContent = '';
-        }
-
-        // 渲染数字卡片
-        function renderNumberCards() {
-            const container = document.getElementById('numberCards');
-            container.innerHTML = currentNumbers.map((num, idx) => 
-                `<div class="number-card" onclick="insertNumber(${idx})">${num}</div>`
-            ).join('');
-        }
-
-        // 插入数字
-        function insertNumber(idx) {
-            const input = document.getElementById('expressionInput');
-            input.value += currentNumbers[idx];
-            input.focus();
-        }
-
-        // 插入运算符
-        document.querySelectorAll('.operator-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const input = document.getElementById('expressionInput');
-                const op = btn.dataset.op;
-                input.value += op;
-                input.focus();
-            });
-        });
-
-        // 检查答案
-        function checkAnswer() {
-            const expression = document.getElementById('expressionInput').value.trim();
-            const resultDiv = document.getElementById('result');
-            
-            if (!expression) {
-                resultDiv.className = 'result error';
-                resultDiv.textContent = '请输入算式！';
-                return;
-            }
-
-            try {
-                // 验证只使用给定的数字
-                const numStr = currentNumbers.join('');
-                
-                // 统计每个数字使用的次数
-                const usedCount = {};
-                const givenCount = {};
-                
-                for (let c of expression) {
-                    if (/[0-9]/.test(c)) {
-                        usedCount[c] = (usedCount[c] || 0) + 1;
-                    }
-                }
-                for (let c of numStr) {
-                    givenCount[c] = (givenCount[c] || 0) + 1;
-                }
-                
-                // 检查是否每个使用的数字都不超过给定的数量
-                for (let key in usedCount) {
-                    if ((usedCount[key] || 0) > (givenCount[key] || 0)) {
-                        throw new Error('每个数字只能使用一次！');
-                    }
-                }
-                
-                // 检查是否使用了所有数字
-                let totalGiven = 0, totalUsed = 0;
-                for (let key in givenCount) totalGiven += givenCount[key];
-                for (let key in usedCount) totalUsed += usedCount[key];
-                
-                if (totalUsed !== 4) {
-                    throw new Error('必须使用全部四个数字！');
-                }
-
-                // 计算结果
-                const result = safeEvaluate(expression);
-                
-                if (Math.abs(result - 24) < 0.0001) {
-                    // 正确！
-                    correctCount++;
-                    streakCount++;
-                    resultDiv.className = 'result success';
-                    resultDiv.textContent = `🎉 恭喜！${expression} = 24，回答正确！`;
-                    addToHistory(expression, true);
-                    updateScore();
-                    
-                    // 延迟开始新游戏
-                    setTimeout(() => {
-                        initGame();
-                    }, 2000);
-                } else {
-                    // 错误
-                    wrongCount++;
-                    streakCount = 0;
-                    resultDiv.className = 'result error';
-                    resultDiv.textContent = `❌ ${expression} = ${result}，不等于24，继续加油！`;
-                    addToHistory(expression, false);
-                    updateScore();
-                }
-            } catch (e) {
-                resultDiv.className = 'result error';
-                resultDiv.textContent = '⚠️ 算式格式错误！' + e.message;
-            }
-        }
-
-        // 更新分数
-        function updateScore() {
-            document.getElementById('correctCount').textContent = correctCount;
-            document.getElementById('wrongCount').textContent = wrongCount;
-            document.getElementById('streakCount').textContent = streakCount;
-        }
-
-        // 添加到历史记录
-        function addToHistory(expression, isCorrect) {
-            gameHistory.unshift({
-                expression,
-                correct: isCorrect,
-                time: new Date().toLocaleTimeString()
-            });
-            
-            // 只保留最近20条
-            if (gameHistory.length > 20) {
-                gameHistory.pop();
-            }
-            
-            renderHistory();
-        }
-
-        // 渲染历史记录
-        function renderHistory() {
-            const list = document.getElementById('historyList');
-            list.innerHTML = gameHistory.map(item => `
-                <div class="history-item ${item.correct ? 'correct' : 'wrong'}">
-                    <span class="history-expression">${item.expression}</span>
-                    <span class="history-time">${item.time}</span>
-                </div>
-            `).join('');
-        }
-
-        // 新游戏
-        function newGame() {
-            initGame();
-            document.getElementById('result').className = 'result';
-            document.getElementById('result').textContent = '';
-        }
-
-        // 删除最后一个字符
-        function deleteLast() {
-            const input = document.getElementById('expressionInput');
-            input.value = input.value.slice(0, -1);
-            input.focus();
-        }
-
-        // 放弃
-        function giveUp() {
-            wrongCount++;
-            streakCount = 0;
-            updateScore();
-            
-            const resultDiv = document.getElementById('result');
-            resultDiv.className = 'result error';
-            resultDiv.textContent = '很遗憾，这题比较难！来一局新的吧~';
-            
-            setTimeout(() => {
-                initGame();
-            }, 2000);
-        }
-
-        // 回车提交
-        document.getElementById('expressionInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                checkAnswer();
-            }
-        });
-
-        // 初始化
-        initGame();
-    </script>
+</script>
 </body>
-
 </html>

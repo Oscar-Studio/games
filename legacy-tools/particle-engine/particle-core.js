@@ -4,6 +4,9 @@
  * 支持粒子池复用，减少GC压力
  */
 
+// 粒子数量上限：防止内存泄漏 / DoS
+const MAX_PARTICLES = 500;
+
 class Particle {
     constructor() {
         // Properties will be set by reset()

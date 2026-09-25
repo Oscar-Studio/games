@@ -362,7 +362,9 @@
     const ca1dCtx = ca1dCanvas.getContext('2d');
 
     let CELL_SIZE = 10;
-    let COLS = 80, ROWS = 50;
+    // 网格尺寸上限：防止内存爆炸（DoS 防护）
+const MAX_GRID = 300;
+let COLS = 80, ROWS = 50;
     let zoom = 1;
     let grid = [];
     let running = false;
@@ -524,14 +526,15 @@
     function buildToolbar(r) {
         const toolbar = document.getElementById('drawToolbar');
         const tools = TOOLS[r] || TOOLS.life;
-        toolbar.innerHTML = tools.map(t => `
-            <button class="tool-btn ${t.value === currentTool ? 'active' : ''}"
-                    onclick="selectTool(${t.value})"
-                    data-value="${t.value}">
-                <span class="swatch" style="background:${t.color}"></span>
-                <span class="label">${t.label}</span>
-            </button>
-        `).join('');
+        toolbar.textContent = '';
+        for (const t of tools) {
+            const toolBtn = document.createElement('button');
+            toolBtn.className = 'tool';
+            toolBtn.dataset.tool = t.id;
+            toolBtn.title = t.label;
+            toolBtn.textContent = t.icon;
+            toolbar.appendChild(toolBtn);
+        }
     }
 
     function selectTool(value) {
@@ -858,7 +861,8 @@
         document.getElementById('ca1dPanel').style.display = is1D ? 'block' : 'none';
 
         // Info
-        document.getElementById('infoBox').innerHTML = RULE_INFOS[rule] || '';
+        // 防止 XSS：使用 textContent 而非 innerHTML
+document.getElementById('infoBox').textContent = RULE_INFOS[rule] || '';
 
         if (is1D) {
             ca1dCells = make1DCells();
@@ -912,7 +916,13 @@
         });
 
         if (patterns.length === 0) {
-            grid.innerHTML = '<span style="font-size:0.8rem;color:var(--text-dim);grid-column:1/-1;text-align:center;">随机画吧~</span>';
+            const emptySpan = document.createElement('span');
+            emptySpan.style.fontSize = '0.8rem';
+            emptySpan.style.color = 'var(--text-dim)';
+            emptySpan.style.gridColumn = '1/-1';
+            emptySpan.style.textAlign = 'center';
+            emptySpan.textContent = '随机画吧~';
+            grid.appendChild(emptySpan);
         }
     }
 

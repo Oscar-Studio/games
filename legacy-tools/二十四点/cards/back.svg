@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 700" preserveAspectRatio="xMidYMid meet">
+  <!-- 蓝白菱形网格牌背 -->
+  <!-- 整体白底（牌的白边） -->
+  <rect width="500" height="700" fill="#ffffff"/>
+
+  <!-- 蓝色内部底 -->
+  <rect x="22" y="22" width="456" height="656" fill="#1d2cf0"/>
+
+  <!--
+    主花纹：一个 40×40 的 pattern，
+    每个 tile 是一个白色"X"（两条对角线交叉）。
+    在 500×676 内部，X 交点形成菱形网格。
+  -->
+  <defs>
+    <pattern id="grid" x="22" y="22" width="40" height="40" patternUnits="userSpaceOnUse">
+      <!-- 单元中心 (20,20) 画 X -->
+      <g stroke="#ffffff" stroke-width="7" stroke-linecap="round" fill="none">
+        <line x1="2" y1="2" x2="38" y2="38"/>
+        <line x1="38" y1="2" x2="2" y2="38"/>
+      </g>
+      <!-- 节点处的小圆点（增强菱形交点的白点感） -->
+      <circle cx="20" cy="20" r="3.2" fill="#ffffff"/>
+    </pattern>
+  </defs>
+
+  <!-- 把花纹铺满蓝色内部 -->
+  <rect x="22" y="22" width="456" height="656" fill="url(#grid)"/>
+
+  <!--
+    四角的三角箭头：朝中心指向
+    用四个三角形分别放在 4 个角，朝中心方向
+  -->
+  <g fill="#ffffff">
+    <!-- 左上角三角：尖端朝右下 -->
+    <polygon points="22,22 70,22 22,70"/>
+    <!-- 右上角三角：尖端朝左下 -->
+    <polygon points="478,22 430,22 478,70"/>
+    <!-- 左下角三角：尖端朝右上 -->
+    <polygon points="22,678 22,630 70,678"/>
+    <!-- 右下角三角：尖端朝左上 -->
+    <polygon points="478,678 478,630 430,678"/>
+  </g>
+</svg>

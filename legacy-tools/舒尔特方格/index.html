@@ -436,10 +436,19 @@
                 const card = document.createElement('div');
                 card.className = 'level-card';
                 card.onclick = () => preloadGame(i);
-                card.innerHTML = `
-                    <div class="level-title">${i} × ${i}</div>
-                    <div class="level-record">最佳: <span class="record-time">${recordText}</span></div>
-                `;
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'level-title';
+                titleDiv.textContent = `${i} × ${i}`;
+                const recordDiv = document.createElement('div');
+                recordDiv.className = 'level-record';
+                const recordLabel = document.createTextNode('最佳: ');
+                const recordSpan = document.createElement('span');
+                recordSpan.className = 'record-time';
+                recordSpan.textContent = recordText;
+                recordDiv.appendChild(recordLabel);
+                recordDiv.appendChild(recordSpan);
+                card.appendChild(titleDiv);
+                card.appendChild(recordDiv);
                 levelList.appendChild(card);
             }
         }

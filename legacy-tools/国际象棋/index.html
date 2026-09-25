@@ -406,12 +406,23 @@
                 return [...pieces].sort((a, b) => (order[a.type] || 5) - (order[b.type] || 5));
             };
 
-            cwEl.innerHTML = sortPieces(capturedByWhite).map(p =>
-                `<span class="captured-piece" style="color:white;text-shadow:0 0 2px #000">${PIECES[p.type]}</span>`
-            ).join('');
-            cbEl.innerHTML = sortPieces(capturedByBlack).map(p =>
-                `<span class="captured-piece" style="color:#111">${PIECES[p.type]}</span>`
-            ).join('');
+            cwEl.textContent = '';
+            for (const p of sortPieces(capturedByWhite)) {
+                const span = document.createElement('span');
+                span.className = 'captured-piece';
+                span.style.color = 'white';
+                span.style.textShadow = '0 0 2px #000';
+                span.textContent = PIECES[p.type] || '';
+                cwEl.appendChild(span);
+            }
+            cbEl.textContent = '';
+            for (const p of sortPieces(capturedByBlack)) {
+                const span = document.createElement('span');
+                span.className = 'captured-piece';
+                span.style.color = '#111';
+                span.textContent = PIECES[p.type] || '';
+                cbEl.appendChild(span);
+            }
         }
 
         // ============================================================
@@ -518,9 +529,15 @@
             const choices = document.getElementById('promotion-choices');
             const pieces = color === WHITE ? ['q', 'r', 'b', 'n'] : ['q', 'r', 'b', 'n'];
 
-            choices.innerHTML = pieces.map(p =>
-                `<div class="promotion-piece ${color}" onclick="resolvePromotion('${p}')">${PIECES[p]}</div>`
-            ).join('');
+            choices.textContent = '';
+            for (const p of pieces) {
+                const div = document.createElement('div');
+                div.className = `promotion-piece ${color}`;
+                div.dataset.piece = p;
+                div.textContent = PIECES[p] || '';
+                div.addEventListener('click', () => resolvePromotion(p));
+                choices.appendChild(div);
+            }
 
             modal.classList.add('show');
 

@@ -1,6 +1,6 @@
 export function Hero() {
   return (
-    <section className="hero" id="heroSection">
+    <section className="hero classic-only" id="heroSection">
       <div className="hero-block">
         <div className="hero-icon">🎮</div>
         <h1>益智游戏集</h1>

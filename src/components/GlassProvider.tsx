@@ -1,16 +1,4 @@
-import { useEffect, useRef } from 'react';
-import { Glass } from '@samasante/liquid-glass';
-import { initWebGLGlass, destroyWebGLGlass } from '../lib/webglGlass';
-import { useUserLiquidGlass } from '../hooks/useUserLiquidGlass';
-
-const AMBIENT_OPTICS = {
-  sheenWidth: 30,
-  strength: 0.15,
-  curvature: 0.15,
-  frost: 3,
-  dispersion: 0.10,
-  brightness: 0.04,
-};
+import { useEffect } from 'react';
 
 const API_BASE = 'https://api.oscarstudio.cn';
 const DEFAULT_BG = `${API_BASE}/default-bg.jpeg`;
@@ -98,83 +86,17 @@ async function resolveBg(): Promise<BgCfg> {
   return fallback;
 }
 
-function supportsBackdropFilter(): boolean {
-  if (typeof CSS === 'undefined' || !CSS.supports) return false;
-  return CSS.supports('backdrop-filter', 'blur(1px)')
-    || CSS.supports('-webkit-backdrop-filter', 'blur(1px)');
-}
-
-export function useGlassBackground() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const { optics: userOptics } = useUserLiquidGlass();
-
+/**
+ * 应用用户自定义背景（无则用 default-bg.jpeg）。
+ * 与 user-button.js 通过 `body.style.backgroundImage` 互斥，
+ * 任意一方设置过则对方不再覆盖。
+ */
+export function useUserBackground() {
   useEffect(() => {
-    document.body.classList.add('no-lg-refraction');
-
-    const observer = new MutationObserver(() => {
-      const bg = document.body.style.backgroundImage;
-      if (!bg || bg === 'none') {
-        resolveBg().then(cfg => {
-          if (!document.body.style.backgroundImage || document.body.style.backgroundImage === 'none') {
-            applyBackgroundFx(cfg);
-          }
-        });
-      }
-    });
-    observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
-
+    // 移除 MutationObserver：原本的实现会因为 applyBackgroundFx 写入 body.style
+    // 触发 observer 回调，回调里又调 applyBackgroundFx，造成无限循环
+    // （Safari 尤甚，会直接卡死整个页面）。
+    // 现在只首次拉一次配置即可，与 main-station 行为一致。
     resolveBg().then(applyBackgroundFx);
-
-    // Safari 自 9 起支持 `-webkit-backdrop-filter`，无需走 WebGL。
-    if (!supportsBackdropFilter()) {
-      const inst = initWebGLGlass({ ...AMBIENT_OPTICS, ...userOptics });
-      if (!inst) {
-        observer.disconnect();
-        console.warn('WebGL fallback unavailable');
-        return;
-      }
-      return () => {
-        observer.disconnect();
-        destroyWebGLGlass();
-      };
-    }
-    return () => {
-      observer.disconnect();
-    };
-  }, [userOptics]);
-
-  if (canvasRef.current === null) {
-    canvasRef.current = document.getElementById('lg-webgl-canvas') as HTMLCanvasElement | null;
-  }
-}
-
-interface GlassWrapProps {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-  borderRadius?: number;
-  maxDpr?: number;
-  filterResolution?: number;
-}
-
-export function GlassWrap({
-  children,
-  className,
-  style,
-  borderRadius = 16,
-  maxDpr,
-  filterResolution,
-}: GlassWrapProps) {
-  const { optics } = useUserLiquidGlass();
-  return (
-    <Glass
-      className={className}
-      style={{ borderRadius, ...style }}
-      optics={optics}
-      maxDpr={maxDpr}
-      filterResolution={filterResolution}
-    >
-      {children}
-    </Glass>
-  );
+  }, []);
 }
