@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>NEON PULSE · 音游</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div id="vignette"></div>
+
+<div id="app">
+
+  <!-- ══════════════════ 标题 ══════════════════ -->
+  <section class="screen active" id="screen-title">
+    <div class="title-wrap">
+      <div class="logo">
+        <span class="logo-a">NEON</span><span class="logo-b">PULSE</span>
+      </div>
+      <p class="tagline">程序化生成的 · 音游 / Rhythm Game</p>
+      <div class="title-buttons">
+        <button class="btn btn-primary" data-go="songs">开始游戏</button>
+        <button class="btn" data-go="settings">设置</button>
+        <button class="btn" data-go="help">玩法</button>
+      </div>
+      <p class="hint">建议戴耳机游玩 · 按任意键也可开始</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 选曲 ══════════════════ -->
+  <section class="screen" id="screen-songs">
+    <header class="bar">
+      <button class="btn btn-ghost" data-go="title">← 返回</button>
+      <div class="bar-title">选择歌曲</div>
+      <div class="bar-right"></div>
+    </header>
+
+    <div class="song-layout">
+      <div class="song-list" id="song-list"></div>
+
+      <aside class="song-side">
+        <div class="panel">
+          <h3>谱面设置</h3>
+          <div class="field">
+            <label>键数 <span class="val" id="val-keys">4</span></label>
+            <div class="chips" id="chips-keys"></div>
+            <p class="note">按键：<b id="key-hints">D F J K</b></p>
+          </div>
+          <div class="field">
+            <label>难度</label>
+            <div class="chips" id="chips-diff">
+              <button class="chip" data-diff="easy">EASY</button>
+              <button class="chip" data-diff="normal">NORMAL</button>
+              <button class="chip" data-diff="hard">HARD</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>下落速度 <span class="val" id="val-speed">1.00</span></label>
+            <input type="range" id="rng-speed" min="0.4" max="2.2" step="0.05" value="1" />
+          </div>
+          <button class="btn btn-primary btn-lg" id="btn-play">▶ 开始游玩</button>
+        </div>
+
+        <div class="panel">
+          <h3>最佳记录</h3>
+          <div id="best-list" class="best-list"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 设置 ══════════════════ -->
+  <section class="screen" id="screen-settings">
+    <header class="bar">
+      <button class="btn btn-ghost" data-go="title">← 返回</button>
+      <div class="bar-title">设置</div>
+      <div class="bar-right"></div>
+    </header>
+
+    <div class="settings-grid">
+      <div class="panel">
+        <h3>音频</h3>
+        <div class="field">
+          <label>音乐音量 <span class="val" id="val-vol-music">70</span></label>
+          <input type="range" id="rng-vol-music" min="0" max="100" step="1" value="70" />
+        </div>
+        <div class="field">
+          <label>音效音量 <span class="val" id="val-vol-sfx">60</span></label>
+          <input type="range" id="rng-vol-sfx" min="0" max="100" step="1" value="60" />
+        </div>
+        <div class="field row">
+          <label>打击音效</label>
+          <button class="switch" id="sw-hit-sound" data-on="1"></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>判定</h3>
+        <div class="field">
+          <label>延迟偏移 <span class="val" id="val-offset">0 ms</span></label>
+          <input type="range" id="rng-offset" min="-200" max="200" step="1" value="0" />
+          <p class="note">感觉总是「晚了」就调正值，「早了」就调负值。</p>
+        </div>
+        <button class="btn" id="btn-calibrate">开始延迟校准</button>
+        <div class="field">
+          <label>判定窗口</label>
+          <div class="chips" id="chips-window">
+            <button class="chip" data-window="strict">严格</button>
+            <button class="chip" data-window="normal">标准</button>
+            <button class="chip" data-window="loose">宽松</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>画面</h3>
+        <div class="field row">
+          <label>泛光特效</label>
+          <button class="switch" id="sw-bloom" data-on="1"></button>
+        </div>
+        <div class="field row">
+          <label>背景动效</label>
+          <button class="switch" id="sw-bgfx" data-on="1"></button>
+        </div>
+        <div class="field">
+          <label>背景亮度 <span class="val" id="val-bg-dim">45</span></label>
+          <input type="range" id="rng-bg-dim" min="0" max="100" step="1" value="45" />
+        </div>
+        <div class="field row">
+          <label>失败机制</label>
+          <button class="switch" id="sw-fail" data-on="1"></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>数据</h3>
+        <div class="field">
+          <label>音乐来源</label>
+          <p class="note">内置曲目全部由内置合成器实时生成，无版权问题。也可以导入自己的音频自动扒谱。</p>
+          <button class="btn" id="btn-import">导入本地音频…</button>
+          <input type="file" id="file-input" accept="audio/*" hidden />
+        </div>
+        <button class="btn btn-danger" id="btn-clear">清除所有记录</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 玩法 ══════════════════ -->
+  <section class="screen" id="screen-help">
+    <header class="bar">
+      <button class="btn btn-ghost" data-go="title">← 返回</button>
+      <div class="bar-title">玩法</div>
+      <div class="bar-right"></div>
+    </header>
+    <div class="help-grid">
+      <div class="panel">
+        <h3>基本操作</h3>
+        <ul class="help-list">
+          <li><b>敲击</b> —— note 触碰到判定线时按下对应按键。</li>
+          <li><b>长按</b> —— 带有尾条的 note，按住不放直到尾部消失。</li>
+          <li><b>双押</b> —— 同一时刻的多个 note 需要同时按下。</li>
+          <li><b>ESC / P</b> —— 暂停 / 继续。</li>
+          <li><b>R</b> —— 重开本曲。</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>判定与得分</h3>
+        <ul class="help-list">
+          <li><b class="j-perfect">PERFECT</b> — 满权重 100%</li>
+          <li><b class="j-great">GREAT</b> — 65%</li>
+          <li><b class="j-good">GOOD</b> — 30%</li>
+          <li><b class="j-miss">MISS</b> — 0%，并中断连击</li>
+          <li>满分为 1,000,000 分。准确率 = 权重和 ÷ 音符总数。</li>
+          <li>生命值归零会 <b>Failed</b>，可在设置中关闭。</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>触屏玩法</h3>
+        <ul class="help-list">
+          <li>手机、平板<b>直接用手指点轨道</b>即可，不需要键盘。支持多指 —— <b>双押请用两根手指</b>。</li>
+          <li>整条轨道从场地中部往下都可点，<b>判定线上的圆点就是点按目标</b>。</li>
+          <li>按住不放 = 长按；手指滑到相邻轨道会自动换道（相当于扫键）。</li>
+          <li>触屏延迟一般比键盘大，觉得判定偏可以跑一次<b>延迟校准</b>，或把判定窗口调成<b>宽松</b>。</li>
+          <li>横握手机时左右手分别按住屏幕两侧，手感更好。</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>上手建议</h3>
+        <ul class="help-list">
+          <li>先用 <b>4 键 + EASY</b> 熟悉判定线，肌肉记忆比速度更重要。</li>
+          <li>觉得整体偏早/偏晚，用设置里的 <b>延迟校准</b> 自动测一次。</li>
+          <li>长按中途松手不会立刻判 MISS，但会断连击并丢掉尾部奖励。</li>
+          <li>觉得看不清就把 <b>下落速度</b> 调慢，背景亮度调低。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 游戏 ══════════════════ -->
+  <section class="screen" id="screen-game">
+    <canvas id="game-canvas"></canvas>
+
+    <div class="game-topbar">
+      <button class="icon-btn" id="btn-pause">❚❚</button>
+      <div class="game-song" id="hud-song">—</div>
+      <div class="game-prog"><i id="hud-prog"></i></div>
+    </div>
+
+    <div class="game-hud-left">
+      <div class="hud-score"><label>SCORE</label><b id="hud-score">0</b></div>
+      <div class="hud-acc"><label>ACCURACY</label><b id="hud-acc">100.00%</b></div>
+    </div>
+    <div class="game-hud-right">
+      <div class="hud-combo"><b id="hud-combo">0</b><label>COMBO</label></div>
+    </div>
+    <div class="gauge"><i id="hud-gauge"></i></div>
+    <div class="countdown" id="countdown"></div>
+
+    <div class="overlay" id="pause-overlay">
+      <div class="overlay-card">
+        <h2>已暂停</h2>
+        <p class="muted" id="pause-info">—</p>
+        <div class="overlay-btns">
+          <button class="btn btn-primary" id="btn-resume">继续</button>
+          <button class="btn" id="btn-retry">重来</button>
+          <button class="btn" id="btn-autoplay">自动演示</button>
+          <button class="btn btn-ghost" id="btn-quit">退出选曲</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 结算 ══════════════════ -->
+  <section class="screen" id="screen-result">
+    <div class="result-card">
+      <div class="result-head">
+        <div class="result-rank" id="res-rank">S</div>
+        <div class="result-meta">
+          <h2 id="res-title">—</h2>
+          <p class="muted" id="res-sub">—</p>
+          <div class="result-flags" id="res-flags"></div>
+        </div>
+        <div class="result-score">
+          <label>SCORE</label>
+          <b id="res-score">0</b>
+          <small id="res-best"></small>
+        </div>
+      </div>
+
+      <div class="result-body">
+        <div class="result-chart" id="res-chart"></div>
+        <div class="result-stats" id="res-stats"></div>
+      </div>
+
+      <div class="result-btns">
+        <button class="btn btn-primary" id="btn-again">再来一次</button>
+        <button class="btn" id="btn-reselect">返回选曲</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ 校准 ══════════════════ -->
+  <section class="screen" id="screen-calib">
+    <div class="calib-card">
+      <h2>延迟校准</h2>
+      <p class="muted">跟着节拍 <b>空格键</b>，敲 20 次后自动算出你的平均偏移。<br/>
+      建议把整体准确率调到 95% 以上再开始正式游玩。</p>
+      <div class="calib-beat" id="calib-beat"></div>
+      <div class="calib-count" id="calib-count">0 / 20</div>
+      <div class="calib-meta">
+        <div>平均偏移 <b id="calib-avg">—</b></div>
+        <div>离散度 <b id="calib-jitter">—</b></div>
+      </div>
+      <div class="overlay-btns">
+        <button class="btn" id="btn-calib-again">重新开始</button>
+        <button class="btn btn-primary" id="btn-calib-done">完成</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script src="js/music.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/render.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

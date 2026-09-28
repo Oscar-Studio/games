@@ -164,6 +164,18 @@
       "icon": "🧠",
       "featured": true,
       "demoFile": "心算记忆/index.html"
+    },
+    {
+      "id": "neon-pulse",
+      "name": "霓虹音游",
+      "description": "参考 Phigros 玩法的浏览器音游，音乐与谱面全部由内置合成器实时生成，键鼠与触屏都能玩",
+      "tags": [
+        "音乐",
+        "音游"
+      ],
+      "icon": "🎵",
+      "featured": true,
+      "demoFile": "neon-pulse/index.html"
     }
   ]
 }
