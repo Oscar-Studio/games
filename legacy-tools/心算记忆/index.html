@@ -35,6 +35,7 @@
             --on-dark-soft: #a09d96;
             --success: #5db872;
             --error: #c64545;
+            --accent-amber: #b8862f;
 
             --serif: 'Cormorant Garamond', 'Tiempos Headline', Garamond, 'Times New Roman', serif;
             --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -533,9 +534,15 @@
             background: var(--surface-soft);
         }
 
-        .num-btn:active {
+        .num-btn:active,
+        .num-btn.kbd-hit {
             transform: scale(0.96);
             background: var(--surface-cream-strong);
+            border-color: var(--ink);
+        }
+
+        .num-btn.kbd-hit {
+            transition: none;
         }
 
         .num-btn.action {
@@ -553,6 +560,38 @@
             display: flex;
             gap: 12px;
             justify-content: center;
+        }
+
+        /* === Keyboard hint bar === */
+        .kbd-hint {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px 18px;
+            font-size: 12px;
+            color: var(--muted-soft);
+        }
+
+        .kbd-hint span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .kbd-hint kbd {
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1;
+            padding: 4px 6px;
+            min-width: 20px;
+            text-align: center;
+            color: var(--body);
+            background: var(--canvas);
+            border: 1px solid var(--hairline);
+            border-bottom-width: 2px;
+            border-radius: 5px;
         }
 
         /* === Game over screen === */
@@ -758,7 +797,8 @@
                 从第 <b id="helpStartRound">2</b> 轮起，每轮都要输入 <b id="helpAgo">1</b> 轮前的答案。<br>
                 难度越高，需要回忆的轮次越远。<br><br>
                 <b>算式曲线</b>　一位数 → 两位数 → 乘法 → 混合运算。<br>
-                <b>时间限制</b>　1-3 级 <b>60 秒</b> · 4-6 级 <b>120 秒</b> · 7-10 级 <b>180 秒</b>。时间到即结束，答错也提前结束。
+                <b>时间限制</b>　1-3 级 <b>60 秒</b> · 4-6 级 <b>120 秒</b> · 7-10 级 <b>180 秒</b>。时间到即结束，答错也提前结束。<br>
+                <b>键盘操作</b>　直接敲 <b>0-9</b> 输入答案，<b>Enter</b> 进入下一题，<b>Backspace</b> 退格，<b>Esc</b> 放弃本局。
             </div>
 
             <div class="actions-center">
@@ -802,6 +842,13 @@
                 <div class="game-actions">
                     <button class="btn btn-primary" id="nextBtn" style="min-width: 140px;">下一题</button>
                     <button class="btn btn-secondary" id="quitBtn">放弃</button>
+                </div>
+
+                <div class="kbd-hint" id="kbdHint">
+                    <span><kbd>0</kbd>–<kbd>9</kbd> 输入答案</span>
+                    <span><kbd>Enter</kbd> 下一题</span>
+                    <span><kbd>⌫</kbd> 退格</span>
+                    <span><kbd>Esc</kbd> 放弃</span>
                 </div>
             </div>
         </div>
@@ -1147,9 +1194,19 @@
             }
         }
 
+        // 键盘按下时，让对应的数字键也有视觉反馈
+        function flashNumpad(selector) {
+            const btn = numpad.querySelector(selector);
+            if (!btn) return;
+            btn.classList.add('kbd-hit');
+            setTimeout(() => btn.classList.remove('kbd-hit'), 110);
+        }
+
         numpad.addEventListener('click', (e) => {
             const btn = e.target.closest('.num-btn');
             if (!btn) return;
+            // 立刻交出焦点，避免之后按 Enter/空格时又点一次这个键
+            btn.blur();
             if (btn.dataset.digit !== undefined) tapDigit(btn.dataset.digit);
             else if (btn.dataset.action === 'back') backspaceRecall();
             else if (btn.dataset.action === 'clear') clearRecall();
@@ -1162,28 +1219,54 @@
         $('restartBtn').onclick = startGame;
         $('backBtn').onclick = backToStart;
 
-        // 桌面键盘
+        // ---- 键盘操作 ----
+        // 游戏内：0-9 输入 · Enter 下一题 · Backspace 退格 · Delete 清空 · Esc 放弃
+        // 非游戏界面：Enter / 空格 直接开始或再来一局
+        const DIGIT_KEY = /^[0-9]$/;
+
+        function isButton(el) {
+            return el instanceof HTMLElement && !!el.closest('button');
+        }
+
         document.addEventListener('keydown', (e) => {
-            if (!gameActive || advancing) return;
-            if (recallCard.classList.contains('hidden')) {
-                if (e.key === 'Enter') {
+            if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+            const recallHidden = recallCard.classList.contains('hidden');
+
+            if (!gameActive || advancing) {
+                // 焦点在按钮上时交回浏览器，保留 Tab / Enter 的原生语义
+                if (isButton(e.target)) return;
+                if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    handleNext();
+                    if (!overScreen.classList.contains('hidden')) startGame();
+                    else if (!startScreen.classList.contains('hidden')) startGame();
                 }
                 return;
             }
-            if (e.key >= '0' && e.key <= '9') {
+
+            if (DIGIT_KEY.test(e.key)) {
+                if (recallHidden) return;
+                e.preventDefault();
                 tapDigit(e.key);
-                e.preventDefault();
+                flashNumpad(`[data-digit="${e.key}"]`);
             } else if (e.key === 'Backspace') {
+                if (recallHidden) return;
+                e.preventDefault();
                 backspaceRecall();
+                flashNumpad('[data-action="back"]');
+            } else if (e.key === 'Delete') {
+                if (recallHidden) return;
                 e.preventDefault();
-            } else if (e.key === 'Escape') {
                 clearRecall();
-                e.preventDefault();
+                flashNumpad('[data-action="clear"]');
             } else if (e.key === 'Enter') {
-                handleNext();
                 e.preventDefault();
+                handleNext();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                quitGame();
+            } else if (e.key === ' ') {
+                e.preventDefault();   // 避免空格滚动页面
             }
         });
 
