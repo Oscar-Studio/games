@@ -19,11 +19,15 @@ const base = new URL("../", scope.location.href);
 
 async function init(forceWasm = false) {
   ort = (await import(
-    /* @vite-ignore */ new URL("ort/ort.webgpu.min.mjs", base).href
+    /* @vite-ignore */ new URL("ort/ort.webgpu.min.js", base).href
   )) as typeof Ort;
   ort.env.wasm.numThreads = 1;
   ort.env.wasm.proxy = false;
-  ort.env.wasm.wasmPaths = new URL("ort/", base).href;
+  // The production nginx serves .mjs as application/octet-stream. Explicit .js
+  // paths keep both dynamic imports compatible with its JavaScript MIME mapping.
+  ort.env.wasm.wasmPaths = {
+    mjs: new URL("ort/ort-wasm-simd-threaded.asyncify.js", base).href,
+  };
   const runtimeInfo = await fetch(new URL("ort/wasm-manifest.json", base)).then(
     (r) => {
       if (!r.ok) throw Error("无法读取推演引擎信息");

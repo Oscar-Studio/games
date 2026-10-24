@@ -17,3 +17,5 @@ npm run build
 ```
 
 主站构建后自动单独构建此页面至 `dist/五子棋/`，原有游戏入口 URL 保持不变。资源路径相对此子目录，Web Worker 在用户点击下载后才创建。模型与推理引擎完整性通过 SHA-256 校验，第三方许可在 `public/licenses/`。
+
+推理引擎以 `.js` 后缀发布，并显式指定 WASM glue 模块路径，以兼容生产 nginx 的 JavaScript MIME 映射。
