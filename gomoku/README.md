@@ -21,3 +21,9 @@ npm run build
 推理引擎以 `.js` 后缀发布，并显式指定 WASM glue 模块路径，以兼容生产 nginx 的 JavaScript MIME 映射。
 
 兼容性：启动前检测 WebAssembly SIMD，不支持时保留玩家对战并提示系统升级，不下载引擎；缺少 Web Crypto 时使用 @noble/hashes 进行 SHA-256 校验（仍校验引擎与模型）。
+
+## 云存储下载
+
+引擎的两个 `runtime-f33595b9f7ea-*.bin` 分片与 `gomoku.onnx` 从 `https://gomoku-models-1387864538.cos.ap-guangzhou.myqcloud.com/` 根目录读取。COS 需允许游戏站 Origin 的跨域 GET。JS 模块、校验清单和许可证仍由游戏站提供，下载后继续验证 SHA-256。
+
+`public/` 中保留三个二进制参考文件供本地测试使用，构建时不复制到 `dist/五子棋/`，部署不再上传它们。本地开发模式继续读取本地二进制，无需为 localhost 额外配置 COS 跨域规则。

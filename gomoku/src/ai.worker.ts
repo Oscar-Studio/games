@@ -18,6 +18,10 @@ let session: Ort.InferenceSession | undefined,
   manifest: any;
 let running = false;
 const base = new URL("../", scope.location.href);
+// Only the large binary downloads live on COS; scripts and trusted manifests stay local.
+const binaryBase = import.meta.env.DEV
+  ? null
+  : new URL("https://gomoku-models-1387864538.cos.ap-guangzhou.myqcloud.com/");
 
 async function init(forceWasm = false) {
   if (!supportsSimd())
@@ -41,7 +45,7 @@ async function init(forceWasm = false) {
   const runtime = new Uint8Array(runtimeInfo.bytes);
   let runtimeOffset = 0;
   for (const part of runtimeInfo.parts) {
-    const response = await fetch(new URL(`ort/${part.file}`, base));
+    const response = await fetch(binaryBase ? new URL(part.file, binaryBase) : new URL(`ort/${part.file}`, base));
     if (!response.ok) throw Error("推演引擎下载失败");
     const reader = response.body!.getReader();
     while (true) {
@@ -65,7 +69,7 @@ async function init(forceWasm = false) {
     if (!r.ok) throw Error("无法读取模型信息");
     return r.json();
   });
-  const response = await fetch(new URL(`models/${manifest.file}`, base));
+  const response = await fetch(binaryBase ? new URL(manifest.file, binaryBase) : new URL(`models/${manifest.file}`, base));
   if (!response.ok) throw Error("模型下载失败，请检查网络");
   const reader = response.body!.getReader(),
     chunks: Uint8Array[] = [];
