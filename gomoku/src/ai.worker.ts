@@ -1,5 +1,7 @@
 /// <reference lib="webworker" />
 import type * as Ort from "onnxruntime-web";
+import { supportsSimd } from "./compatibility";
+import { sha256Hex } from "./integrity";
 let ort: typeof Ort;
 import {
   Board,
@@ -18,6 +20,8 @@ let running = false;
 const base = new URL("../", scope.location.href);
 
 async function init(forceWasm = false) {
+  if (!supportsSimd())
+    throw Error("当前浏览器不支持 WebAssembly SIMD，无法运行此 AI。可尝试更新 iPadOS，或切换到玩家对战。");
   ort = (await import(
     /* @vite-ignore */ new URL("ort/ort.webgpu.min.js", base).href
   )) as typeof Ort;
@@ -53,10 +57,7 @@ async function init(forceWasm = false) {
       });
     }
   }
-  const runtimeHash = Array.from(
-    new Uint8Array(await crypto.subtle.digest("SHA-256", runtime)),
-    (v) => v.toString(16).padStart(2, "0"),
-  ).join("");
+  const runtimeHash = await sha256Hex(runtime);
   if (runtimeOffset !== runtimeInfo.bytes || runtimeHash !== runtimeInfo.sha256)
     throw Error("推演引擎校验失败，请刷新重试");
   ort.env.wasm.wasmBinary = runtime;
@@ -82,10 +83,7 @@ async function init(forceWasm = false) {
     data.set(c, offset);
     offset += c.length;
   }
-  const hash = Array.from(
-    new Uint8Array(await crypto.subtle.digest("SHA-256", data)),
-    (v) => v.toString(16).padStart(2, "0"),
-  ).join("");
+  const hash = await sha256Hex(data);
   if (hash !== manifest.sha256) throw Error("模型校验失败，请刷新重试");
   if (!forceWasm && "gpu" in navigator) {
     try {

@@ -1,4 +1,6 @@
 import "./style.css";
+import { supportsSimd } from "./compatibility";
+const aiSupported = supportsSimd();
 import { Board, coordinate, undoForHuman } from "./engine";
 const icon = (name: string) =>
   ({ undo: "↶", export: "↓", new: "＋" })[name] ?? "";
@@ -240,7 +242,7 @@ function render() {
   const modeIndex = ["pvp", "ai", "watch"].indexOf(mode);
   document.querySelector<HTMLElement>(".mode-switch")!.style.setProperty("--mode-index", String(modeIndex));
   document.querySelectorAll<HTMLInputElement>('input[name="mode"]').forEach(input => input.checked = input.value === mode);
-  $("download").hidden = mode === "pvp" || ready || loading;
+  $("download").hidden = mode === "pvp" || ready || loading || !aiSupported;
   $("loading-track").hidden = mode === "pvp" || (!ready && !loading);
   $("loading-meta").hidden = mode === "pvp" || (!ready && !loading);
   $("color").parentElement!.hidden = mode !== "ai";
@@ -301,6 +303,10 @@ function render() {
     $("progress-number").textContent = thinking
       ? `${completed} / ${simulations}`
       : "";
+  } else if (!aiSupported) {
+    $("status-caption").textContent = "设备兼容性";
+    $("status").textContent = "当前设备暂不支持 AI。";
+    $("status-detail").textContent = "浏览器缺少 WebAssembly SIMD，无法运行此 AI。可尝试更新 iPadOS，或切换到玩家对战，无需下载模型。";
   } else {
     $("status-caption").textContent = loading ? "棋室准备中" : "棋手尚未就绪";
     $("status").textContent = loading ? "正在迎候棋手…" : "下载棋手，开启一局。";
@@ -379,6 +385,7 @@ function play(a: number) {
   maybeThink();
 }
 function startWorker() {
+  if (!aiSupported) return;
   if (worker) worker.terminate();
   ready = false;
   loading = true;
