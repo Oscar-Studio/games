@@ -17,7 +17,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
    <div class="board-caption"><span>黑先白后 · 任意方向连续五子及以上获胜</span><span class="keyboard-tip">方向键选点 · Enter 落子</span></div>
   </div>
   <aside class="side-panel"><div class="panel-top"><h2>棋局</h2><span class="chapter">一枰清欢</span></div>
-   <section class="status-area"><div class="eyebrow" id="status-caption">棋室准备中</div><h3 id="status" role="status" aria-live="polite">正在迎候棋手…</h3><p id="status-detail">初次入室需要下载棋手模型，稍候即可开局。</p><button id="download" class="primary full" hidden>下载模型</button><div id="loading-track" class="progress-track"><div id="progress"></div></div><div id="loading-meta" class="progress-meta"><span id="progress-label">准备模型</span><span id="progress-number"></span></div></section>
+   <section class="status-area"><div class="eyebrow" id="status-caption">棋室准备中</div><h3 id="status" role="status" aria-live="polite">正在迎候棋手…</h3><p id="status-detail">初次入室需要下载棋手模型，稍候即可开局。</p><button id="download" class="primary full" hidden>下载 / 加载模型</button><div id="loading-track" class="progress-track"><div id="progress"></div></div><div id="loading-meta" class="progress-meta"><span id="progress-label">准备模型</span><span id="progress-number"></span></div></section>
    <div class="settings"><label for="color">下一局执子</label><div class="select-wrap"><select id="color"><option value="black">黑棋 · 我先手</option><option value="white">白棋 · 棋手先行</option></select></div><label for="strength">思考档位</label><div class="select-wrap"><select id="strength"><option value="64">快棋 · 64 次搜索</option><option value="128" selected>标准 · 128 次搜索</option><option value="512">深思 · 512 次搜索</option></select></div><p class="setting-note">同一位棋手，更从容的思考。手机上深思可能需要较长时间。</p></div>
    <button id="new" class="primary full">${icon("new")} <span>重新开局</span></button><div class="secondary-actions"><button id="undo">${icon("undo")} 悔棋</button><button id="export">${icon("export")} 导出棋谱</button></div><button id="cancel" class="text-action" hidden>暂停思考</button><button id="resume" class="text-action" hidden>继续思考</button><button id="retry" class="text-action" hidden>重新加载棋手</button>
    <div id="error" role="alert"></div>
@@ -309,10 +309,10 @@ function render() {
     $("status-detail").textContent = "浏览器缺少 WebAssembly SIMD，无法运行此 AI。可尝试更新 iPadOS，或切换到玩家对战，无需下载模型。";
   } else {
     $("status-caption").textContent = loading ? "棋室准备中" : "棋手尚未就绪";
-    $("status").textContent = loading ? "正在迎候棋手…" : "下载棋手，开启一局。";
+    $("status").textContent = loading ? "正在迎候棋手…" : "加载棋手，开启一局。";
     $("status-detail").textContent = loading
-      ? "正在下载并初始化棋手，请稍候。"
-      : `点击下载模型后${mode === "watch" ? "观看 AI 自我对弈" : "即可与 AI 对弈"}。模型与推理引擎合计约 28 MB，在你的设备上运行。`;
+      ? "正在读取本地缓存或下载并初始化棋手，请稍候。"
+      : `加载后${mode === "watch" ? "观看 AI 自我对弈" : "即可与 AI 对弈"}。首次下载约 28 MB，之后优先读取本地缓存。`;
   }
   $("progress").style.width =
     `${!ready ? loaded : thinking ? (completed / simulations) * 100 : 100}%`;
@@ -403,7 +403,7 @@ function startWorker() {
     const d = event.data;
     if (d.type === "loading") {
       $("progress-label").textContent =
-        d.stage === "runtime" ? "下载推演引擎" : "下载棋手模型";
+        `${d.source === "cache" ? "读取本地" : "下载"}${d.stage === "runtime" ? "推演引擎" : "棋手模型"}`;
       loaded = d.total ? (d.bytes / d.total) * 100 : 0;
       $("progress-number").textContent =
         `${(d.bytes / 1024 / 1024).toFixed(1)} MB`;

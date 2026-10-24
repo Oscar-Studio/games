@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import type * as Ort from "onnxruntime-web";
 import { supportsSimd } from "./compatibility";
-import { sha256Hex } from "./integrity";
+import { loadVerifiedBinary } from "./binary-cache";
 let ort: typeof Ort;
 import {
   Board,
@@ -36,59 +36,67 @@ async function init(forceWasm = false) {
   ort.env.wasm.wasmPaths = {
     mjs: new URL("ort/ort-wasm-simd-threaded.asyncify.js", base).href,
   };
-  const runtimeInfo = await fetch(new URL("ort/wasm-manifest.json", base)).then(
+  const runtimeInfo = await fetch(new URL("ort/wasm-manifest.json", base), { cache: "no-cache" }).then(
     (r) => {
       if (!r.ok) throw Error("无法读取推演引擎信息");
       return r.json();
     },
   );
-  const runtime = new Uint8Array(runtimeInfo.bytes);
-  let runtimeOffset = 0;
-  for (const part of runtimeInfo.parts) {
-    const response = await fetch(binaryBase ? new URL(part.file, binaryBase) : new URL(`ort/${part.file}`, base));
-    if (!response.ok) throw Error("推演引擎下载失败");
-    const reader = response.body!.getReader();
-    while (true) {
-      const r = await reader.read();
-      if (r.done) break;
-      runtime.set(r.value, runtimeOffset);
-      runtimeOffset += r.value.length;
-      scope.postMessage({
-        type: "loading",
-        stage: "runtime",
-        bytes: runtimeOffset,
-        total: runtimeInfo.bytes,
-      });
-    }
-  }
-  const runtimeHash = await sha256Hex(runtime);
-  if (runtimeOffset !== runtimeInfo.bytes || runtimeHash !== runtimeInfo.sha256)
-    throw Error("推演引擎校验失败，请刷新重试");
+  const runtime = await loadVerifiedBinary({
+    kind: "runtime",
+    sha256: runtimeInfo.sha256,
+    bytes: runtimeInfo.bytes,
+    onCacheHit: () => scope.postMessage({ type: "loading", stage: "runtime", source: "cache", bytes: runtimeInfo.bytes, total: runtimeInfo.bytes }),
+    download: async () => {
+      const data = new Uint8Array(runtimeInfo.bytes);
+      let offset = 0;
+      for (const part of runtimeInfo.parts) {
+        const response = await fetch(binaryBase ? new URL(part.file, binaryBase) : new URL(`ort/${part.file}`, base));
+        if (!response.ok) throw Error("推演引擎下载失败");
+        const reader = response.body!.getReader();
+        while (true) {
+          const r = await reader.read();
+          if (r.done) break;
+          data.set(r.value, offset);
+          offset += r.value.length;
+          scope.postMessage({ type: "loading", stage: "runtime", bytes: offset, total: runtimeInfo.bytes });
+        }
+      }
+      if (offset !== runtimeInfo.bytes) throw Error("推演引擎下载不完整，请重试");
+      return data;
+    },
+  });
   ort.env.wasm.wasmBinary = runtime;
-  manifest = await fetch(new URL("models/manifest.json", base)).then((r) => {
+  manifest = await fetch(new URL("models/manifest.json", base), { cache: "no-cache" }).then((r) => {
     if (!r.ok) throw Error("无法读取模型信息");
     return r.json();
   });
-  const response = await fetch(binaryBase ? new URL(manifest.file, binaryBase) : new URL(`models/${manifest.file}`, base));
-  if (!response.ok) throw Error("模型下载失败，请检查网络");
-  const reader = response.body!.getReader(),
-    chunks: Uint8Array[] = [];
-  let bytes = 0;
-  while (true) {
-    const r = await reader.read();
-    if (r.done) break;
-    chunks.push(r.value);
-    bytes += r.value.length;
-    scope.postMessage({ type: "loading", bytes, total: manifest.bytes });
-  }
-  const data = new Uint8Array(bytes);
-  let offset = 0;
-  for (const c of chunks) {
-    data.set(c, offset);
-    offset += c.length;
-  }
-  const hash = await sha256Hex(data);
-  if (hash !== manifest.sha256) throw Error("模型校验失败，请刷新重试");
+  const data = await loadVerifiedBinary({
+    kind: "model",
+    sha256: manifest.sha256,
+    bytes: manifest.bytes,
+    onCacheHit: () => scope.postMessage({ type: "loading", stage: "model", source: "cache", bytes: manifest.bytes, total: manifest.bytes }),
+    download: async () => {
+      const response = await fetch(binaryBase ? new URL(manifest.file, binaryBase) : new URL(`models/${manifest.file}`, base));
+      if (!response.ok) throw Error("模型下载失败，请检查网络");
+      const reader = response.body!.getReader(), chunks: Uint8Array[] = [];
+      let bytes = 0;
+      while (true) {
+        const r = await reader.read();
+        if (r.done) break;
+        chunks.push(r.value);
+        bytes += r.value.length;
+        scope.postMessage({ type: "loading", stage: "model", bytes, total: manifest.bytes });
+      }
+      const data = new Uint8Array(bytes);
+      let offset = 0;
+      for (const c of chunks) {
+        data.set(c, offset);
+        offset += c.length;
+      }
+      return data;
+    },
+  });
   if (!forceWasm && "gpu" in navigator) {
     try {
       session = await ort.InferenceSession.create(data, {
