@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && tsc --project gomoku/tsconfig.json && vite build --config gomoku/vite.config.ts",
     "preview": "vite preview --port 4173",
-    "deploy": "bash ../sync-site.sh games /www/wwwroot/games.oscarstudio.cn"
+    "deploy": "bash ../sync-site.sh games /www/wwwroot/games.oscarstudio.cn",
+    "test:gomoku": "tsx --test gomoku/tests/*.test.ts",
+    "dev:gomoku": "vite --config gomoku/vite.config.ts"
   },
   "dependencies": {
     "framer-motion": "^11.11.17",
@@ -19,6 +21,8 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "gh-pages": "^6.3.0",
+    "onnxruntime-web": "1.24.3",
+    "tsx": "^4.23.15",
     "typescript": "~5.7.2",
     "vite": "^6.0.5",
     "vite-plugin-static-copy": "^3.1.5"

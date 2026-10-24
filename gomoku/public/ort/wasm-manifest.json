@@ -1,0 +1,15 @@
+{
+  "version": "1.24.3",
+  "sha256": "f33595b9f7ea51aa6f646dd5a2bde6fbb1c7bcde0b9d2b5f240011a09c1830d0",
+  "bytes": 27190919,
+  "parts": [
+    {
+      "file": "runtime-f33595b9f7ea-0.bin",
+      "bytes": 16777216
+    },
+    {
+      "file": "runtime-f33595b9f7ea-1.bin",
+      "bytes": 10413703
+    }
+  ]
+}

@@ -14,7 +14,7 @@
     {
       "id": "gobang",
       "name": "五子棋",
-      "description": "五子棋棋盘",
+      "description": "弈室五子棋：双人对战、挑战自训练 AI、观战 AI",
       "tags": [
         "棋类"
       ],

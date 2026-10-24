@@ -1,0 +1,19 @@
+{
+  "label": "R0115",
+  "file": "gomoku.onnx",
+  "sha256": "f0f1eb4408a6b963a8d256ed96ee6571b9beb5ff68e703deffce52aa31f98a1e",
+  "bytes": 1902708,
+  "source_sha256": "b5903666a75f2e834a16674ff465d92a9cdf8302544ed6bba14023663d011dd9",
+  "source": "candidate-0115.pt",
+  "parameters": 457346,
+  "precision": "FP32",
+  "input": [
+    1,
+    3,
+    15,
+    15
+  ],
+  "rules": "15x15 freestyle, five or more",
+  "search": "PUCT parent-mean FPU, c=1.5",
+  "default_simulations": 128
+}
