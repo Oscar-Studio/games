@@ -1,6 +1,7 @@
 import "./style.css";
-import { supportsSimd } from "./compatibility";
+import { supportsSimd, preferCpuRuntime } from "./compatibility";
 const aiSupported = supportsSimd();
+import { BINARY_CACHE } from "./binary-cache";
 import { Board, coordinate, undoForHuman } from "./engine";
 const icon = (name: string) =>
   ({ undo: "↶", export: "↓", new: "＋" })[name] ?? "";
@@ -39,6 +40,7 @@ let board = new Board(),
   simulations = 128,
   numbers = false,
   mode: "pvp" | "ai" | "watch" = "ai",
+  cachePreview: "unknown" | "none" | "partial" | "complete" = "unknown",
   loadingFallback = false,
   loadingRuntime: "cpu" | "gpu" | null = null,
   loading = false,
@@ -245,6 +247,9 @@ function render() {
   document.querySelector<HTMLElement>(".mode-switch")!.style.setProperty("--mode-index", String(modeIndex));
   document.querySelectorAll<HTMLInputElement>('input[name="mode"]').forEach(input => input.checked = input.value === mode);
   $("download").hidden = mode === "pvp" || ready || loading || !aiSupported;
+  $("download").textContent = cachePreview === "complete" ? "从本地加载"
+    : cachePreview === "partial" ? "下载缺失文件"
+    : cachePreview === "none" ? "下载模型" : "加载模型";
   $("loading-track").hidden = mode === "pvp" || (!ready && !loading);
   $("loading-meta").hidden = mode === "pvp" || (!ready && !loading);
   $("color").parentElement!.hidden = mode !== "ai";
@@ -311,14 +316,20 @@ function render() {
     $("status-detail").textContent = "浏览器缺少 WebAssembly SIMD，无法运行此 AI。可尝试更新 iPadOS，或切换到玩家对战，无需下载模型。";
   } else {
     $("status-caption").textContent = loading ? "棋室准备中" : "棋手尚未就绪";
-    $("status").textContent = loading ? "正在迎候棋手…" : "加载棋手，开启一局。";
+    $("status").textContent = loading ? "正在迎候棋手…"
+      : cachePreview === "complete" ? "棋手已缓存，随时开局。"
+      : cachePreview === "partial" ? "部分资源已缓存。" : "加载棋手，开启一局。";
     $("status-detail").textContent = loading
       ? loadingFallback
         ? "GPU 加载或运行失败，已自动切换纯 CPU，当前棋谱会保留。"
         : loadingRuntime
           ? `正在读取缓存或加载 ${loadingRuntime === "cpu" ? "纯 CPU" : "GPU"} 棋手，请稍候。`
           : "正在检测 GPU 是否可用，再选择合适的棋手引擎。"
-      : `加载后${mode === "watch" ? "观看 AI 自我对弈" : "即可与 AI 对弈"}。自动选择 CPU / GPU，首次下载约 14–28 MB，之后优先读取本地缓存。`;
+      : cachePreview === "complete"
+        ? "已检测到当前模型和引擎缓存。点击后读取本地文件并校验，失效时自动补充下载。"
+        : cachePreview === "partial"
+          ? "已有部分本地资源，只需下载缺失或失效的文件，即可开始对弈。"
+          : `加载后${mode === "watch" ? "观看 AI 自我对弈" : "即可与 AI 对弈"}。自动选择 CPU / GPU，首次下载约 14–28 MB，之后优先读取本地缓存。`;
   }
   $("progress").style.width =
     `${!ready ? loaded : thinking ? (completed / simulations) * 100 : 100}%`;
@@ -391,12 +402,46 @@ function play(a: number) {
   maybeThink();
 }
 const cpuFallbackKey = "yishi-cpu-fallback-ort-1.24.3";
+function forceCpuForSession() {
+  if (new URLSearchParams(location.search).get("backend") === "wasm") return true;
+  try { return sessionStorage.getItem(cpuFallbackKey) === "1"; } catch { return false; }
+}
+async function refreshCachePreview() {
+  if (!aiSupported) return;
+  try {
+    // Inspect entry names only: do not read large binary bodies just to label a button.
+    const cache = await globalThis.caches?.open(BINARY_CACHE);
+    if (!cache) throw Error("无法读取本地缓存");
+    const keys = await cache.keys();
+    if (!keys.length) {
+      cachePreview = "none";
+    } else {
+      const cpuOnly = await preferCpuRuntime(forceCpuForSession());
+      const base = new URL("./", location.href);
+      const readManifest = async (file: string) => {
+        const response = await fetch(new URL(file, base), { cache: "no-cache" });
+        if (!response.ok) throw Error("无法读取缓存版本信息");
+        return response.json();
+      };
+      const [model, runtime] = await Promise.all([
+        readManifest("models/manifest.json"),
+        readManifest(cpuOnly ? "ort/wasm-cpu-manifest.json" : "ort/wasm-manifest.json"),
+      ]);
+      const modelCached = keys.some(key => key.url.endsWith(`/model-${model.sha256}`));
+      const runtimeCached = keys.some(key => key.url.endsWith(`/runtime-${runtime.sha256}`));
+      cachePreview = modelCached && runtimeCached ? "complete"
+        : modelCached || runtimeCached ? "partial" : "none";
+    }
+  } catch {
+    // Do not claim a download is needed when the cache check was inconclusive.
+    cachePreview = "unknown";
+  }
+  render();
+}
 function startWorker(forceCpu = false) {
   if (!aiSupported) return;
   if (worker) worker.terminate();
-  let savedCpuFallback = false;
-  try { savedCpuFallback = sessionStorage.getItem(cpuFallbackKey) === "1"; } catch { /* Storage is optional. */ }
-  const forceWasm = forceCpu || savedCpuFallback || new URLSearchParams(location.search).get("backend") === "wasm";
+  const forceWasm = forceCpu || forceCpuForSession();
   let selectedGpu = false;
   loadingFallback = forceCpu;
   loadingRuntime = null;
@@ -671,3 +716,4 @@ document.querySelectorAll<HTMLInputElement>('input[name="mode"]').forEach(input 
   };
 });
 render();
+void refreshCachePreview();
