@@ -32,8 +32,10 @@ GPU 引擎的两个 `runtime-f33595b9f7ea-*.bin` 分片、CPU 引擎 `runtime-cp
 
 `binary-cache.ts` 使用 `yishi-binaries-v1` Cache Storage，分别保存完整引擎二进制和模型。缓存键包含 SHA-256，每次读取均校验大小与哈希；失效时只下载对应资源。当前版本成功落盘后清理同类旧版本，其他游戏缓存不受影响。写入失败、禁用存储或配额不足不影响当前在线加载。刷新后仍需点击加载按钮；页面脚本与小型版本清单继续正常联网获取，不代表全站离线可用。
 
-## iPad / Safari 内存优化
+## 自适应引擎与失败回退
 
-WebKit 浏览器、无 WebGPU 的设备及 `?backend=wasm` 使用官方纯 CPU 运行时（11.8 MiB），其余支持 WebGPU 的浏览器继续使用通用引擎（25.9 MiB）。两者均为 ONNX Runtime Web 1.24.3。CPU 会话关闭内存 arena 和 memory pattern，推理结束释放输出张量；二进制校验使用 JavaScript SHA-256 避免 Web Crypto 的整块输入副本。
+加载时在 Worker 中请求实际可用的 GPU adapter；缺少 WebGPU、无可用 adapter、只得到软件 adapter、探测超时或异常时直接使用纯 CPU 引擎（11.8 MiB）。公开报告内存不超过 2 GB 时保守选 CPU；该数据只是部分浏览器提供的粗略总量，缺失时仍正常探测 GPU，不依据浏览器名称或 CPU 核心数判断。其余设备尝试 GPU 引擎（25.9 MiB），`?backend=wasm` 仍可强制 CPU。
 
-这是降低加载峰值的优化，不能保证所有内存不足的设备都能运行。新 CPU 引擎需要首次从 COS 下载一次，已有模型缓存仍可复用。
+GPU 后端初始化或推理失败时，终止旧 Worker，保留棋谱并以新 Worker 加载 CPU。普通下载/校验失败仍正常报错，不无谓切换。自动回退只执行一次，当前标签页通过 `sessionStorage` 记住 CPU 选择，刷新后不再重复尝试 GPU；关闭标签页后可重新探测。浏览器直接终止整个页面时，代码无法执行回退。
+
+CPU 会话关闭内存 arena 和 memory pattern，推理结束释放输出张量；二进制校验使用 JavaScript SHA-256 避免 Web Crypto 的整块输入副本。两种引擎同为 ONNX Runtime Web 1.24.3，仍要求 SIMD。不同引擎首次使用需各下载一次，已有模型缓存可以复用。

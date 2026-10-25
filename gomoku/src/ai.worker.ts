@@ -17,6 +17,7 @@ let session: Ort.InferenceSession | undefined,
   generation = 0,
   manifest: any;
 let running = false;
+let initPhase: "resources" | "backend" = "resources";
 const base = new URL("../", scope.location.href);
 // Only the large binary downloads live on COS; scripts and trusted manifests stay local.
 const binaryBase = import.meta.env.DEV
@@ -26,7 +27,8 @@ const binaryBase = import.meta.env.DEV
 async function init(forceWasm = false) {
   if (!supportsSimd())
     throw Error("当前浏览器不支持 WebAssembly SIMD，无法运行此 AI。可尝试更新 iPadOS，或切换到玩家对战。");
-  const cpuOnly = preferCpuRuntime(forceWasm);
+  const cpuOnly = await preferCpuRuntime(forceWasm);
+  scope.postMessage({ type: "runtime-selected", cpuOnly });
   ort = (await import(
     /* @vite-ignore */ new URL(cpuOnly ? "ort/ort.wasm.min.js" : "ort/ort.webgpu.min.js", base).href
   )) as typeof Ort;
@@ -98,26 +100,17 @@ async function init(forceWasm = false) {
       return data;
     },
   });
-  if (!cpuOnly) {
-    try {
-      session = await ort.InferenceSession.create(data, {
-        executionProviders: ["webgpu"],
-        graphOptimizationLevel: "all",
-      });
-      provider = "webgpu";
-    } catch {
-      session = undefined;
-    }
-  }
-  if (!session) {
-    session = await ort.InferenceSession.create(data, {
-      executionProviders: ["wasm"],
-      graphOptimizationLevel: "all",
-      enableCpuMemArena: false,
-      enableMemPattern: false,
-    });
-    provider = "wasm";
-  }
+  initPhase = "backend";
+  session = await ort.InferenceSession.create(data, cpuOnly ? {
+    executionProviders: ["wasm"],
+    graphOptimizationLevel: "all",
+    enableCpuMemArena: false,
+    enableMemPattern: false,
+  } : {
+    executionProviders: ["webgpu"],
+    graphOptimizationLevel: "all",
+  });
+  provider = cpuOnly ? "wasm" : "webgpu";
   // The initialized backend owns its module; do not retain an extra binary reference in env.
   ort.env.wasm.wasmBinary = undefined;
   scope.postMessage({ type: "ready", provider, manifest });
@@ -146,7 +139,7 @@ scope.onmessage = async (event) => {
     try {
       await init(data.forceWasm);
     } catch (e) {
-      scope.postMessage({ type: "error", message: String(e) });
+      scope.postMessage({ type: "error", phase: initPhase, message: String(e) });
     }
     return;
   }

@@ -1,5 +1,5 @@
 import "./style.css";
-import { supportsSimd, preferCpuRuntime } from "./compatibility";
+import { supportsSimd } from "./compatibility";
 const aiSupported = supportsSimd();
 import { Board, coordinate, undoForHuman } from "./engine";
 const icon = (name: string) =>
@@ -39,6 +39,8 @@ let board = new Board(),
   simulations = 128,
   numbers = false,
   mode: "pvp" | "ai" | "watch" = "ai",
+  loadingFallback = false,
+  loadingRuntime: "cpu" | "gpu" | null = null,
   loading = false,
   ready = false,
   busy = false,
@@ -311,8 +313,12 @@ function render() {
     $("status-caption").textContent = loading ? "棋室准备中" : "棋手尚未就绪";
     $("status").textContent = loading ? "正在迎候棋手…" : "加载棋手，开启一局。";
     $("status-detail").textContent = loading
-      ? "正在读取本地缓存或下载并初始化棋手，请稍候。"
-      : `加载后${mode === "watch" ? "观看 AI 自我对弈" : "即可与 AI 对弈"}。首次下载约 ${preferCpuRuntime(new URLSearchParams(location.search).get("backend") === "wasm") ? 14 : 28} MB，之后优先读取本地缓存。`;
+      ? loadingFallback
+        ? "GPU 加载或运行失败，已自动切换纯 CPU，当前棋谱会保留。"
+        : loadingRuntime
+          ? `正在读取缓存或加载 ${loadingRuntime === "cpu" ? "纯 CPU" : "GPU"} 棋手，请稍候。`
+          : "正在检测 GPU 是否可用，再选择合适的棋手引擎。"
+      : `加载后${mode === "watch" ? "观看 AI 自我对弈" : "即可与 AI 对弈"}。自动选择 CPU / GPU，首次下载约 14–28 MB，之后优先读取本地缓存。`;
   }
   $("progress").style.width =
     `${!ready ? loaded : thinking ? (completed / simulations) * 100 : 100}%`;
@@ -384,9 +390,16 @@ function play(a: number) {
   render();
   maybeThink();
 }
-function startWorker() {
+const cpuFallbackKey = "yishi-cpu-fallback-ort-1.24.3";
+function startWorker(forceCpu = false) {
   if (!aiSupported) return;
   if (worker) worker.terminate();
+  let savedCpuFallback = false;
+  try { savedCpuFallback = sessionStorage.getItem(cpuFallbackKey) === "1"; } catch { /* Storage is optional. */ }
+  const forceWasm = forceCpu || savedCpuFallback || new URLSearchParams(location.search).get("backend") === "wasm";
+  let selectedGpu = false;
+  loadingFallback = forceCpu;
+  loadingRuntime = null;
   ready = false;
   loading = true;
   busy = false;
@@ -398,9 +411,22 @@ function startWorker() {
     type: "module",
   });
   const ownWorker = worker;
+  const retryCpu = () => {
+    if (forceWasm || !selectedGpu) return false;
+    try { sessionStorage.setItem(cpuFallbackKey, "1"); } catch { /* Storage is optional. */ }
+    invalidate();
+    startWorker(true);
+    return true;
+  };
   worker.onmessage = (event) => {
     if (worker !== ownWorker) return;
     const d = event.data;
+    if (d.type === "runtime-selected") {
+      selectedGpu = !d.cpuOnly;
+      loadingRuntime = d.cpuOnly ? "cpu" : "gpu";
+      render();
+      return;
+    }
     if (d.type === "loading") {
       $("progress-label").textContent =
         `${d.source === "cache" ? "读取本地" : "下载"}${d.stage === "runtime" ? "推演引擎" : "棋手模型"}`;
@@ -448,6 +474,8 @@ function startWorker() {
       return;
     }
     if (d.type === "error") {
+      // A failed ORT backend cannot reliably be re-initialized in the same worker.
+      if ((ready || d.phase === "backend" || /out of memory/i.test(d.message)) && retryCpu()) return;
       loading = false;
       busy = false;
       paused = true;
@@ -462,6 +490,7 @@ function startWorker() {
   };
   worker.onerror = () => {
     if (worker !== ownWorker) return;
+    if (retryCpu()) return;
     loading = false;
     ready = false;
     busy = false;
@@ -479,7 +508,7 @@ function startWorker() {
   $("progress-number").textContent = "";
   worker?.postMessage({
     type: "init",
-    forceWasm: new URLSearchParams(location.search).get("backend") === "wasm",
+    forceWasm,
   });
   render();
 }

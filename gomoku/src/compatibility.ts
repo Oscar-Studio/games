@@ -11,9 +11,29 @@ export function supportsSimd(): boolean {
   }
 }
 
-/** iOS browsers use WebKit; avoid compiling the much larger GPU/Asyncify engine there. */
-export function preferCpuRuntime(forceWasm = false): boolean {
-  const ua = navigator.userAgent;
-  const webkit = /AppleWebKit/.test(ua) && !/(Chrome|Chromium|Edg|OPR)\//.test(ua);
-  return forceWasm || webkit || !("gpu" in navigator);
+type RuntimeHardware = {
+  deviceMemory?: number;
+  gpu?: { requestAdapter: () => Promise<{ isFallbackAdapter?: boolean } | null> };
+};
+
+/** Memory is only a conservative hint; actual adapter availability decides GPU use. */
+export async function preferCpuRuntime(
+  forceWasm = false,
+  hardware: RuntimeHardware = navigator as unknown as RuntimeHardware,
+): Promise<boolean> {
+  const memory = hardware.deviceMemory;
+  if (forceWasm || (typeof memory === 'number' && memory > 0 && memory <= 2) || !hardware.gpu)
+    return true;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const adapter = await Promise.race([
+      hardware.gpu.requestAdapter(),
+      new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), 2000); }),
+    ]);
+    return !adapter || adapter.isFallbackAdapter === true;
+  } catch {
+    return true;
+  } finally {
+    clearTimeout(timer);
+  }
 }

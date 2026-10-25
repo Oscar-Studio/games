@@ -32,24 +32,23 @@ test('SIMD preflight handles unavailable and unsupported WebAssembly', () => {
   }
 });
 
-test('WebKit and CPU-only devices select the smaller runtime while Chrome GPU stays accelerated', () => {
-  const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
-  const set = (userAgent: string, gpu = true) => Object.defineProperty(globalThis, 'navigator', {
-    configurable: true, value: { userAgent, ...(gpu ? { gpu: {} } : {}) },
-  });
-  try {
-    for (const ua of [
-      'Mozilla/5.0 (iPad) AppleWebKit/605.1.15 Version/26.0 Safari/604.1',
-      'Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 Version/26.0 Safari/605.1.15',
-      'Mozilla/5.0 (iPhone) AppleWebKit/605.1.15 CriOS/142.0 Mobile/15E148 Safari/604.1',
-    ]) { set(ua); assert.equal(preferCpuRuntime(), true); }
-    set('Mozilla/5.0 AppleWebKit/537.36 Chrome/142.0 Safari/537.36');
-    assert.equal(preferCpuRuntime(), false);
-    assert.equal(preferCpuRuntime(true), true);
-    set('Mozilla/5.0 Chrome/142.0', false);
-    assert.equal(preferCpuRuntime(), true);
-  } finally {
-    if (original) Object.defineProperty(globalThis, 'navigator', original);
-    else Reflect.deleteProperty(globalThis, 'navigator');
-  }
+test('runtime choice uses real adapter availability, not browser identity', async () => {
+  assert.equal(await preferCpuRuntime(false, {}), true);
+  assert.equal(await preferCpuRuntime(false, { gpu: { requestAdapter: async () => null } }), true);
+  assert.equal(await preferCpuRuntime(false, { gpu: { requestAdapter: async () => { throw Error('driver'); } } }), true);
+  assert.equal(await preferCpuRuntime(false, { gpu: { requestAdapter: async () => ({ isFallbackAdapter: true }) } }), true);
+  assert.equal(await preferCpuRuntime(false, { gpu: { requestAdapter: async () => ({ isFallbackAdapter: false }) } }), false);
+});
+
+test('manual CPU and known low-memory devices avoid probing GPU', async () => {
+  const gpu = { requestAdapter: async () => { assert.fail('unnecessary GPU probe'); return null; } };
+  assert.equal(await preferCpuRuntime(true, { gpu }), true);
+  for (const deviceMemory of [0.5, 1, 2])
+    assert.equal(await preferCpuRuntime(false, { deviceMemory, gpu }), true);
+  for (const deviceMemory of [undefined, 0, NaN, 4, 8])
+    assert.equal(await preferCpuRuntime(false, { deviceMemory, gpu: { requestAdapter: async () => ({}) } }), false);
+});
+
+test('an unresponsive GPU probe falls back instead of hanging initialization', async () => {
+  assert.equal(await preferCpuRuntime(false, { gpu: { requestAdapter: () => new Promise(() => {}) } }), true);
 });
