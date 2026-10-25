@@ -1,5 +1,5 @@
 import "./style.css";
-import { supportsSimd } from "./compatibility";
+import { supportsSimd, preferCpuRuntime } from "./compatibility";
 const aiSupported = supportsSimd();
 import { Board, coordinate, undoForHuman } from "./engine";
 const icon = (name: string) =>
@@ -312,7 +312,7 @@ function render() {
     $("status").textContent = loading ? "正在迎候棋手…" : "加载棋手，开启一局。";
     $("status-detail").textContent = loading
       ? "正在读取本地缓存或下载并初始化棋手，请稍候。"
-      : `加载后${mode === "watch" ? "观看 AI 自我对弈" : "即可与 AI 对弈"}。首次下载约 28 MB，之后优先读取本地缓存。`;
+      : `加载后${mode === "watch" ? "观看 AI 自我对弈" : "即可与 AI 对弈"}。首次下载约 ${preferCpuRuntime(new URLSearchParams(location.search).get("backend") === "wasm") ? 14 : 28} MB，之后优先读取本地缓存。`;
   }
   $("progress").style.width =
     `${!ready ? loaded : thinking ? (completed / simulations) * 100 : 100}%`;
@@ -453,7 +453,9 @@ function startWorker() {
       paused = true;
       $("error").textContent = ready
         ? "棋手暂时无法完成思考。可继续重试或悔棋。"
-        : `棋手加载失败：${d.message}`;
+        : /out of memory|memory access out of bounds/i.test(d.message)
+          ? "棋手加载时内存不足。请关闭其他标签页后重试；若仍失败，请改用玩家对战或其他设备。"
+          : `棋手加载失败：${d.message}`;
       $("retry").hidden = false;
       render();
     }

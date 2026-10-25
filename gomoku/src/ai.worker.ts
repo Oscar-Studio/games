@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 import type * as Ort from "onnxruntime-web";
-import { supportsSimd } from "./compatibility";
+import { supportsSimd, preferCpuRuntime } from "./compatibility";
 import { loadVerifiedBinary } from "./binary-cache";
 let ort: typeof Ort;
 import {
@@ -26,17 +26,18 @@ const binaryBase = import.meta.env.DEV
 async function init(forceWasm = false) {
   if (!supportsSimd())
     throw Error("当前浏览器不支持 WebAssembly SIMD，无法运行此 AI。可尝试更新 iPadOS，或切换到玩家对战。");
+  const cpuOnly = preferCpuRuntime(forceWasm);
   ort = (await import(
-    /* @vite-ignore */ new URL("ort/ort.webgpu.min.js", base).href
+    /* @vite-ignore */ new URL(cpuOnly ? "ort/ort.wasm.min.js" : "ort/ort.webgpu.min.js", base).href
   )) as typeof Ort;
   ort.env.wasm.numThreads = 1;
   ort.env.wasm.proxy = false;
   // The production nginx serves .mjs as application/octet-stream. Explicit .js
   // paths keep both dynamic imports compatible with its JavaScript MIME mapping.
   ort.env.wasm.wasmPaths = {
-    mjs: new URL("ort/ort-wasm-simd-threaded.asyncify.js", base).href,
+    mjs: new URL(cpuOnly ? "ort/ort-wasm-simd-threaded.js" : "ort/ort-wasm-simd-threaded.asyncify.js", base).href,
   };
-  const runtimeInfo = await fetch(new URL("ort/wasm-manifest.json", base), { cache: "no-cache" }).then(
+  const runtimeInfo = await fetch(new URL(cpuOnly ? "ort/wasm-cpu-manifest.json" : "ort/wasm-manifest.json", base), { cache: "no-cache" }).then(
     (r) => {
       if (!r.ok) throw Error("无法读取推演引擎信息");
       return r.json();
@@ -97,7 +98,7 @@ async function init(forceWasm = false) {
       return data;
     },
   });
-  if (!forceWasm && "gpu" in navigator) {
+  if (!cpuOnly) {
     try {
       session = await ort.InferenceSession.create(data, {
         executionProviders: ["webgpu"],
@@ -112,9 +113,13 @@ async function init(forceWasm = false) {
     session = await ort.InferenceSession.create(data, {
       executionProviders: ["wasm"],
       graphOptimizationLevel: "all",
+      enableCpuMemArena: false,
+      enableMemPattern: false,
     });
     provider = "wasm";
   }
+  // The initialized backend owns its module; do not retain an extra binary reference in env.
+  ort.env.wasm.wasmBinary = undefined;
   scope.postMessage({ type: "ready", provider, manifest });
 }
 async function predict(board: Int8Array, side: Side) {
@@ -122,10 +127,14 @@ async function predict(board: Int8Array, side: Side) {
   const outputs = await session.run({
     board: new ort.Tensor("float32", encode(board, side), [1, 3, 15, 15]),
   });
-  const logits = outputs.logits.data as Float32Array,
-    value = Number(outputs.value.data[0]);
-  if (!Number.isFinite(value)) throw Error("模型输出无效");
-  return { policy: policyFromLogits(logits, board), value };
+  try {
+    const logits = outputs.logits.data as Float32Array,
+      value = Number(outputs.value.data[0]);
+    if (!Number.isFinite(value)) throw Error("模型输出无效");
+    return { policy: policyFromLogits(logits, board), value };
+  } finally {
+    for (const output of Object.values(outputs)) output.dispose();
+  }
 }
 scope.onmessage = async (event) => {
   const data = event.data;

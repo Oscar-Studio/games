@@ -1,0 +1,11 @@
+{
+  "version": "1.24.3",
+  "sha256": "be0e129949062ad50290ef94683fac8be5bb6156f709e030b7a5f1661a2f6c17",
+  "bytes": 12361745,
+  "parts": [
+    {
+      "file": "runtime-cpu-be0e12994906.bin",
+      "bytes": 12361745
+    }
+  ]
+}

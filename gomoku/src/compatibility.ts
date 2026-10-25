@@ -10,3 +10,10 @@ export function supportsSimd(): boolean {
     return false;
   }
 }
+
+/** iOS browsers use WebKit; avoid compiling the much larger GPU/Asyncify engine there. */
+export function preferCpuRuntime(forceWasm = false): boolean {
+  const ua = navigator.userAgent;
+  const webkit = /AppleWebKit/.test(ua) && !/(Chrome|Chromium|Edg|OPR)\//.test(ua);
+  return forceWasm || webkit || !("gpu" in navigator);
+}

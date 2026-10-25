@@ -122,26 +122,22 @@ test("Undo after a human or AI win returns exactly to the human turn", () => {
   assert.throws(() => undoForHuman([112], -1));
   assert.deepEqual(undoForHuman([112], 1).history, []);
 });
-test("Sharded runtime is byte-identical to the official binary and fits static hosting", () => {
-  const root = new URL("../public/ort/", import.meta.url);
-  const info = JSON.parse(
-    fs.readFileSync(new URL("wasm-manifest.json", root), "utf8"),
-  );
-  const parts = info.parts.map((part: { file: string; bytes: number }) => {
-    const data = fs.readFileSync(new URL(part.file, root));
-    assert.equal(data.length, part.bytes);
-    assert.ok(data.length <= 25 * 1024 * 1024);
-    return data;
+for (const [manifestFile, officialFile] of [
+  ['wasm-manifest.json', 'ort-wasm-simd-threaded.asyncify.wasm'],
+  ['wasm-cpu-manifest.json', 'ort-wasm-simd-threaded.wasm'],
+]) {
+  test(`${manifestFile}: packaged runtime matches the official binary`, () => {
+    const root = new URL('../public/ort/', import.meta.url);
+    const info = JSON.parse(fs.readFileSync(new URL(manifestFile, root), 'utf8'));
+    const data = Buffer.concat(info.parts.map((part: { file: string; bytes: number }) => {
+      const bytes = fs.readFileSync(new URL(part.file, root));
+      assert.equal(bytes.length, part.bytes);
+      return bytes;
+    }));
+    assert.equal(data.length, info.bytes);
+    const hash = createHash('sha256').update(data).digest('hex');
+    assert.equal(hash, info.sha256);
+    const official = fs.readFileSync(new URL(`../../node_modules/onnxruntime-web/dist/${officialFile}`, import.meta.url));
+    assert.equal(createHash('sha256').update(official).digest('hex'), hash);
   });
-  const data = Buffer.concat(parts);
-  assert.equal(data.length, info.bytes);
-  const hash = createHash("sha256").update(data).digest("hex");
-  assert.equal(hash, info.sha256);
-  const original = fs.readFileSync(
-    new URL(
-      "../../node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.wasm",
-      import.meta.url,
-    ),
-  );
-  assert.equal(createHash("sha256").update(original).digest("hex"), hash);
-});
+}

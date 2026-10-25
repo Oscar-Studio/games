@@ -13,7 +13,7 @@ type BinarySpec = {
 export async function loadVerifiedBinary(spec: BinarySpec): Promise<Uint8Array<ArrayBuffer>> {
   const key = new URL(`./__binary-cache__/${spec.kind}-${spec.sha256}`, globalThis.location.href).href;
   const valid = async (data: Uint8Array<ArrayBuffer>) =>
-    data.byteLength === spec.bytes && await sha256Hex(data) === spec.sha256;
+    data.byteLength === spec.bytes && await sha256Hex(data, null) === spec.sha256;
   let cache: Cache | undefined;
   try {
     cache = await globalThis.caches?.open(BINARY_CACHE);
