@@ -4,7 +4,6 @@ import { Hero } from './components/Hero';
 import { CardGrid } from './components/CardGrid';
 import { ArcadeLanding } from './components/Arcade/ArcadeLanding';
 import { useToolsConfig } from './hooks/useToolsConfig';
-import { useOpilot } from './hooks/useOpilot';
 import { useUserBackground } from './components/GlassProvider';
 import { useHomeTheme } from './hooks/useHomeTheme';
 import { MorphCard } from './components/MorphCard';
@@ -22,7 +21,6 @@ function AppContent() {
   const rectsRef = useRef<Record<string, DOMRect>>({});
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
-  useOpilot(searchInputRef.current, tools, 'games');
 
   const handleSelect = useCallback((tool: Tool, rect: DOMRect) => {
     if (lockRef.current) return;
