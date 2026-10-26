@@ -42,14 +42,9 @@
           document.documentElement.setAttribute('data-theme', resolved);
         } catch (e) { /* ignore */ }
       })();
-      // 渲染前应用 games 主题（classic / arcade），避免闪烁
-      (function() {
-        try {
-          var gt = localStorage.getItem('oscar-games-theme');
-          if (gt !== 'classic' && gt !== 'arcade') gt = 'arcade';
-          document.documentElement.setAttribute('data-games-theme', gt);
-        } catch (e) { /* ignore */ }
-      })();
+      // The landing page has one design; normalize retired cached preferences.
+      document.documentElement.setAttribute('data-games-theme', 'arcade');
+      try { localStorage.setItem('oscar-games-theme', 'arcade'); } catch (e) { /* storage may be unavailable */ }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

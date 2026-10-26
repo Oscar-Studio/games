@@ -1,3 +1,4 @@
+import { BackgroundCover } from '../BackgroundCover';
 import type { Tool } from '../../types';
 import { ArcadeHero } from './ArcadeHero';
 import { ArcadeCardGrid } from './ArcadeCardGrid';
@@ -13,7 +14,7 @@ interface Props {
 export function ArcadeLanding({ tools }: Props) {
   return (
     <div className="arcade-landing">
-      <ArcadeHero />
+      <BackgroundCover variant="games" label="01 / ARCADE — 留一点时间，给好玩的事。"><ArcadeHero /></BackgroundCover>
       <ArcadeCardGrid tools={tools} />
     </div>
   );
