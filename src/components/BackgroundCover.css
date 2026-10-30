@@ -53,3 +53,12 @@
 .os-cover-games.os-cover-active .os-cover-toolbar { margin-inline: 40px; color: #ddd7ee; }
 .os-cover-games.os-cover-active .os-cover-trigger { background: #ffffff0c; color: #fff; }
 @media (max-width: 720px) { :root[data-games-theme="arcade"] .os-cover-active .arcade-hero { padding: 78px 24px 26px; } .os-cover-games.os-cover-active .os-cover-toolbar { margin-inline: 24px; } :root[data-games-theme="arcade"] .os-cover-active .intro-right { flex-basis: 100%; } .os-cover-games.os-cover-active .os-cover-photo-caption { inset: 22px 24px auto auto; font-size: 8px; } }
+
+/* Keep the default canvas framed, just like the photo cover. */
+:root[data-games-theme="arcade"] .os-cover-games:not(.os-cover-active) { margin: 24px clamp(20px, 4vw, 64px) 0; border: 1px solid var(--oc-line); border-radius: 5px; background: var(--oc-paper); }
+:root[data-games-theme="arcade"] .os-cover-games:not(.os-cover-active) .arcade-hero { padding-inline: 40px; border-bottom: 0; }
+.os-cover-games:not(.os-cover-active) .os-cover-toolbar { margin-inline: 40px; }
+@media (max-width: 720px) {
+  :root[data-games-theme="arcade"] .os-cover-games:not(.os-cover-active) .arcade-hero { padding-inline: 24px; }
+  .os-cover-games:not(.os-cover-active) .os-cover-toolbar { margin-inline: 24px; }
+}
