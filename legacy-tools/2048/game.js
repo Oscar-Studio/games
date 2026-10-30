@@ -168,7 +168,7 @@ export class Game2048 {
             const contact = contacts.get(id);
             const to = this.position(move.r, move.c) + (contact ? ` ${shift(contact.offset)}` : '');
             el.style.transform = to;
-            sliding.push(this.animate(el, [{ transform: from }, { transform: to }], { duration: this.motion.matches ? 65 : (turn.merges.length ? 125 : 150), easing: 'cubic-bezier(.22,.65,.32,1)' }));
+            sliding.push(this.animate(el, [{ transform: from }, { transform: to }], { duration: this.motion.matches ? 65 : (turn.merges.length ? 100 : 150), easing: 'cubic-bezier(.22,.65,.32,1)' }));
             if (!this.motion.matches) {
                 const inner = el.firstElementChild;
                 inner.style.transformOrigin = contact ? '50% 50%' : origin;
@@ -183,7 +183,7 @@ export class Game2048 {
                     { transform: 'scale(1)' },
                     { transform: shape(1.065, .945), offset: .5 },
                     { transform: 'scale(1)' }
-                ], { duration: turn.merges.length ? 125 : 150, fill: contact ? 'forwards' : 'none' }));
+                ], { duration: turn.merges.length ? 100 : 150, fill: contact ? 'forwards' : 'none' }));
             }
         }
         await Promise.all(sliding);
@@ -220,12 +220,12 @@ export class Game2048 {
                     { transform: `${centre} ${shift(contact.offset)}` },
                     { transform: `${centre} ${shift(contact.offset * .72)}`, offset: .65 },
                     { transform: `${centre} ${shift(contact.offset * .36)}` }
-                ], { duration: 150, easing: 'ease-in-out', fill: 'forwards' }));
+                ], { duration: 120, easing: 'ease-in-out', fill: 'forwards' }));
                 pressure.push(this.animate(inner, [
                     { transform: shape(.53, .88), opacity: 1, borderRadius: contactRadius(contact.offset) },
                     { transform: shape(.44, 1.08), opacity: 1, borderRadius: contactRadius(contact.offset, '36%'), offset: .65 },
                     { transform: shape(.30, .96), opacity: 1, borderRadius: contactRadius(contact.offset, '48%') }
-                ], { duration: 150, easing: 'ease-in-out', fill: 'forwards' }));
+                ], { duration: 120, easing: 'ease-in-out', fill: 'forwards' }));
             }
             await Promise.all(pressure);
             if (epoch !== this.epoch) return;
@@ -245,11 +245,11 @@ export class Game2048 {
                     { transform: shape(1.06, .97), opacity: 1, borderRadius: '25%', offset: .42 },
                     { transform: shape(.985, 1.015), opacity: 1, borderRadius: '23%', offset: .76 },
                     { transform: 'scale(1)', opacity: 1, borderRadius: '23%' }
-                ], { duration: 183, easing: 'ease-out' }));
+                ], { duration: 146, easing: 'ease-out' }));
             }
             if (newId) settling.push(this.animate($(newId).firstElementChild, [
                 { transform: 'scale(.45)', opacity: 0 }, { transform: 'scale(1.06)', opacity: 1, offset: .7 }, { transform: 'scale(1)', opacity: 1 }
-            ], { duration: 200, easing: 'ease-out' }));
+            ], { duration: turn.merges.length ? 160 : 200, easing: 'ease-out' }));
         }
         const queued = this.queuedDirection;
         this.queuedDirection = null;
