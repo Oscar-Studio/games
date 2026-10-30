@@ -199,23 +199,41 @@ test('merging contact faces stay flat and overlapping throughout pressure in eve
         game.move(direction); await flush();
         const bodies = recorded.filter(a => a.options.duration === 180 && a.frames[0].opacity === 1);
         assert.equal(bodies.length, 2);
+        for (const body of bodies) assert.ok(body.frames.every(f => f.opacity === 1), 'contact skin must stay opaque until the fused tile takes over');
         const horizontal = direction % 2 === 1;
         const outlines = bodies.map(a => a.frames[0].borderRadius);
         assert.ok(outlines.includes(horizontal ? '23% 0 0 23%' : '23% 23% 0 0'));
         assert.ok(outlines.includes(horizontal ? '0 23% 23% 0' : '0 0 23% 23%'));
-        // Sample the actual linear keyframe interpolations; widths must exceed
-        // centre separation, including between the different keyframe offsets.
-        const interpolate = (t, stops) => {
+        // Use recorded animation data AND CSS easing. Linear-only sampling misses
+        // gaps caused by independently eased position and scale animations.
+        const interpolate = (t, frames, value) => {
+            const stops = frames.map((frame, i) => [frame.offset ?? (i / (frames.length - 1)), value(frame)]);
             for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) {
-                const [at, value] = stops[i - 1], [end, target] = stops[i];
-                return value + (target - value) * (t - at) / (end - at);
+                const [at, from] = stops[i - 1], [end, to] = stops[i];
+                return from + (to - from) * (t - at) / (end - at);
             }
         };
-        for (let i = 0; i <= 100; i++) {
-            const t = i / 100;
-            const width = interpolate(t, [[0, .53], [.65, .44], [1, .30]]);
-            const separation = .51 * interpolate(t, [[0, 1], [.72, .72], [1, .36]]);
-            assert.ok(width > separation, `gap at progress ${t} in direction ${direction}`);
+        const eased = (t, easing) => {
+            const controls = { 'ease-in': [.42, 0, 1, 1], 'ease-in-out': [.42, 0, .58, 1] }[easing];
+            assert.ok(controls, `unsupported easing: ${easing}`);
+            const [x1, y1, x2, y2] = controls;
+            const cubic = (u, a, b) => 3 * (1-u) ** 2 * u * a + 3 * (1-u) * u ** 2 * b + u ** 3;
+            let lo = 0, hi = 1;
+            for (let i = 0; i < 40; i++) {
+                const mid = (lo + hi) / 2;
+                if (cubic(mid, x1, x2) < t) lo = mid; else hi = mid;
+            }
+            return cubic((lo + hi) / 2, y1, y2);
+        };
+        const positions = bodies.map(body => recorded.find(a => a.element === body.element.parent && a.options.duration === 180));
+        for (let i = 0; i <= 180; i++) {
+            const t = i / 180;
+            const centres = positions.map(a => interpolate(eased(t, a.options.easing), a.frames,
+                f => Number(f.transform.match(/translate[XY]\(([-.\d]+)px\)/)[1])));
+            const widths = bodies.map(a => 100 * interpolate(eased(t, a.options.easing), a.frames,
+                f => Number(f.transform.match(/scale\(([-.\d]+), ([-.\d]+)\)/)[horizontal ? 1 : 2])));
+            const overlap = (widths[0] + widths[1]) / 2 - Math.abs(centres[0] - centres[1]);
+            assert.ok(overlap >= 1, `gap / insufficient coverage ${overlap}px at ${i}ms in direction ${direction}`);
         }
         game.startNewGame(); await flush();
     }

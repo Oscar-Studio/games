@@ -213,16 +213,18 @@ export class Game2048 {
                 const centre = this.position(contact.r, contact.c);
                 // Both bodies press toward the seam, bulge perpendicular to it,
                 // then lose their separate outlines before the new value appears.
+                // Position and scale share keyframe offsets and easing: otherwise
+                // the bodies shrink faster than they converge, exposing the board.
                 // Flat contact faces overlap slightly to cover subpixel antialiasing.
                 pressure.push(this.animate(el, [
                     { transform: `${centre} ${shift(contact.offset)}` },
-                    { transform: `${centre} ${shift(contact.offset * .72)}`, offset: .72 },
+                    { transform: `${centre} ${shift(contact.offset * .72)}`, offset: .65 },
                     { transform: `${centre} ${shift(contact.offset * .36)}` }
-                ], { duration: 180, easing: 'ease-in', fill: 'forwards' }));
+                ], { duration: 180, easing: 'ease-in-out', fill: 'forwards' }));
                 pressure.push(this.animate(inner, [
                     { transform: shape(.53, .88), opacity: 1, borderRadius: contactRadius(contact.offset) },
                     { transform: shape(.44, 1.08), opacity: 1, borderRadius: contactRadius(contact.offset, '36%'), offset: .65 },
-                    { transform: shape(.30, .96), opacity: 0, borderRadius: contactRadius(contact.offset, '48%') }
+                    { transform: shape(.30, .96), opacity: 1, borderRadius: contactRadius(contact.offset, '48%') }
                 ], { duration: 180, easing: 'ease-in-out', fill: 'forwards' }));
             }
             await Promise.all(pressure);
@@ -239,7 +241,7 @@ export class Game2048 {
                 const inner = $(id).firstElementChild;
                 inner.style.transformOrigin = '50% 50%';
                 settling.push(this.animate(inner, [
-                    { transform: shape(.72, 1.06), opacity: .25, borderRadius: '38%' },
+                    { transform: shape(.72, 1.06), opacity: 1, borderRadius: '38%' },
                     { transform: shape(1.06, .97), opacity: 1, borderRadius: '25%', offset: .42 },
                     { transform: shape(.985, 1.015), opacity: 1, borderRadius: '23%', offset: .76 },
                     { transform: 'scale(1)', opacity: 1, borderRadius: '23%' }
