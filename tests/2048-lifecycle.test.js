@@ -9,14 +9,16 @@ function harness() {
     const animations = [];
     const recorded = [];
     class Element {
-        constructor() { this.children = []; this.style = { setProperty() {} }; this.textContent = ''; this.open = false; }
+        constructor() { this.children = []; this.style = { setProperty() {} }; this.textContent = ''; this.open = false; this.attributes = {}; }
         append(el) { el.parent = this; this.children.push(el); }
         replaceChildren() { this.children = []; }
         remove() { this.parent.children = this.parent.children.filter(x => x !== this); }
         get firstElementChild() { return this.children[0]; }
         getBoundingClientRect() { return { width: 100, left: 0, top: 0 }; }
         querySelector() { return new Element(); }
-        setAttribute() {}
+        setAttribute(key, value) { this.attributes[key] = value; }
+        removeAttribute(key) { delete this.attributes[key]; }
+        getAttribute(key) { return this.attributes[key] ?? null; }
         addEventListener() {}
         focus() {}
         close() { this.open = false; }
@@ -216,5 +218,23 @@ test('merging contact faces stay flat and overlapping throughout pressure in eve
             assert.ok(width > separation, `gap at progress ${t} in direction ${direction}`);
         }
         game.startNewGame(); await flush();
+    }
+});
+
+
+test('fusion hides only the shared edge and restores normal material on commit or cancel', async () => {
+    for (const [direction, leadEdge, incomingEdge] of [[0, 'bottom', 'top'], [1, 'left', 'right'], [2, 'top', 'bottom'], [3, 'right', 'left']]) {
+        const { game, fixture, flush, lookup } = harness();
+        fixture(direction % 2 === 0 ? [[2], [2]] : [[2, 2]]);
+        game.move(direction);
+        const { lead, incoming } = game.pendingTurn.merges[0];
+        assert.equal(lookup(lead).firstElementChild.getAttribute('data-contact'), leadEdge);
+        assert.equal(lookup(incoming).firstElementChild.getAttribute('data-contact'), incomingEdge);
+        await flush(); await flush();
+        assert.equal(lookup(lead).firstElementChild.getAttribute('data-contact'), null);
+        game.startNewGame(); await flush();
+        fixture([[2, 2]]); game.move(3); await flush();
+        game.resize(); await flush();
+        for (const tile of lookup('tileContainer').children) assert.equal(tile.firstElementChild.getAttribute('data-contact'), null);
     }
 });

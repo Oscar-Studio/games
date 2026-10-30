@@ -51,6 +51,7 @@ export class Game2048 {
         this.epoch++;
         for (const animation of this.animations) animation.cancel();
         this.animations.clear();
+        for (const tile of this.container.children) tile.firstElementChild.removeAttribute('data-contact');
         this.queuedDirection = null;
     }
 
@@ -121,6 +122,7 @@ export class Game2048 {
             el.style.transform = this.position(r, c);
             el.style.width = el.style.height = `${this.metrics.size}px`;
             const inner = el.firstElementChild;
+            inner.removeAttribute('data-contact');
             const level = Math.round(Math.log2(tile.value)) - 1;
             inner.style.setProperty('--hue', hues[level] ?? (47 + (level - 10) * 47) % 360);
             const digits = String(tile.value).length;
@@ -170,6 +172,9 @@ export class Game2048 {
             if (!this.motion.matches) {
                 const inner = el.firstElementChild;
                 inner.style.transformOrigin = contact ? '50% 50%' : origin;
+                if (contact) inner.setAttribute('data-contact', horizontal
+                    ? (contact.offset < 0 ? 'right' : 'left')
+                    : (contact.offset < 0 ? 'bottom' : 'top'));
                 sliding.push(this.animate(inner, contact ? [
                     { transform: 'scale(1)', borderRadius: '23%' },
                     { transform: shape(.74, .94), borderRadius: contactRadius(contact.offset), offset: .6 },

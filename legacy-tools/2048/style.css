@@ -53,6 +53,17 @@ button:active { transform: scale(.97); }
 }
 .tile-inner::before { content: ''; position: absolute; left: 12%; right: 12%; top: 5%; height: 40%; border-radius: 40% 40% 50% 50%; background: linear-gradient(#ffffff65, #ffffff00); z-index: -1; }
 .tile-inner::after { content: ''; position: absolute; width: 7%; height: 18%; top: 15%; left: 9%; border-radius: 50%; background: #ffffff65; transform: rotate(25deg); }
+/* During fusion, only the outside perimeter belongs to the jelly skin.
+   Separate inset shadows and glossy spots would draw a false internal seam. */
+.tile-inner[data-contact] {
+    box-shadow: none;
+    background: hsl(var(--hue) var(--tile-saturation) var(--tile-lightness));
+}
+.tile-inner[data-contact]::before, .tile-inner[data-contact]::after { opacity: 0; }
+.tile-inner[data-contact="left"] { border-left-color: transparent; }
+.tile-inner[data-contact="right"] { border-right-color: transparent; }
+.tile-inner[data-contact="top"] { border-top-color: transparent; }
+.tile-inner[data-contact="bottom"] { border-bottom-color: transparent; }
 .input-hint { text-align: center; color: var(--muted); font-size: 11px; margin: 22px 0 0; line-height: 1.8; }
 .keycaps { font-size: 13px; letter-spacing: .16em; margin-right: 6px; }
 .hint-divider { margin: 0 9px; }
