@@ -156,7 +156,7 @@ test('both source bodies survive contact and pressure before the new value appea
     assert.equal(lead.firstElementChild.textContent, 2);
     assert.equal(incoming.firstElementChild.textContent, 2);
     for (const el of [lead, incoming]) {
-        assert.ok(recorded.some(a => a.element === el.firstElementChild && a.options.duration === 120 && a.frames[1].transform.includes('scale(0.44, 1.08)')));
+        assert.ok(recorded.some(a => a.element === el.firstElementChild && a.options.duration === 80 && a.frames[1].transform.includes('scale(0.44, 1.08)')));
     }
     await flush();
     assert.equal(lookup('fixture-0-0').firstElementChild.textContent, 4);
@@ -197,7 +197,7 @@ test('merging contact faces stay flat and overlapping throughout pressure in eve
         const { game, fixture, flush, recorded } = harness();
         fixture(direction % 2 === 0 ? [[2], [2]] : [[2, 2]]);
         game.move(direction); await flush();
-        const bodies = recorded.filter(a => a.options.duration === 120 && a.frames[0].opacity === 1);
+        const bodies = recorded.filter(a => a.options.duration === 80 && a.frames[0].opacity === 1);
         assert.equal(bodies.length, 2);
         for (const body of bodies) assert.ok(body.frames.every(f => f.opacity === 1), 'contact skin must stay opaque until the fused tile takes over');
         const horizontal = direction % 2 === 1;
@@ -225,9 +225,9 @@ test('merging contact faces stay flat and overlapping throughout pressure in eve
             }
             return cubic((lo + hi) / 2, y1, y2);
         };
-        const positions = bodies.map(body => recorded.find(a => a.element === body.element.parent && a.options.duration === 120));
-        for (let i = 0; i <= 120; i++) {
-            const t = i / 120;
+        const positions = bodies.map(body => recorded.find(a => a.element === body.element.parent && a.options.duration === 80));
+        for (let i = 0; i <= 80; i++) {
+            const t = i / 80;
             const centres = positions.map(a => interpolate(eased(t, a.options.easing), a.frames,
                 f => Number(f.transform.match(/translate[XY]\(([-.\d]+)px\)/)[1])));
             const widths = bodies.map(a => 100 * interpolate(eased(t, a.options.easing), a.frames,
