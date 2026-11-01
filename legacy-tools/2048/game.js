@@ -168,7 +168,7 @@ export class Game2048 {
             const contact = contacts.get(id);
             const to = this.position(move.r, move.c) + (contact ? ` ${shift(contact.offset)}` : '');
             el.style.transform = to;
-            sliding.push(this.animate(el, [{ transform: from }, { transform: to }], { duration: this.motion.matches ? 65 : (turn.merges.length ? 115 : 150), easing: 'cubic-bezier(.22,.65,.32,1)' }));
+            sliding.push(this.animate(el, [{ transform: from }, { transform: to }], { duration: this.motion.matches ? 65 : (turn.merges.length ? 135 : 175), easing: 'cubic-bezier(.22,.65,.32,1)' }));
             if (!this.motion.matches) {
                 const inner = el.firstElementChild;
                 inner.style.transformOrigin = contact ? '50% 50%' : origin;
@@ -183,7 +183,7 @@ export class Game2048 {
                     { transform: 'scale(1)' },
                     { transform: shape(1.065, .945), offset: .5 },
                     { transform: 'scale(1)' }
-                ], { duration: turn.merges.length ? 115 : 150, fill: contact ? 'forwards' : 'none' }));
+                ], { duration: turn.merges.length ? 135 : 175, fill: contact ? 'forwards' : 'none' }));
             }
         }
         await Promise.all(sliding);
