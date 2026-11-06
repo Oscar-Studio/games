@@ -16,6 +16,9 @@ function read(key, fallback) {
 function write(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* In-memory play still works. */ }
 }
+function drop(key) {
+    try { localStorage.removeItem(key); } catch { /* In-memory play still works. */ }
+}
 
 // The leaderboard module is optional. Dispatching an event keeps the game core
 // independent of auth/network code, and keeps it runnable in the Node test
@@ -48,7 +51,8 @@ export class Game2048 {
         $('bestScore').textContent = this.bestScore;
         this.loadLeaderboard();
         this.setupInput();
-        this.startNewGame();
+        // An unfinished run is resumed; only a fresh board starts a new game.
+        if (!this.restoreGame()) this.startNewGame();
         this.observer = new ResizeObserver(() => this.resize());
         this.observer.observe(this.board);
         this.motion.addEventListener('change', () => this.resize());
@@ -80,6 +84,7 @@ export class Game2048 {
         if (this.score > 0 && !this.ended) publishScore(this.score, 'abandon');
         this.cancelAnimations();
         this.clearScoreGains();
+        this.clearSavedGame();
         this.pendingTurn = null;
         this.pointer = null;
         this.ended = false;
@@ -93,6 +98,59 @@ export class Game2048 {
         this.render();
         this.updateScore(0);
         $('gameStatus').textContent = '新游戏开始。合并相同数字，挑战 2048。';
+    }
+
+    // A run in progress survives a refresh: the board and the score are written
+    // to localStorage after every committed turn, so closing the tab does not
+    // throw the game away. A damaged or stale save is simply ignored.
+    restoreGame() {
+        const saved = read('2048_savedGame', null);
+        const rows = saved && Array.isArray(saved.grid) ? saved.grid : null;
+        if (!rows || rows.length !== 4) return false;
+        const board = [];
+        for (const row of rows) {
+            if (!Array.isArray(row) || row.length !== 4) return false;
+            const cells = row.map(value => (typeof value === 'number' && Number.isFinite(value) && value >= 2 ? value : null));
+            board.push(cells);
+        }
+        if (!board.flat().some(value => value !== null)) return false;
+        this.grid = board.map(row => row.map(value => (value === null ? null : { id: `tile-${++this.sequence}`, value })));
+        this.score = Number.isFinite(saved.score) && saved.score > 0 ? saved.score : 0;
+        // A board that is already stuck cannot be played on any further.
+        if (isGameOver(this.grid)) return false;
+        this.ended = false;
+        this.measure();
+        this.render();
+        this.updateScore(0);
+        $('gameStatus').textContent = `已恢复上次的游戏进度，当前分数 ${this.score}。`;
+        this.pulseScoreBox();
+        return true;
+    }
+
+    // One soft ring around the score box tells the player that the board they
+    // see is the one they left behind.
+    pulseScoreBox() {
+        const box = $('currentScoreBox');
+        if (!box?.classList) return;
+        box.classList.remove('is-restored');
+        void box.offsetWidth;
+        box.classList.add('is-restored');
+        // Chips inside the box animate too, and their events bubble up here.
+        box.addEventListener('animationend', event => {
+            if (event.target === box) box.classList.remove('is-restored');
+        });
+    }
+
+    saveGame() {
+        write('2048_savedGame', {
+            score: this.score,
+            grid: this.grid.map(row => row.map(tile => (tile ? tile.value : null))),
+            savedAt: Date.now()
+        });
+    }
+
+    clearSavedGame() {
+        drop('2048_savedGame');
     }
 
     measure() {
@@ -288,10 +346,14 @@ export class Game2048 {
         this.score += turn.score;
         this.updateScore(turn.score);
         const id = this.addRandomTile();
+        // The turn is complete: this is the state a refresh has to come back to.
+        this.saveGame();
         $('gameStatus').textContent = `当前分数 ${this.score}${turn.score ? `，本步增加 ${turn.score} 分` : ''}。`;
         if (isGameOver(this.grid)) {
             this.ended = true;
             this.dismissed = false;
+            // A finished game has nothing left to resume.
+            this.clearSavedGame();
             const rank = this.saveScore();
             publishScore(this.score, 'gameover');
             $('finalScore').textContent = this.score;

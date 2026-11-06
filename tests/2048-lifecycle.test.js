@@ -5,11 +5,16 @@ import vm from 'node:vm';
 import { slide, isGameOver } from '../legacy-tools/2048/engine.js';
 
 // Minimal DOM/animation clock: advance animations explicitly to reproduce races.
-function harness() {
+// Passing a `shared` store replays the same localStorage, i.e. a page reload.
+function harness(shared) {
     const animations = [];
     const recorded = [];
     class Element {
-        constructor() { this.children = []; this.style = { props: {}, setProperty(key, value) { this.props[key] = value; } }; this.textContent = ''; this.open = false; this.attributes = {}; }
+        constructor() {
+            this.children = []; this.style = { props: {}, setProperty(key, value) { this.props[key] = value; } };
+            this.textContent = ''; this.open = false; this.attributes = {}; this.classes = new Set();
+            this.classList = { add: c => this.classes.add(c), remove: c => this.classes.delete(c), contains: c => this.classes.has(c) };
+        }
         append(el) { el.parent = this; this.children.push(el); }
         replaceChildren() { this.children = []; }
         remove() { this.parent.children = this.parent.children.filter(x => x !== this); }
@@ -36,14 +41,14 @@ function harness() {
         const visit = el => el.id === id ? el : el.children.map(visit).find(Boolean);
         return roots.get(id) || [...roots.values()].map(visit).find(Boolean);
     };
-    const ids = ['tileContainer', 'gameOverModal', 'bestScore', 'currentScore', 'scoreGainLayer', 'gameStatus', 'finalScore', 'finalRank', 'leaderboardList', 'newGameBtn', 'restartBtn', 'closeModalBtn'];
+    const ids = ['tileContainer', 'gameOverModal', 'bestScore', 'currentScore', 'currentScoreBox', 'scoreGainLayer', 'gameStatus', 'finalScore', 'finalRank', 'leaderboardList', 'newGameBtn', 'restartBtn', 'closeModalBtn'];
     ids.forEach(id => roots.set(id, new Element()));
-    const stored = new Map([['2048_bestScore', '128'], ['2048_leaderboard', JSON.stringify([{ score: 64, date: '2026/10/29', timestamp: 1 }])]]);
+    const stored = shared || new Map([['2048_bestScore', '128'], ['2048_leaderboard', JSON.stringify([{ score: 64, date: '2026/10/29', timestamp: 1 }])]]);
     const context = vm.createContext({
         slide, isGameOver, console, ResizeObserver: class { observe() {} },
         matchMedia: () => ({ matches: false, addEventListener() {} }),
         getComputedStyle: () => ({ gap: '12' }),
-        localStorage: { getItem: k => stored.get(k), setItem: (k, v) => stored.set(k, v) },
+        localStorage: { getItem: k => stored.get(k), setItem: (k, v) => stored.set(k, v), removeItem: k => stored.delete(k) },
         document: { getElementById: lookup, querySelector: () => new Element(), createElement: () => new Element(), addEventListener() {} },
     });
     const source = readFileSync(new URL('../legacy-tools/2048/game.js', import.meta.url), 'utf8')
@@ -299,4 +304,53 @@ test('a chip leaves the layer once its animation ends', async () => {
     assert.equal(lookup('scoreGainLayer').children.length, 1);
     await flush();
     assert.equal(lookup('scoreGainLayer').children.length, 0);
+});
+
+test('a committed turn is checkpointed and the board comes back after a reload', async () => {
+    const { game, fixture, flush, lookup, stored } = harness();
+    fixture([[2, 2]]);
+    game.move(3); await flush(); await flush();
+    const saved = JSON.parse(stored.get('2048_savedGame'));
+    assert.equal(saved.score, 4);
+    assert.equal(saved.grid[0][0], 4);
+    const tiles = saved.grid.flat().filter(value => value !== null).length;
+    assert.ok(tiles >= 2);
+    // a fresh page load picks the run up where it stopped
+    const reloaded = harness(stored);
+    assert.equal(reloaded.game.score, 4);
+    assert.equal(reloaded.lookup('currentScore').textContent, 4);
+    assert.equal(reloaded.game.grid[0][0].value, 4);
+    assert.equal(reloaded.game.grid.flat().filter(Boolean).length, tiles);
+    assert.equal(reloaded.game.ended, false);
+});
+
+test('a finished game and a new game both leave no progress behind', async () => {
+    const { game, fixture, flush, stored } = harness();
+    fixture([[2, 2, 8, 16], [8, 16, 32, 64], [16, 32, 64, 128], [32, 64, 128, 256]]);
+    game.move(3); await flush(); await flush();
+    assert.equal(game.ended, true);
+    assert.equal(stored.get('2048_savedGame'), undefined);
+    fixture([[2, 2]]);
+    game.move(3); await flush(); await flush();
+    assert.ok(stored.get('2048_savedGame'));
+    game.startNewGame();
+    assert.equal(stored.get('2048_savedGame'), undefined);
+});
+
+test('a damaged or empty save is ignored and replaced by a fresh board', () => {
+    for (const broken of ['{"grid":"broken"}', '{"grid":[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]}', '{"grid":[[1,2,3,4]]}']) {
+        const stored = new Map([['2048_bestScore', '128'], ['2048_savedGame', broken]]);
+        const { game } = harness(stored);
+        assert.equal(game.score, 0);
+        assert.equal(game.grid.flat().filter(Boolean).length, 2);
+        assert.equal(stored.get('2048_savedGame'), undefined);
+    }
+});
+
+test('a restored board rings the score box to announce itself', () => {
+    const board = [[2, null, null, null], [null, null, null, null], [null, null, null, null], [null, null, null, null]];
+    const stored = new Map([['2048_bestScore', '128'], ['2048_savedGame', JSON.stringify({ score: 12, grid: board })]]);
+    const { game, lookup } = harness(stored);
+    assert.equal(game.score, 12);
+    assert.ok(lookup('currentScoreBox').classes.has('is-restored'));
 });
