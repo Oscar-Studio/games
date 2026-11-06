@@ -15,16 +15,22 @@
     <title>2048 在线玩 | Oscar Studio 益智游戏集</title>
     <script defer src="https://analytics.oscarstudio.cn/script.js"
         data-website-id="e20294d1-2bfa-486d-9f40-c2764ecabfe6"></script>
+    <!-- 共享认证：容器在 header，脚本自动渲染登录 / 登出 UI -->
+    <script defer src="https://api.oscarstudio.cn/user-button.js"></script>
 
     <meta name="color-scheme" content="light dark">
     <link rel="stylesheet" href="./style.css">
+    <script type="module" src="./leaderboard.js"></script>
     <script type="module" src="./game.js"></script>
 </head>
 <body>
     <main class="app">
         <header class="page-header">
             <a class="back-link" href="/">← 游戏大厅</a>
-            <span class="edition"><span></span> JELLY EDITION</span>
+            <div class="header-right">
+                <div id="userButtonContainer"></div>
+                <span class="edition"><span></span> JELLY EDITION</span>
+            </div>
         </header>
         <div class="workspace">
             <section class="play-panel" aria-label="2048 游戏">
@@ -35,7 +41,7 @@
                 <p class="intro">把相同的数字，揉成更大的惊喜。</p>
                 <div class="toolbar">
                     <div class="scores">
-                        <div class="score-box"><span class="score-label">当前分数</span><strong id="currentScore">0</strong><span id="scoreGain" aria-hidden="true"></span></div>
+                        <div class="score-box"><span class="score-label">当前分数</span><strong id="currentScore">0</strong><span id="scoreGainLayer" aria-hidden="true"></span></div>
                         <div class="score-box"><span class="score-label">历史最高</span><strong id="bestScore">0</strong></div>
                     </div>
                     <button id="newGameBtn" class="primary-button"><span aria-hidden="true">↻</span> 新游戏</button>
@@ -64,10 +70,22 @@
             </section>
             <aside class="side-panel">
                 <section class="leaderboard" aria-labelledby="leaderboardTitle">
-                    <div class="section-heading"><h2 id="leaderboardTitle">我的最佳表现</h2><span>TOP 10</span></div>
-                    <p class="section-caption">每一次合成，都离纪录更近一点。</p>
-                    <ol id="leaderboardList" class="leaderboard-list"></ol>
-                    <p class="local-note"><span aria-hidden="true">◦</span> 记录保存在当前浏览器</p>
+                    <div class="section-heading"><h2 id="leaderboardTitle">排行榜</h2><span id="boardBadge">TOP 10</span></div>
+                    <div class="board-tabs" role="tablist" aria-label="排行榜范围">
+                        <button type="button" id="tabLocal" class="board-tab is-active" role="tab" aria-selected="true" aria-controls="panelLocal">我的记录</button>
+                        <button type="button" id="tabGlobal" class="board-tab" role="tab" aria-selected="false" aria-controls="panelGlobal">全站 TOP 30</button>
+                    </div>
+                    <div id="panelLocal" class="board-panel" role="tabpanel" aria-labelledby="tabLocal">
+                        <p class="section-caption">每一次合成，都离纪录更近一点。</p>
+                        <ol id="leaderboardList" class="leaderboard-list"></ol>
+                        <p class="local-note"><span aria-hidden="true">◦</span> 记录保存在当前浏览器</p>
+                    </div>
+                    <div id="panelGlobal" class="board-panel" role="tabpanel" aria-labelledby="tabGlobal" hidden>
+                        <p class="section-caption" id="globalCaption">每位用户只记录历史最高分。</p>
+                        <div id="myRank" class="my-rank" hidden></div>
+                        <div class="global-scroll"><ol id="globalList" class="leaderboard-list global-list"></ol></div>
+                        <p class="local-note"><span aria-hidden="true">◦</span> 登录后即可参与全站排名</p>
+                    </div>
                 </section>
                 <section class="how-to"><span class="eyebrow">HOW TO PLAY</span><h2>轻轻一滑，快乐加倍。</h2><p>让相同数字碰在一起，合成更大的方块。试着把最大的数字留在角落，一步步向 2048 靠近。</p><div class="merge-demo" aria-hidden="true"><span>2</span><b>+</b><span>2</span><b>→</b><span>4</span></div></section>
             </aside>

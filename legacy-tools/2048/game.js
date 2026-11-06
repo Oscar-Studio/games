@@ -3,12 +3,29 @@ import { slide, isGameOver } from './engine.js';
 const $ = id => document.getElementById(id);
 const hues = [155, 202, 259, 319, 352, 25, 43, 178, 224, 280, 47];
 
+// Floating score chips: vertical distance between stacked chips, how many stay
+// on screen at once, and how far a single chip drifts up while it fades.
+const GAIN_STEP = 12;
+const GAIN_MAX = 3;
+const GAIN_RISE = 10;
+
 // Storage may be unavailable in private browsing; the game remains playable.
 function read(key, fallback) {
     try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
 }
 function write(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* In-memory play still works. */ }
+}
+
+// The leaderboard module is optional. Dispatching an event keeps the game core
+// independent of auth/network code, and keeps it runnable in the Node test
+// harness (where window / CustomEvent don't exist).
+function publishScore(score, reason) {
+    try {
+        if (typeof CustomEvent !== 'undefined' && typeof globalThis.dispatchEvent === 'function') {
+            globalThis.dispatchEvent(new CustomEvent('game2048:score', { detail: { score, reason } }));
+        }
+    } catch { /* Score sync is best-effort. */ }
 }
 
 export class Game2048 {
@@ -24,6 +41,7 @@ export class Game2048 {
         this.queuedDirection = null;
         this.pointer = null;
         this.ended = false;
+        this.gainChips = [];
         this.bestScore = Number(read('2048_bestScore', 0)) || 0;
         const records = read('2048_leaderboard', []);
         this.leaderboard = Array.isArray(records) ? records.filter(x => x && Number.isFinite(x.score) && typeof x.date === 'string').slice(0, 10) : [];
@@ -56,7 +74,12 @@ export class Game2048 {
     }
 
     startNewGame() {
+        // A finished game was already reported in commitTurn(); only an abandoned
+        // in-progress game needs reporting here. On construction `score` is still
+        // undefined, so the very first call is skipped naturally.
+        if (this.score > 0 && !this.ended) publishScore(this.score, 'abandon');
         this.cancelAnimations();
+        this.clearScoreGains();
         this.pendingTurn = null;
         this.pointer = null;
         this.ended = false;
@@ -270,6 +293,7 @@ export class Game2048 {
             this.ended = true;
             this.dismissed = false;
             const rank = this.saveScore();
+            publishScore(this.score, 'gameover');
             $('finalScore').textContent = this.score;
             $('finalRank').textContent = rank ? `本地最佳表现 · 第 ${rank} 名` : '每一步，都是新的可能。';
         }
@@ -291,9 +315,61 @@ export class Game2048 {
             write('2048_bestScore', this.bestScore);
         }
         $('bestScore').textContent = this.bestScore;
-        if (gain && !this.motion.matches) {
-            $('scoreGain').textContent = `+${gain}`;
-            this.animate($('scoreGain'), [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(-22px)' }], { duration: 550, easing: 'ease-out' });
+        if (gain && !this.motion.matches) this.showScoreGain(gain);
+    }
+
+    // Every gain event gets its own chip. Chips are not part of this.animations:
+    // the next move cancels the board animations, and it must never wipe the
+    // score readout. The newest chip sits on the anchor, older ones step up to
+    // make room, so a burst of gains stays readable instead of flashing.
+    showScoreGain(gain) {
+        const layer = $('scoreGainLayer');
+        if (!layer) return;
+        const chip = document.createElement('span');
+        chip.className = 'score-gain';
+        const inner = document.createElement('span');
+        inner.className = 'score-gain-inner';
+        inner.textContent = `+${gain}`;
+        chip.append(inner);
+        layer.append(chip);
+        const record = { chip, animation: null };
+        this.gainChips.push(record);
+        // A burst must not build a column taller than the box can carry.
+        while (this.gainChips.length > GAIN_MAX) this.dropScoreGain(this.gainChips[0]);
+        this.layoutScoreGains();
+        // The more chips share the space, the shorter each one lives.
+        const duration = Math.max(460, 820 - (this.gainChips.length - 1) * 130);
+        record.animation = inner.animate([
+            { opacity: 0, transform: `translateY(${GAIN_RISE * .5}px)`, easing: 'cubic-bezier(.3,0,.6,1)' },
+            { opacity: 1, transform: 'translateY(0)', offset: .12, easing: 'cubic-bezier(.25,.6,.35,1)' },
+            { opacity: 1, transform: `translateY(-${GAIN_RISE * .7}px)`, offset: .7, easing: 'cubic-bezier(.6,0,.9,.4)' },
+            { opacity: 0, transform: `translateY(-${GAIN_RISE}px)` }
+        ], { duration, fill: 'forwards' });
+        record.animation.finished.then(() => this.dropScoreGain(record), () => this.dropScoreGain(record));
+    }
+
+    layoutScoreGains() {
+        const count = this.gainChips.length;
+        this.gainChips.forEach((record, index) => {
+            // The newest chip owns the anchor, every older one steps up.
+            record.chip.style.setProperty('--lift', `${-(count - 1 - index) * GAIN_STEP}px`);
+        });
+    }
+
+    dropScoreGain(record) {
+        const index = this.gainChips.indexOf(record);
+        if (index < 0) return;
+        this.gainChips.splice(index, 1);
+        record.chip.remove();
+        this.layoutScoreGains();
+    }
+
+    clearScoreGains() {
+        const chips = this.gainChips;
+        this.gainChips = [];
+        for (const record of chips) {
+            record.animation?.cancel();
+            record.chip.remove();
         }
     }
 

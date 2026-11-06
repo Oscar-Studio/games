@@ -9,7 +9,7 @@ function harness() {
     const animations = [];
     const recorded = [];
     class Element {
-        constructor() { this.children = []; this.style = { setProperty() {} }; this.textContent = ''; this.open = false; this.attributes = {}; }
+        constructor() { this.children = []; this.style = { props: {}, setProperty(key, value) { this.props[key] = value; } }; this.textContent = ''; this.open = false; this.attributes = {}; }
         append(el) { el.parent = this; this.children.push(el); }
         replaceChildren() { this.children = []; }
         remove() { this.parent.children = this.parent.children.filter(x => x !== this); }
@@ -36,7 +36,7 @@ function harness() {
         const visit = el => el.id === id ? el : el.children.map(visit).find(Boolean);
         return roots.get(id) || [...roots.values()].map(visit).find(Boolean);
     };
-    const ids = ['tileContainer', 'gameOverModal', 'bestScore', 'currentScore', 'scoreGain', 'gameStatus', 'finalScore', 'finalRank', 'leaderboardList', 'newGameBtn', 'restartBtn', 'closeModalBtn'];
+    const ids = ['tileContainer', 'gameOverModal', 'bestScore', 'currentScore', 'scoreGainLayer', 'gameStatus', 'finalScore', 'finalRank', 'leaderboardList', 'newGameBtn', 'restartBtn', 'closeModalBtn'];
     ids.forEach(id => roots.set(id, new Element()));
     const stored = new Map([['2048_bestScore', '128'], ['2048_leaderboard', JSON.stringify([{ score: 64, date: '2026/10/29', timestamp: 1 }])]]);
     const context = vm.createContext({
@@ -255,4 +255,48 @@ test('fusion hides only the shared edge and restores normal material on commit o
         game.resize(); await flush();
         for (const tile of lookup('tileContainer').children) assert.equal(tile.firstElementChild.getAttribute('data-contact'), null);
     }
+});
+
+test('a score gain keeps its own chip and the next move does not wipe it', async () => {
+    const { game, fixture, flush, lookup } = harness();
+    fixture([[2, 2]]);
+    game.move(3); await flush(); await flush();
+    const layer = lookup('scoreGainLayer');
+    assert.equal(layer.children.length, 1);
+    assert.equal(layer.children[0].children[0].textContent, '+4');
+    game.move(0); // cancelAnimations() runs here and must leave the chip alone
+    assert.equal(lookup('scoreGainLayer').children.length, 1, 'the chip must survive the next move');
+    game.startNewGame(); await flush();
+    assert.equal(lookup('scoreGainLayer').children.length, 0, 'a new game clears the chips');
+});
+
+test('concurrent gains stack upwards and shorten their life', () => {
+    const { game, lookup, recorded } = harness();
+    game.showScoreGain(4);
+    game.showScoreGain(8);
+    game.showScoreGain(16);
+    const layer = lookup('scoreGainLayer');
+    assert.equal(layer.children.length, 3);
+    assert.deepEqual(layer.children.map(chip => chip.children[0].textContent), ['+4', '+8', '+16']);
+    assert.deepEqual(layer.children.map(chip => chip.style.props['--lift']), ['-24px', '-12px', '0px']);
+    const durations = recorded.filter(a => a.element.className === 'score-gain-inner').map(a => a.options.duration);
+    assert.equal(durations.length, 3);
+    assert.ok(durations[0] > durations[1] && durations[1] > durations[2], 'a burst shortens every chip');
+    assert.ok(durations[2] >= 460);
+});
+
+test('the chip column never grows past the visible limit', () => {
+    const { game, lookup } = harness();
+    for (const gain of [4, 8, 16, 32]) game.showScoreGain(gain);
+    const layer = lookup('scoreGainLayer');
+    assert.equal(layer.children.length, 3);
+    assert.deepEqual(layer.children.map(chip => chip.children[0].textContent), ['+8', '+16', '+32']);
+});
+
+test('a chip leaves the layer once its animation ends', async () => {
+    const { game, flush, lookup } = harness();
+    game.showScoreGain(4);
+    assert.equal(lookup('scoreGainLayer').children.length, 1);
+    await flush();
+    assert.equal(lookup('scoreGainLayer').children.length, 0);
 });
