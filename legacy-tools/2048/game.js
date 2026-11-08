@@ -1,5 +1,5 @@
 import { slide, isGameOver } from './engine.js';
-import { setupAudio } from './audio.js';
+import { setupAudio } from './audio.js?v=20261108-cache';
 
 const $ = id => document.getElementById(id);
 const hues = [155, 202, 259, 319, 352, 25, 43, 178, 224, 280, 47];
@@ -522,8 +522,8 @@ export class Game2048 {
             if (!start || start.id !== event.pointerId) return;
             this.pointer = null;
             const dx = event.clientX - start.x, dy = event.clientY - start.y;
-            if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
             this.audio?.unlock();
+            if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
             this.move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0));
         });
         for (const name of ['pointercancel', 'lostpointercapture']) this.board.addEventListener(name, () => { this.pointer = null; });

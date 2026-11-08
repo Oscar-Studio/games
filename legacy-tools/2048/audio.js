@@ -1,10 +1,28 @@
 const MUSIC_URL = 'https://backgrounds.oscarstudio.cn/backgrounds/game-audio/2048/first_light_particles.m4a';
+const MUSIC_CACHE = '2048-music-v1';
 const NOTES = {
     move: [[330, 0, .055, .08]],
     merge: [[523, 0, .11, .17], [784, .05, .15, .11]],
     start: [[392, 0, .10, .12], [587, .07, .15, .13]],
     end: [[392, 0, .15, .12], [330, .12, .15, .12], [262, .24, .22, .12]],
 };
+
+async function loadMusic() {
+    let cache;
+    try {
+        cache = await window.caches?.open(MUSIC_CACHE);
+        const cached = await cache?.match(MUSIC_URL);
+        if (cached) return await cached.blob();
+    } catch { /* Playback still works when local storage is unavailable. */ }
+
+    const response = await fetch(MUSIC_URL);
+    if (response.status !== 200) throw new Error('Incomplete music download');
+    const audio = await response.blob();
+    try {
+        await cache?.put(MUSIC_URL, new Response(audio));
+    } catch { /* Keep the downloaded audio for this page even if storage is full. */ }
+    return audio;
+}
 
 export function setupAudio(panel, saved, save) {
     if (!panel) return;
@@ -22,6 +40,8 @@ export function setupAudio(panel, saved, save) {
     let musicGain;
     let effectsGain;
     let track;
+    let loadingTrack = false;
+    let musicLoadFailed = false;
 
     function setStatus(message) {
         status.textContent = message;
@@ -39,18 +59,29 @@ export function setupAudio(panel, saved, save) {
     function syncMusic() {
         if (!enabled.checked || !music.valueAsNumber || document.hidden) {
             track?.pause();
+            if (!enabled.checked || !music.valueAsNumber) setStatus('');
             return;
         }
         if (!context) return;
         if (!track) {
-            track = new Audio();
-            track.crossOrigin = 'anonymous';
-            track.loop = true;
-            context.createMediaElementSource(track).connect(musicGain);
-            track.addEventListener('error', () => {
+            if (loadingTrack || musicLoadFailed) return;
+            loadingTrack = true;
+            setStatus('正在加载背景音乐…');
+            loadMusic().then(audio => {
+                const player = new Audio(URL.createObjectURL(audio));
+                player.loop = true;
+                context.createMediaElementSource(player).connect(musicGain);
+                player.addEventListener('error', () => {
+                    if (enabled.checked) setStatus('背景音乐暂时无法播放。');
+                });
+                track = player;
+                setStatus('');
+                syncMusic();
+            }).catch(() => {
+                musicLoadFailed = true;
                 if (enabled.checked) setStatus('背景音乐暂时无法播放。');
-            });
-            track.src = MUSIC_URL;
+            }).finally(() => { loadingTrack = false; });
+            return;
         }
         if (track.paused) {
             setStatus('');
@@ -110,6 +141,7 @@ export function setupAudio(panel, saved, save) {
         saveSettings();
         setStatus('');
         if (enabled.checked) {
+            musicLoadFailed = false;
             if (track?.error) track.load();
             unlock();
         } else {
