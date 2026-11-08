@@ -1,4 +1,5 @@
 import { slide, isGameOver } from './engine.js';
+import { setupAudio } from './audio.js';
 
 const $ = id => document.getElementById(id);
 const hues = [155, 202, 259, 319, 352, 25, 43, 178, 224, 280, 47];
@@ -50,6 +51,7 @@ export class Game2048 {
         this.leaderboard = Array.isArray(records) ? records.filter(x => x && Number.isFinite(x.score) && typeof x.date === 'string').slice(0, 10) : [];
         $('bestScore').textContent = this.bestScore;
         this.applyTheme(read('2048_theme', 'jelly') === 'classic' ? 'classic' : 'jelly');
+        this.audio = setupAudio($('audioSettings'), read('2048_audio', {}), settings => write('2048_audio', settings));
         this.loadLeaderboard();
         this.setupInput();
         // An unfinished run is resumed; only a fresh board starts a new game.
@@ -369,6 +371,7 @@ export class Game2048 {
         const id = this.addRandomTile();
         // The turn is complete: this is the state a refresh has to come back to.
         this.saveGame();
+        this.audio?.effect(turn.score ? 'merge' : 'move');
         $('gameStatus').textContent = `当前分数 ${this.score}${turn.score ? `，本步增加 ${turn.score} 分` : ''}。`;
         if (isGameOver(this.grid)) {
             this.ended = true;
@@ -388,6 +391,7 @@ export class Game2048 {
             this.cancelAnimations();
             this.pointer = null;
             this.modal.showModal();
+            this.audio?.effect('end');
         }
     }
 
@@ -499,9 +503,13 @@ export class Game2048 {
         }
         const keys = { ArrowUp: 0, w: 0, ArrowRight: 1, d: 1, ArrowDown: 2, s: 2, ArrowLeft: 3, a: 3 };
         document.addEventListener('keydown', event => {
-            if (event.altKey || event.ctrlKey || event.metaKey || this.modal.open || event.target.closest('button, a, input, textarea, select')) return;
+            if (event.altKey || event.ctrlKey || event.metaKey || this.modal.open || event.target.closest('button, a, input, textarea, select, summary')) return;
             const direction = keys[event.key] ?? keys[event.key.toLowerCase()];
-            if (direction !== undefined) { event.preventDefault(); this.move(direction); }
+            if (direction !== undefined) {
+                event.preventDefault();
+                this.audio?.unlock();
+                this.move(direction);
+            }
         });
         this.board.addEventListener('pointerdown', event => {
             if (!event.isPrimary || event.button !== 0 || this.modal.open) return;
@@ -515,11 +523,18 @@ export class Game2048 {
             this.pointer = null;
             const dx = event.clientX - start.x, dy = event.clientY - start.y;
             if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+            this.audio?.unlock();
             this.move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0));
         });
         for (const name of ['pointercancel', 'lostpointercapture']) this.board.addEventListener(name, () => { this.pointer = null; });
-        $('newGameBtn').addEventListener('click', () => { this.startNewGame(); this.board.focus({ preventScroll: true }); });
-        $('restartBtn').addEventListener('click', () => { this.startNewGame(); this.board.focus(); });
+        for (const id of ['newGameBtn', 'restartBtn']) {
+            $(id).addEventListener('click', () => {
+                this.audio?.unlock();
+                this.audio?.effect('start');
+                this.startNewGame();
+                this.board.focus({ preventScroll: true });
+            });
+        }
         $('closeModalBtn').addEventListener('click', () => { this.dismissed = true; this.modal.close(); this.board.focus(); });
         this.modal.addEventListener('cancel', () => { this.dismissed = true; });
     }

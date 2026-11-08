@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { slide, isGameOver } from '../legacy-tools/2048/engine.js';
+import { setupAudio } from '../legacy-tools/2048/audio.js';
 
 // Minimal DOM/animation clock: advance animations explicitly to reproduce races.
 // Passing a `shared` store replays the same localStorage, i.e. a page reload.
@@ -45,14 +46,14 @@ function harness(shared) {
     ids.forEach(id => roots.set(id, new Element()));
     const stored = shared || new Map([['2048_bestScore', '128'], ['2048_leaderboard', JSON.stringify([{ score: 64, date: '2026/10/29', timestamp: 1 }])]]);
     const context = vm.createContext({
-        slide, isGameOver, console, ResizeObserver: class { observe() {} },
+        slide, isGameOver, setupAudio, console, ResizeObserver: class { observe() {} },
         matchMedia: () => ({ matches: false, addEventListener() {} }),
         getComputedStyle: () => ({ gap: '12' }),
         localStorage: { getItem: k => stored.get(k), setItem: (k, v) => stored.set(k, v), removeItem: k => stored.delete(k) },
         document: { documentElement: new Element(), getElementById: lookup, querySelector: () => new Element(), createElement: () => new Element(), addEventListener() {} },
     });
     const source = readFileSync(new URL('../legacy-tools/2048/game.js', import.meta.url), 'utf8')
-        .replace(/^import .*;\n/, '').replace('export class Game2048', 'class Game2048').replace('new Game2048();', 'globalThis.game = new Game2048();');
+        .replace(/^import .*;\n/gm, '').replace('export class Game2048', 'class Game2048').replace('new Game2048();', 'globalThis.game = new Game2048();');
     vm.runInContext(source, context);
     const game = context.game;
     const fixture = rows => {

@@ -79,6 +79,16 @@ button:active { transform: scale(.97); }
 .input-hint { text-align: center; color: var(--muted); font-size: 11px; margin: 22px 0 0; line-height: 1.8; }
 .keycaps { font-size: 13px; letter-spacing: .16em; margin-right: 6px; }
 .hint-divider { margin: 0 9px; }
+.audio-settings { margin: 12px 0 0; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); font-size: 12px; }
+.audio-settings summary { padding: 10px 12px; cursor: pointer; }
+.audio-controls { display: grid; gap: 10px; padding: 0 12px 12px; }
+.audio-toggle, .audio-volume { display: grid; align-items: center; gap: 8px; }
+.audio-toggle { grid-template-columns: auto 1fr; min-height: 32px; }
+.audio-volume { grid-template-columns: auto minmax(0, 1fr) 4ch; }
+.audio-settings input { margin: 0; accent-color: var(--accent); }
+.audio-volume input { width: 100%; min-height: 26px; }
+.audio-volume output { text-align: right; font-variant-numeric: tabular-nums; }
+.audio-status { margin: 0; color: var(--muted); }
 .side-panel { padding-top: 48px; }
 .leaderboard { padding: 24px 22px 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 23px; }
 .section-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }

@@ -19,9 +19,9 @@
     <script defer src="https://api.oscarstudio.cn/user-button.js"></script>
 
     <meta name="color-scheme" content="light dark">
-    <link rel="stylesheet" href="./style.css?v=20261108">
+    <link rel="stylesheet" href="./style.css?v=20261108-audio">
     <script type="module" src="./leaderboard.js"></script>
-    <script type="module" src="./game.js?v=20261108"></script>
+    <script type="module" src="./game.js?v=20261108-audio"></script>
 </head>
 <body>
     <main class="app">
@@ -69,6 +69,15 @@
                     <div class="tile-container" id="tileContainer"></div>
                 </div>
                 <p class="input-hint"><span class="keycaps" aria-hidden="true">↑ ← ↓ →</span> 方向键 / WASD <span class="hint-divider">·</span> 滑动也能玩</p>
+                <details class="audio-settings" id="audioSettings">
+                    <summary>声音设置</summary>
+                    <div class="audio-controls">
+                        <label class="audio-toggle"><input type="checkbox" name="musicEnabled"> 播放背景音乐</label>
+                        <label class="audio-volume"><span>音乐音量</span><input type="range" name="music" min="0" max="100" value="35"><output>35%</output></label>
+                        <label class="audio-volume"><span>音效音量</span><input type="range" name="effects" min="0" max="100" value="45"><output>45%</output></label>
+                        <p class="audio-status" role="status" hidden></p>
+                    </div>
+                </details>
                 <p class="sr-only" id="gameStatus" role="status" aria-live="polite"></p>
             </section>
             <aside class="side-panel">
