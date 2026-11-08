@@ -41,7 +41,7 @@ function harness(shared) {
         const visit = el => el.id === id ? el : el.children.map(visit).find(Boolean);
         return roots.get(id) || [...roots.values()].map(visit).find(Boolean);
     };
-    const ids = ['tileContainer', 'gameOverModal', 'bestScore', 'currentScore', 'currentScoreBox', 'scoreGainLayer', 'gameStatus', 'finalScore', 'finalRank', 'leaderboardList', 'newGameBtn', 'restartBtn', 'closeModalBtn'];
+    const ids = ['tileContainer', 'gameOverModal', 'bestScore', 'currentScore', 'currentScoreBox', 'scoreGainLayer', 'gameStatus', 'finalScore', 'finalRank', 'leaderboardList', 'newGameBtn', 'restartBtn', 'closeModalBtn', 'themeJelly', 'themeClassic'];
     ids.forEach(id => roots.set(id, new Element()));
     const stored = shared || new Map([['2048_bestScore', '128'], ['2048_leaderboard', JSON.stringify([{ score: 64, date: '2026/10/29', timestamp: 1 }])]]);
     const context = vm.createContext({
@@ -49,7 +49,7 @@ function harness(shared) {
         matchMedia: () => ({ matches: false, addEventListener() {} }),
         getComputedStyle: () => ({ gap: '12' }),
         localStorage: { getItem: k => stored.get(k), setItem: (k, v) => stored.set(k, v), removeItem: k => stored.delete(k) },
-        document: { getElementById: lookup, querySelector: () => new Element(), createElement: () => new Element(), addEventListener() {} },
+        document: { documentElement: new Element(), getElementById: lookup, querySelector: () => new Element(), createElement: () => new Element(), addEventListener() {} },
     });
     const source = readFileSync(new URL('../legacy-tools/2048/game.js', import.meta.url), 'utf8')
         .replace(/^import .*;\n/, '').replace('export class Game2048', 'class Game2048').replace('new Game2048();', 'globalThis.game = new Game2048();');
@@ -150,6 +150,38 @@ test('reduced motion retains movement and scoring without squash animations', as
     assert.equal(game.animations.size, 0);
 });
 
+test('switching themes during a merge commits it once and restores the same run in the chosen theme', async () => {
+    const { game, fixture, flush, lookup, stored } = harness();
+    fixture([[2, 2]]);
+    const turn = game.move(3);
+    await flush(); // Jelly tiles have met and are still pressing together.
+    game.switchTheme('classic');
+    await turn;
+    assert.equal(game.score, 4);
+    assert.equal(game.grid[0][0].value, 4);
+    assert.equal(lookup('fixture-0-0').firstElementChild.getAttribute('data-contact'), null);
+    assert.equal(lookup('themeClassic').getAttribute('aria-pressed'), 'true');
+    assert.equal(lookup('scoreGainLayer').children.length, 0);
+
+    const reloaded = harness(stored);
+    assert.equal(reloaded.game.theme, 'classic');
+    assert.equal(reloaded.game.score, 4);
+    assert.deepEqual(JSON.stringify(reloaded.game.grid.map(row => row.map(tile => tile?.value))),
+        JSON.stringify(game.grid.map(row => row.map(tile => tile?.value))));
+});
+
+test('an original theme merge finishes after the slide without jelly or score animations', async () => {
+    const { game, fixture, flush, recorded } = harness();
+    fixture([[2, 2, 4, 4]]);
+    game.switchTheme('classic');
+    const turn = game.move(3);
+    await flush();
+    await turn;
+    assert.equal(game.score, 12);
+    assert.equal(game.grid[0][0].value, 4);
+    assert.equal(game.grid[0][1].value, 8);
+    assert.ok(recorded.length > 0 && recorded.every(animation => animation.element.className === 'tile'));
+});
 
 test('both source bodies survive contact and pressure before the new value appears', async () => {
     const { game, fixture, flush, lookup, recorded } = harness();

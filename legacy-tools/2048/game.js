@@ -49,6 +49,7 @@ export class Game2048 {
         const records = read('2048_leaderboard', []);
         this.leaderboard = Array.isArray(records) ? records.filter(x => x && Number.isFinite(x.score) && typeof x.date === 'string').slice(0, 10) : [];
         $('bestScore').textContent = this.bestScore;
+        this.applyTheme(read('2048_theme', 'jelly') === 'classic' ? 'classic' : 'jelly');
         this.loadLeaderboard();
         this.setupInput();
         // An unfinished run is resumed; only a fresh board starts a new game.
@@ -56,6 +57,23 @@ export class Game2048 {
         this.observer = new ResizeObserver(() => this.resize());
         this.observer.observe(this.board);
         this.motion.addEventListener('change', () => this.resize());
+    }
+
+    applyTheme(theme) {
+        this.theme = theme;
+        document.documentElement.setAttribute('data-theme', theme);
+        $('themeJelly')?.setAttribute('aria-pressed', String(theme === 'jelly'));
+        $('themeClassic')?.setAttribute('aria-pressed', String(theme === 'classic'));
+    }
+
+    switchTheme(theme) {
+        if (this.theme === theme) return;
+        this.applyTheme(theme);
+        write('2048_theme', theme);
+        $('currentScoreBox')?.classList.remove('is-restored');
+        this.clearScoreGains();
+        // Settle any turn already in flight and measure the newly styled board.
+        this.resize();
     }
 
     animate(element, frames, options) {
@@ -123,7 +141,7 @@ export class Game2048 {
         this.render();
         this.updateScore(0);
         $('gameStatus').textContent = `已恢复上次的游戏进度，当前分数 ${this.score}。`;
-        this.pulseScoreBox();
+        if (this.theme === 'jelly' && !this.motion.matches) this.pulseScoreBox();
         return true;
     }
 
@@ -204,6 +222,7 @@ export class Game2048 {
             el.style.width = el.style.height = `${this.metrics.size}px`;
             const inner = el.firstElementChild;
             inner.removeAttribute('data-contact');
+            inner.setAttribute('data-value', tile.value);
             const level = Math.round(Math.log2(tile.value)) - 1;
             inner.style.setProperty('--hue', hues[level] ?? (47 + (level - 10) * 47) % 360);
             const digits = String(tile.value).length;
@@ -222,6 +241,8 @@ export class Game2048 {
         this.cancelAnimations();
         const epoch = this.epoch;
         this.pendingTurn = turn;
+        const jellyMotion = this.theme === 'jelly' && !this.motion.matches;
+        const duration = this.motion.matches ? 65 : this.theme === 'classic' ? 100 : turn.merges.length ? 135 : 175;
         const horizontal = direction === 1 || direction === 3;
         const sign = direction === 1 || direction === 2 ? 1 : -1;
         const shape = (along, across) => horizontal ? `scale(${along}, ${across})` : `scale(${across}, ${along})`;
@@ -232,7 +253,7 @@ export class Game2048 {
         const origin = horizontal ? `${sign > 0 ? 100 : 0}% 50%` : `50% ${sign > 0 ? 100 : 0}%`;
         const pairIds = new Set(turn.merges.flatMap(pair => [pair.lead, pair.incoming]));
         const contacts = new Map();
-        if (!this.motion.matches) {
+        if (jellyMotion) {
             for (const pair of turn.merges) {
                 // Two separate lobes meet at the centre seam. Their combined footprint
                 // stays inside the destination cell, including simultaneous neighbours.
@@ -249,8 +270,8 @@ export class Game2048 {
             const contact = contacts.get(id);
             const to = this.position(move.r, move.c) + (contact ? ` ${shift(contact.offset)}` : '');
             el.style.transform = to;
-            sliding.push(this.animate(el, [{ transform: from }, { transform: to }], { duration: this.motion.matches ? 65 : (turn.merges.length ? 135 : 175), easing: 'cubic-bezier(.22,.65,.32,1)' }));
-            if (!this.motion.matches) {
+            sliding.push(this.animate(el, [{ transform: from }, { transform: to }], { duration, easing: 'cubic-bezier(.22,.65,.32,1)' }));
+            if (jellyMotion) {
                 const inner = el.firstElementChild;
                 inner.style.transformOrigin = contact ? '50% 50%' : origin;
                 if (contact) inner.setAttribute('data-contact', horizontal
@@ -264,13 +285,13 @@ export class Game2048 {
                     { transform: 'scale(1)' },
                     { transform: shape(1.065, .945), offset: .5 },
                     { transform: 'scale(1)' }
-                ], { duration: turn.merges.length ? 135 : 175, fill: contact ? 'forwards' : 'none' }));
+                ], { duration, fill: contact ? 'forwards' : 'none' }));
             }
         }
         await Promise.all(sliding);
         if (epoch !== this.epoch) return;
         const settling = [];
-        if (!this.motion.matches) {
+        if (jellyMotion) {
             for (const move of turn.moves) {
                 if (pairIds.has(move.id) || !$(move.id)) continue;
                 const inner = $(move.id).firstElementChild;
@@ -317,7 +338,7 @@ export class Game2048 {
         }
         const newId = this.commitTurn();
         this.render();
-        if (!this.motion.matches) {
+        if (jellyMotion) {
             for (const id of turn.merged) {
                 const inner = $(id).firstElementChild;
                 inner.style.transformOrigin = '50% 50%';
@@ -377,7 +398,7 @@ export class Game2048 {
             write('2048_bestScore', this.bestScore);
         }
         $('bestScore').textContent = this.bestScore;
-        if (gain && !this.motion.matches) this.showScoreGain(gain);
+        if (gain && this.theme === 'jelly' && !this.motion.matches) this.showScoreGain(gain);
     }
 
     // Every gain event gets its own chip. Chips are not part of this.animations:
@@ -470,6 +491,12 @@ export class Game2048 {
     }
 
     setupInput() {
+        for (const [id, theme] of [['themeJelly', 'jelly'], ['themeClassic', 'classic']]) {
+            $(id)?.addEventListener('click', event => {
+                this.switchTheme(theme);
+                if (event.detail && !this.modal.open) this.board.focus({ preventScroll: true });
+            });
+        }
         const keys = { ArrowUp: 0, w: 0, ArrowRight: 1, d: 1, ArrowDown: 2, s: 2, ArrowLeft: 3, a: 3 };
         document.addEventListener('keydown', event => {
             if (event.altKey || event.ctrlKey || event.metaKey || this.modal.open || event.target.closest('button, a, input, textarea, select')) return;
