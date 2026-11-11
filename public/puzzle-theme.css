@@ -1,0 +1,47 @@
+:root {
+  color-scheme: light;
+  --bg-0: #fbf3e8;
+  --bg-1: #fffcf7;
+  --bg-2: #fff8ef;
+  --bg-3: #f6e3d1;
+  --line: #e3cdb9;
+  --line-2: #9a7056;
+  --text: #3d271e;
+  --text-dim: #674a3b;
+  --text-mute: #745648;
+  --primary: #9b3925;
+  --primary-2: #943722;
+  --accent: #a8472c;
+  --success: #416447;
+  --warn: #8f5619;
+  --error: #a12732;
+  --shadow: 0 12px 30px #69392214;
+}
+
+html {
+  background: radial-gradient(ellipse at top, #f7e2cb 0%, var(--bg-0) 65%);
+  color: var(--text);
+  font-family: 'Instrument Sans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+}
+
+button {
+  font-family: inherit;
+}
+
+:where(a, button):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+.home-back {
+  color: var(--text-dim);
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.home-back:hover {
+  background: var(--bg-3);
+  color: var(--primary);
+}

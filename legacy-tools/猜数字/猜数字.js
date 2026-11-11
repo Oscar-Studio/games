@@ -247,10 +247,10 @@
 
   function renderMastermindFeedback(bulls, cows, total) {
     const pegs = [];
-    for (let i = 0; i < bulls; i++) pegs.push('<span class="peg-dot black"></span>');
-    for (let i = 0; i < cows; i++) pegs.push('<span class="peg-dot white"></span>');
+    for (let i = 0; i < bulls; i++) pegs.push('<span class="peg-dot exact"></span>');
+    for (let i = 0; i < cows; i++) pegs.push('<span class="peg-dot misplaced"></span>');
     for (let i = 0; i < total - bulls - cows; i++) pegs.push('<span class="peg-dot empty"></span>');
-    return `<span class="peg-row">${pegs.join('')}</span>`;
+    return `<span class="peg-row" role="img" aria-label="${bulls} 个颜色和位置都正确，${cows} 个颜色正确但位置错误">${pegs.join('')}</span>`;
   }
 
   function renderInput() {
