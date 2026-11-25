@@ -5,13 +5,14 @@ import { seoInject } from './vite-plugin-seo-inject';
 
 export default defineConfig({
   base: '/',
+  server: { proxy: { '/api/junqi': { target: 'https://api.oscarstudio.cn', changeOrigin: true } } },
   plugins: [
     react(),
     seoInject(),
     viteStaticCopy({
       targets: [
         { src: 'tools-config.json', dest: '.' },
-        { src: 'legacy-tools/*', dest: '.' },
+        { src: 'legacy-tools/[^.]*', dest: '.' },
         { src: 'CNAME', dest: '.' },
       ],
     }),

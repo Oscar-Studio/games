@@ -1,6 +1,15 @@
 {
   "tools": [
     {
+      "id": "junqi",
+      "name": "军棋",
+      "description": "典藏木棋桌上的陆战棋，布阵暗棋与翻棋均可挑战电脑或邀请好友",
+      "tags": ["棋类"],
+      "icon": "⚑",
+      "featured": true,
+      "demoFile": "军棋/index.html"
+    },
+    {
       "id": "chess-international",
       "name": "国际象棋",
       "description": "经典国际象棋，支持王车易位、吃过路兵、兵升变等全部规则",
